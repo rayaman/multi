@@ -16,7 +16,7 @@ alarm:OnRing(function(a)
 end)
 multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow intergration in other loops Ex: love2d love.update function. More on this binding in the wiki!
 ```
-The library is module so you only need to require what you need. Because of this the global enviroment is altered</br>
+The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
@@ -366,15 +366,223 @@ Low: 971 Steps in 3 second(s)!</br>
 
 Notice: Even though I started each bench at the same time the order that they finished differed the order is likely to vary on your machine as well!</br>
 
+# Processes
+A process allows you to group the Actor objects within a controlable interface
+```lua
+require("multi.all")
+proc=multi:newProcess() -- takes an optional file as an argument, but for this example we aren't going to use that
+-- a process works just like the multi object!
+b=0
+loop=proc:newTLoop(function(self)
+	a=a+1
+	proc:Pause() -- pauses the cpu cycler for this processor! Individual objects are not paused, however because they aren't getting cpu time they act as if they were paused
+end,.1)
+updater=proc:newUpdater(multi.Priority_Idle) -- priority can be used in skip arguments as well to manage priority without enabling it!
+updater:OnUpdate(function(self)
+	b=b+1
+end)
+a=0 -- a counter
+loop2=proc:newLoop(function(dt,self)
+	print("Lets Go!")
+	self:hold(3) -- this will keep this object from doing anything! Note: You can only have one hold active at a time! Multiple are possible, but results may not be as they seem see * for how hold works
+	-- Within a process using hold will keep it alive until the hold is satisified!
+	print("Done being held for 1 second")
+	self:hold(function() return a>10 end)
+	print("A is now: "..a.." b is also: "..b)
+	self:Destroy()
+	self.Parent:Pause() -- lets say you don't have the reference to the process!
+	os.exit()
+end)
+-- Notice this is now being created on the multi namespace
+event=multi:newEvent(function() return os.clock()>=1 end)
+event:OnEvent(function(self)
+	proc:Resume()
+	self:Destroy()
+end)
+proc:Start()
+multi:mainloop()
+```
+# Output
+Lets Go!</br>
+Done being held for 1 second</br>
+A is now: 29 b is also: 479</br>
 
-# TODO
-- Process#</br>
-- Queuer#</br>
-- Thread*</br>
-- Trigger**</br>
-- Task</br>
-- Job</br>
-- Function</br>
-- Watcher***</br>
+**Hold: This method works as follows**
+```lua
+function multi:hold(task)
+	self:Pause() -- pause the current object
+	self.held=true -- set held
+	if type(task)=='number' then -- a sleep cmd
+		local timer=multi:newTimer()
+		timer:Start()
+		while timer:Get()<task do -- This while loop is what makes using multiple holds tricky... If the outer while is good before the nested one then the outter one will have to wait! There is a way around this though!
+			if love then
+				self.Parent:lManager()
+			else
+				self.Parent:Do_Order()
+			end
+		end
+		self:Resume()
+		self.held=false
+	elseif type(task)=='function' then
+		local env=self.Parent:newEvent(task)
+		env:OnEvent(function(envt) envt:Pause() envt.Active=false end)
+		while env.Active do
+			if love then
+				self.Parent:lManager()
+			else
+				self.Parent:Do_Order()
+			end
+		end
+		env:Destroy()
+		self:Resume()
+		self.held=false
+	else
+		print('Error Data Type!!!')
+	end
+end
+```
+
+# Queuer (WIP)
+A queuer works just like a process however objects are processed in order that they were created...
+```lua
+queue = multi:newQueuer()
+queue:newAlarm(3):OnRing(function()
+	print("Ring ring!!!")
+end)
+queue:newStep(1,10):OnStep(function(pos,self)
+	print(pos)
+end)
+queue:newLoop(function(dt,self)
+	if dt==3 then
+		self:Break()
+		print("Done")
+	end
+end)
+queue:Start()
+multi:mainloop()
+```
+# Expected Output
+Note: the queuer still does not work as expected!</br>
+Ring ring!!!</br>
+1</br>
+2</br>
+3</br>
+4</br>
+5</br>
+6</br>
+7</br>
+8</br>
+9</br>
+10</br>
+Done</br>
+# Actual Output
+Done</br>
+1</br>
+2</br>
+3</br>
+4</br>
+5</br>
+6</br>
+7</br>
+8</br>
+9</br>
+10</br>
+Ring ring!!!</br>
+
+# Threads
+These fix the hold problem that you get with regular objects, and they work exactly the same! They even have some extra features that make them really useful.</br>
+```lua
+_require=require -- lets play with the require method a bit
+function require(path)
+	path=path:gsub("%*","all")
+	_require(path)
+end
+require("multi.*") -- now I can use that lovely * symbol to require everything
+test=multi:newThreadedProcess("main") -- you can thread processors and all Actors see note for a list of actors you can thread!
+test2=multi:newThreadedProcess("main2")
+count=0
+test:newLoop(function(dt,self)
+	count=count+1
+	thread.sleep(.01)
+end)
+test2:newLoop(function(dt,self)
+	print("Hello!")
+	thread.sleep(1) -- sleep for some time
+end)
+-- threads take a name object then the rest as normal
+step=multi:newThreadedTStep("step",1,10)
+step:OnStep(function(p,self)
+	print("step",p)
+	thread.skip(21) -- skip n cycles
+end)
+step:OnEnd(function()
+	print("Killing thread!")
+	thread.kill() -- kill the thread
+end)
+loop=multi:newThreadedLoop("loop",function(dt,self)
+	print(dt)
+	thread.sleep(1.1)
+end)
+loop2=multi:newThreadedLoop("loop",function(dt,self)
+	print(dt)
+	thread.hold(function() return count>=100 end)
+	print("Count is "..count)
+	os.exit()
+end)
+alarm=multi:newThreadedAlarm("alarm",1)
+alarm:OnRing(function(self)
+	print("Ring")
+	self:Reset()
+end)
+multi:mainloop()
+```
+# Output
+Ring</br>
+0.992</br>
+0.992</br>
+Hello!</br>
+step	1</br>
+step	2</br>
+Hello!</br>
+Ring</br>
+2.092</br>
+step	3</br>
+Hello!</br>
+Ring</br>
+Count is 100</br>
+# Threadable Actors
+- Alarms
+- Events
+- Loop/TLoop
+- Process
+- Step/TStep
+
+# Functions
+If you ever wanted to pause a function then great now you can
+The uses of the Function object allows one to have a method that can run free in a sense
+```lua
+require("multi.all")
+func=multi:newFunction(function(self,arg1,arg2,...)
+	self:Pause()
+	return arg1
+end)
+print(func("Hello"))
+print(func("Hello2")) -- returns PAUSED allows for the calling of functions that should only be called once. returns PAUSED instantly if paused
+func:Resume()
+print(func("Hello3"))
+```
+# Output
+Hello</br>
+PAUSED</br>
+Hello3</br>
+
+# TODO (In order of importance)
 - Write the wiki stuff
+- Write multi:newThreadedUpdater(name,skip)
 - Test for unknown bugs
+**Don't find these useful tbh, I will document them eventually though**
+- Document Triggers</br>
+- Document Tasks</br>
+- Document Jobs</br>
+- Document Watcher</br>
