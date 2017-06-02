@@ -578,9 +578,9 @@ PAUSED</br>
 Hello3</br>
 
 # TODO (In order of importance)
-- Write the wiki stuff
-- Write multi:newThreadedUpdater(name,skip)
-- Test for unknown bugs
+- Write the wiki stuff</br>
+- Write multi:newThreadedUpdater(name,skip)</br>
+- Test for unknown bugs</br>
 **Don't find these useful tbh, I will document them eventually though**
 - Document Triggers</br>
 - Document Tasks</br>
