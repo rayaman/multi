@@ -158,7 +158,7 @@ multi:mainloop()
 
 Note: the output on this one is huge!!! So I had to ... some parts! You need to run this for your self to see what is going on!</br>
 Step Started!</br>
-Stepping... 1</br></br>
+Stepping... 1</br>
 10	1</br>
 Stepping... 2</br>
 10	2</br>
