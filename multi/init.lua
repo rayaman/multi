@@ -311,9 +311,12 @@ function multi:fromfile(path,int)
 	end
 	return test2
 end
-function multi:benchMark(sec,p)
+function multi:benchMark(sec,p,pt)
 	local temp=self:newLoop(function(t,self)
 		if self.clock()-self.init>self.sec then
+			if pt then
+				print(pt.." "..self.c.." Steps in "..sec.." second(s)!")
+			end
 			self.tt(self.sec,self.c)
 			self:Destroy()
 		else
@@ -682,17 +685,24 @@ function multi:newTimer()
 	c.Type='timer'
 	c.time=0
 	c.count=0
+	c.paused=false
 	function c:Start()
 		self.time=os.clock()
 	end
 	function c:Get()
+		if self:isPaused() then return self.time end
 		return (os.clock()-self.time)+self.count
+	end
+	function c:isPaused()
+		return c.paused
 	end
 	c.Reset=c.Start
 	function c:Pause()
 		self.time=self:Get()
+		self.paused=true
 	end
 	function c:Resume()
+		self.paused=false
 		self.time=os.clock()-self.time
 	end
 	function c:tofile(path)
@@ -746,10 +756,10 @@ function multi:newConnection(protect)
 		end
 		return ret
 	end
-	function c:bind(t)
+	function c:Bind(t)
 		self.func=t
 	end
-	function c:remove()
+	function c:Remove()
 		self.func={}
 	end
 	function c:connect(func,name)
@@ -775,7 +785,7 @@ function multi:newConnection(protect)
 					return self.func(...)
 				end
 			end,
-			remove=function(self)
+			Remove=function(self)
 				for i=1,#self.Link do
 					if self.Link[i][2]~=nil then
 						if self.Link[i][2]==self.ID then
@@ -794,6 +804,7 @@ function multi:newConnection(protect)
 		end
 		return temp
 	end
+	c.Connect=c.connect
 	function c:tofile(path)
 		local m=bin.new()
 		m:addBlock(self.Type)

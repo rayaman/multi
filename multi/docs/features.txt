@@ -33,6 +33,7 @@ Constructors [ACTORS]
 eventObj=multi:newEvent([function: TASK defualt: function() end])
 alarmObj=multi:newAlarm([number: SET defualt: 0])
 loopObj=multi:newLoop([function: FUNC])
+tloopObj=multi:newTLoop([function: FUNC], number: n)
 stepObj=multi:newStep([number: START defualt: 0],[number: RESET defualt: inf],[number: COUNT defualt: 1],[number: SKIP defualt: 0])
 tstepObj=multi:newTStep([number: START defualt: 0],[number: RESET defualt: inf],[number: COUNT defualt: 1],[number: SET defualt: 1])
 updaterObj=multi:newUpdater([number: SKIP defualt: 0])
