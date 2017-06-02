@@ -343,31 +343,33 @@ end)
 multi:mainloop() -- Notice how the past few examples did not need this, well only actors need to be in a loop! More on this in the wiki.
 ```
 # Output
-Note: These numbers will vary drastically depending on your compiler and cpu power
-Regular Bench:  2094137 Steps in 3 second(s)!
-P1
----------------
-Below_Normal: 236022 Steps in 3 second(s)!
-Normal: 314697 Steps in 3 second(s)!
-Above_Normal: 393372 Steps in 3 second(s)!
-High: 472047 Steps in 3 second(s)!
-Core: 550722 Steps in 3 second(s)!
-Low: 157348 Steps in 3 second(s)!
-Idle: 78674 Steps in 3 second(s)!
-P2
----------------
-Core: 994664 Steps in 3 second(s)!
-High: 248666 Steps in 3 second(s)!
-Above_Normal: 62166 Steps in 3 second(s)!
-Normal: 15541 Steps in 3 second(s)!
-Below_Normal: 3885 Steps in 3 second(s)!
-Idle: 242 Steps in 3 second(s)!
-Low: 971 Steps in 3 second(s)!
+Note: These numbers will vary drastically depending on your compiler and cpu power</br>
+Regular Bench:  2094137 Steps in 3 second(s)!</br>
+P1</br>
+---------------</br>
+Below_Normal: 236022 Steps in 3 second(s)!</br>
+Normal: 314697 Steps in 3 second(s)!</br>
+Above_Normal: 393372 Steps in 3 second(s)!</br>
+High: 472047 Steps in 3 second(s)!</br>
+Core: 550722 Steps in 3 second(s)!</br>
+Low: 157348 Steps in 3 second(s)!</br>
+Idle: 78674 Steps in 3 second(s)!</br>
+P2</br>
+---------------</br>
+Core: 994664 Steps in 3 second(s)!</br>
+High: 248666 Steps in 3 second(s)!</br>
+Above_Normal: 62166 Steps in 3 second(s)!</br>
+Normal: 15541 Steps in 3 second(s)!</br>
+Below_Normal: 3885 Steps in 3 second(s)!</br>
+Idle: 242 Steps in 3 second(s)!</br>
+Low: 971 Steps in 3 second(s)!</br>
 
-Notice: Even though I started each bench at the same time the order that they finished differed the order is likely to vary on your machine as well!
+Notice: Even though I started each bench at the same time the order that they finished differed the order is likely to vary on your machine as well!</br>
 
 
 # TODO
+- Process#</br>
+- Queuer#</br>
 - Thread*</br>
 - Trigger**</br>
 - Task</br>
