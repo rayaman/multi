@@ -1,9 +1,8 @@
 History: EventManager,EventManager+,MultiManager <-- Current After 6.3.0 Versioning scheme was altered. A.0.0
-Changelog starts at Version A.0.0
-New in A.0.0
+New in 1.0.0
 	Nothing really however a changelog will now be recorded!
 	version.major.minor
-New in A.1.0
+New in 1.1.0
 	Changed: multi:newConnection(protect) method
 		Changed the way you are able to interact with it by adding the __call metamethod
 		Old usage:
@@ -18,7 +17,7 @@ New in A.1.0
 				print("Updating",...)
 			end)
 		OnUpdate:Fire(1,2,3)
-New in A.2.0 (12/31/2016)
+New in 1.2.0 (12/31/2016)
 	Added:
 		connectionobj.getConnection(name)
 		returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name)
@@ -26,7 +25,7 @@ New in A.2.0 (12/31/2016)
 	Changed: obj=multi:newConnection()
 		obj:connect(func,name) and obj(func,name)
 		Added the name argument to allow indexing specific connection objects... Useful when creating an async library
-New in A.3.0 (1/29/2017)
+New in 1.3.0 (1/29/2017)
 	Added:
 		Load detection!
 		multi.threshold -- minimum amount of cycles that all mObjs should be allotted before the Manager is considered burdened. Defualt: 256
@@ -34,7 +33,7 @@ New in A.3.0 (1/29/2017)
 		multi:setThreshold(n) -- method used to set multi.threshold
 		multi:setThrestimed(n) -- method used to set multi.threstimed
 		multi:getLoad() -- returns a number between 0 and 100
-New in A.4.0 (3/20/2017)
+New in 1.4.0 (3/20/2017)
 	Added:
 		multiobj:reallocate(ProcessObj) -- changes the parent process of an object
 		ProcessObj:getController() -- returns the mThread so you can opperate on it like a multiobj
@@ -84,7 +83,7 @@ New in A.4.0 (3/20/2017)
 		end)
 		int:Start()
 		multi:mainloop()
-New in A.4.1 (4/10/2017)
+New in 1.4.1 (4/10/2017)
 	Change:
 		small change to the hold method to make it a bit more lightweight
 		Using a timer instead of an alarm object!
@@ -92,3 +91,7 @@ New in A.4.1 (4/10/2017)
 		cannot hold more than 1 object at a time, and doing so could cause a deadlock!
 	Upcomming:
 		Threaded objects wrapped in corutines, so you can hold/sleep without problems!
+New in 1.5.1 (6/2/2017)
+	Added:
+		Threaded objects
+		TLoop
