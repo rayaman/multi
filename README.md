@@ -1,4 +1,4 @@
-# multi Version: A.4.1
+# multi Version: 1.4.1
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
 
