@@ -578,9 +578,18 @@ Hello</br>
 PAUSED</br>
 Hello3</br>
 
+# ThreadedUpdater
+
+```lua
+-- Works the same as a regular updater!
+require("multi.all")
+multi:newThreadedUpdater("Test",10000):OnUpdate(function(self)
+	print(self.pos)
+end)
+multi:mainloop()
+```
 # TODO (In order of importance)
 - Write the wiki stuff</br>
-- Write multi:newThreadedUpdater(name,skip)</br>
 - Test for unknown bugs</br>
 **Don't find these useful tbh, I will document them eventually though**
 - Document Triggers</br>
