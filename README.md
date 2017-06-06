@@ -4,6 +4,7 @@ To install copy the multi folder into your enviroment and you are good to go</br
 
 It is a pure lua binding if you ingore the intergrations (WIP)</br>
 
+If you find any bugs or have any issues please let me know :)
 
 Usage:</br>
 ```lua
