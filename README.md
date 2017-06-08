@@ -7,7 +7,7 @@ It is a pure lua binding if you ingore the intergrations (WIP)</br>
 If you find any bugs or have any issues please let me know :)
 
 # Discord
-For real-time assistance with my libraries! A place where you can ask questions about for help with any of my libraries</br>
+For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
 
 Usage:</br>
