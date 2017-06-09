@@ -599,7 +599,7 @@ multi:mainloop()
 .inf</br>
 
 # Triggers
-Triggers were what I used before connections became a thing</br>
+Triggers were what I used before connections became a thing, also Function objects are a lot like triggers and can be paused as well, while triggers cannot...</br>
 They are simple to use, but in most cases you are better off using a connection</br>
 ```lua
 require("multi.trigger")
