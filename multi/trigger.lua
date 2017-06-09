@@ -4,7 +4,7 @@ function multi:newTrigger(func)
 	c.Type='trigger'
 	c.trigfunc=func or function() end
 	function c:Fire(...)
-		self:trigfunc(self,...)
+		self:trigfunc(...)
 	end
 	function c:tofile(path)
 		local m=bin.new()
