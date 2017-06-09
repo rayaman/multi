@@ -592,11 +592,109 @@ multi:newThreadedUpdater("Test",10000):OnUpdate(function(self)
 end)
 multi:mainloop()
 ```
+# Output
+1</br>
+2</br>
+...</br>
+.inf</br>
+
+# Triggers
+Triggers were what I used before connections became a thing</br>
+They are simple to use, but in most cases you are better off using a connection</br>
+```lua
+require("multi.trigger")
+-- They work like connections but can only have one event binded to them
+trig=multi:newTrigger(function(self,a,b,c,...)
+	print(a,b,c,...)
+end)
+trig:Fire(1,2,3)
+trig:Fire(1,2,3,"Hello",true)
+```
+
+# Output
+1	2	3</br>
+1	2	3	Hello	true</br>
+
+# Tasks
+Tasks allow you to run a block of code before the multi mainloops does it thing. Tasks still have a use, but depending on how you program they aren't needed.</br>
+```lua
+require("multi.loop")
+require("multi.task")
+multi:newTask(function()
+	print("Hi!")
+end)
+multi:newLoop(function(dt,self)
+	print("Which came first the task or the loop?")
+	self:Break()
+end)
+multi:newTask(function()
+	print("Hello there!")
+end)
+multi:mainloop()
+```
+# Output
+Hi!</br>
+Hello there!</br>
+Which came first the task or the loop?</br>
+
+As seen in the example above the tasks were done before anything else in the mainloop! This is useful when making libraries around the multitasking features and you need things to happen in a certain order!</br>
+
+# Jobs
+Jobs were a strange feature that was created for throttling connections! When I was building a irc bot around this library I couldn't have messages posting too fast due to restrictions. Jobs allowed functions to be added to a queue that were executed after a certain amount of time has passed
+```lua
+require("multi.alarm") -- jobs use alarms I am pondering if alarms should be added to the core or if jobs should use timers instead...
+-- jobs are built into the core of the library so no need to require them
+print(multi:hasJobs())
+multi:setJobSpeed(1) -- set job speed to 1 second
+multi:newJob(function()
+	print("A job!")
+end,"test")
+
+multi:newJob(function()
+	print("Another job!")
+	multi:removeJob("test") -- removes all jobs with name "test"
+end,"test")
+
+multi:newJob(function()
+	print("Almost done!")
+end,"test")
+
+multi:newJob(function()
+	print("Final job!")
+end,"test")
+print(multi:hasJobs())
+print("There are "..multi:getJobs().." jobs in the queue!")
+multi:mainloop()
+```
+# Output
+false	0</br>
+true	4</br>
+There are 4 jobs in the queue!</br>
+A job!</br></br>
+Another job!</br>
+
+# Watchers
+Watchers allow you to monitor a variable and trigger an event when the variable has changed!
+```lua
+require("multi.watcher")
+require("multi.tloop")
+a=0
+watcher=multi:newWatcher(_G,"a") -- watch a in the global enviroment
+watcher:OnValueChanged(function(self,old,new)
+	print(old,new)
+end)
+tloop=multi:newTLoop(function(self)
+	a=a+1
+end,1)
+multi:mainloop()
+```
+# Output
+0	1</br>
+1	2</br>
+2	3</br>
+...</br>
+.inf-1	inf</br>
+
 # TODO (In order of importance)
 - Write the wiki stuff</br>
 - Test for unknown bugs</br>
-**Don't find these useful tbh, I will document them eventually though**
-- Document Triggers</br>
-- Document Tasks</br>
-- Document Jobs</br>
-- Document Watcher</br>
