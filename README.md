@@ -1,4 +1,11 @@
-# multi Version: 1.4.1
+# multi Version: 1.5.0
+Updated from 1.4.1
+Added:
+- An easy way to manage timeouts
+- Small bug fixes
+
+Example at end of the readme
+
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
 
@@ -697,6 +704,54 @@ multi:mainloop()
 ...</br>
 .inf-1	inf</br>
 
+Timeout management
+```lua
+-- Note: I used a tloop so I could control the output of the program a bit.
+require("multi.tloop")
+a=0
+inc=1 -- change to 0 to see it not met at all, 1 if you want to see the first condition not met but the second and 2 if you want to see it meet the condition on the first go.
+loop=multi:newTLoop(function(self)
+	print("Looping...")
+	a=a+inc
+	if a==14 then
+		self:ResolveTimer("1","2","3") -- ... any number of arguments can be passed to the resolve handler
+		-- this will also automatically pause the object that it is binded to
+	end
+end,.1)
+loop:SetTime(1)
+loop:OnTimerResolved(function(self,a,b,c) -- the handler will return the self and the passed arguments
+	print("We did it!",a,b,c)
+end)
+loop:OnTimedOut(function(self)
+	if not TheSecondTry then
+		print("Loop timed out!",self.Type,"Trying again...")
+		self:ResetTime(2)
+		self:Resume()
+		TheSecondTry=true
+	else
+		print("We just couldn't do it!") -- print if we don't get anything working
+	end
+end)
+multi:mainloop()
+```
+# Output (Change the value inc as indicated in the comment to see the outcomes!)
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Loop timed out!	tloop	Trying again...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+Looping...</br>
+We did it!	1	2	3</br>
+
 # TODO (In order of importance)
-- Write the wiki stuff</br>
+- Write the wiki stuff. (There are a lot of undocumented, but useful features that make automation of spawning a lot of different multiObject types eaiser, etc... To do really soon!)</br>
 - Test for unknown bugs</br>

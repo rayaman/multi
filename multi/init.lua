@@ -22,7 +22,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={'A',4,1}
+multi.Version={1,5,0}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -207,6 +207,9 @@ A total of ]]..(before-after)..[[Kb was cleaned up]])
 end
 function multi:getChildren()
 	return self.Mainloop
+end
+function multi:getVersion()
+	return multi.Version[1].."."..multi.Version[2].."."multi.Version[3]
 end
 --Processor
 function multi:getError()
@@ -459,6 +462,42 @@ end
 function multi:Sleep(n)
 	self:hold(n)
 end
+-- Advance Timer stuff
+function multi:SetTime(n)
+	if not n then n=3 end
+	local c=multi:newBase()
+	c.Type='timemaster'
+	c.timer=multi:newTimer()
+	c.timer:Start()
+	c.set=n
+	c.link=self
+	self._timer=c.timer
+	function c:Act()
+		if self.timer:Get()>=self.set then
+			self.link:Pause()
+			for i=1,#self.link.funcTM do
+				self.link.funcTM[i](self.link)
+			end
+			self:Destroy()
+		end
+	end
+	return c
+end
+multi.ResetTime=multi.SetTime
+function multi:ResolveTimer(...)
+	self._timer:Pause()
+	for i=1,#self.funcTMR do
+		self.funcTMR[i](self,...)
+	end
+	self:Pause()
+end
+function multi:OnTimedOut(func)
+	self.funcTM[#self.funcTM+1]=func
+end
+function multi:OnTimerResolved(func)
+	self.funcTMR[#self.funcTMR+1]=func
+end
+-- Timer stuff done
 function multi:Pause()
 	if self.Type=='mainprocess' then
 		print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
@@ -583,6 +622,8 @@ function multi:newBase(ins)
 	end
 	c.Active=true
 	c.func={}
+	c.funcTM={}
+	c.funcTMR={}
 	c.ender={}
 	c.Id=0
 	c.PId=0
