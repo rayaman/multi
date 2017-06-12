@@ -64,7 +64,7 @@ count=0
 loop=multi:newLoop(function(dt,self) -- dt is delta time and self is a reference to itself
   count=count+1
   if count > 10 then
-    self:Break() -- All methods on the multi objects are Proper case, where as methods on the multi or process/queuer namespace are camel case
+    self:Break() -- All methods on the multi objects are upper camel case, where as methods on the multi or process/queuer namespace are lower camel case
     -- self:Break() will stop the loop and trigger the OnBreak(func) method
     -- Stopping is the act of Pausing and deactivating the object! All objects can have the multiobj:Break() command on it!
   else
