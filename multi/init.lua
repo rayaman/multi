@@ -145,6 +145,7 @@ end
 function multi:getParentProcess()
 	return self.Mainloop[self.CID]
 end
+multi.GetParentProcess=multi.getParentProcess
 function multi:Stop()
 	self.Active=false
 end
@@ -162,9 +163,11 @@ function multi:condition(cond)
 	self.Parent:Do_Order()
 	return true
 end
+multi.Condition=multi.condition
 function multi:isHeld()
 	return self.held
 end
+multi.IsHeld=multi.isHeld
 function multi.executeFunction(name,...)
 	if type(_G[name])=='function' then
 		_G[name](...)
@@ -180,6 +183,7 @@ function multi:waitFor(obj)
 	obj:connectFinal(self.__waiting)
 	self:hold(function() return value end)
 end
+multi.WaitFor=multi.waitFor
 function multi:reboot(r)
 	local before=collectgarbage('count')
 	self.Mainloop={}
@@ -364,7 +368,7 @@ function multi.doFPS(s)
 	end
 end
 --Helpers
-function multi:isAnActor()
+function multi:IsAnActor()
 	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
 end
 function multi:OnMainConnect(func)
@@ -407,6 +411,7 @@ function multi:reallocate(o,n)
 	table.insert(o.Mainloop,n,self)
 	self.Active=true
 end
+multi.Reallocate=multi.Reallocate
 function multi:setJobSpeed(n)
 	self.jobUS=n
 end
@@ -438,6 +443,7 @@ function multi:connectFinal(func)
 		self:OnBreak(func)
 	end
 end
+multi.ConnectFinal=multi.connectFinal
 function multi:Break()
 	self:Pause()
 	self.Active=nil
@@ -453,15 +459,19 @@ end
 function multi:isPaused()
 	return not(self.Active)
 end
+multi.IsPaused=multi.isPaused
 function multi:isActive()
 	return self.Active
 end
+multi.IsActive=multi.isActive
 function multi:getType()
 	return self.Type
 end
+multi.GetType=multi.getType
 function multi:Sleep(n)
 	self:hold(n)
 end
+multi.sleep=multi.Sleep
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
@@ -530,6 +540,7 @@ function multi:resurrect()
 	table.insert(self.Parent.Mainloop,self)
 	self.Active=true
 end
+multi.Resurrect=multi.resurrect
 function multi:Destroy()
 	if self.Type=='process' or self.Type=='mainprocess' then
 		local c=self:getChildren()
@@ -581,6 +592,7 @@ function multi:hold(task)
 		print('Error Data Type!!!')
 	end
 end
+multi.Hold=multi.hold
 function multi:oneTime(func,...)
 	if not(self.Type=='mainprocess' or self.Type=='process') then
 		for _k=1,#self.Parent.Tasks2 do
@@ -608,6 +620,7 @@ end
 function multi:isDone()
 	return self.Active~=true
 end
+multi.IsDone=multi.isDone
 function multi:create(ref)
 	multi.OnObjectCreated:Fire(ref)
 end
@@ -684,7 +697,7 @@ function multi:newProcess(file)
 	end
 	if file then
 		self.Cself=c
-		loadstring('local interface=multi.Cself '..io.open(file,'rb'):read('*all'))()
+		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
 	self:create(c)
 	return c
@@ -908,11 +921,13 @@ function multi:newRange()
 	self:create(temp)
 	return temp
 end
+multi.NewRange=multi.newRange
 function multi:newCondition(func)
-	local c={['condition']=func}
+	local c={['condition']=func,Type="condition"}
 	self:create(c)
 	return c
 end
+multi.NewCondition=multi.newCondition
 function multi:mainloop()
 	for i=1,#self.Tasks do
 		self.Tasks[i](self)
