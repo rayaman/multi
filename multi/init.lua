@@ -209,7 +209,7 @@ function multi:getChildren()
 	return self.Mainloop
 end
 function multi:getVersion()
-	return multi.Version[1].."."..multi.Version[2].."."multi.Version[3]
+	return multi.Version[1].."."..multi.Version[2].."."..multi.Version[3]
 end
 --Processor
 function multi:getError()
