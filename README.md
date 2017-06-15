@@ -753,5 +753,5 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # TODO (In order of importance)
-- Write the wiki stuff. (There are a lot of undocumented, but useful features that make automation of spawning a lot of different multiObject types eaiser, etc... To do really soon!)</br>
+- Finish the wiki stuff. (10% done)</br>
 - Test for unknown bugs</br>
