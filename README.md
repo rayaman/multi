@@ -351,7 +351,6 @@ multi:benchMark(3,nil,"Regular Bench: "):OnBench(function() -- the onbench() all
     multi:benchMark(3,multi.Priority_Below_Normal,"Below_Normal:")
     multi:benchMark(3,multi.Priority_Low,"Low:")
     multi:benchMark(3,multi.Priority_Idle,"Idle:")
-	  os.exit()
   end)
 end)
 multi:mainloop() -- Notice how the past few examples did not need this, well only actors need to be in a loop! More on this in the wiki.
