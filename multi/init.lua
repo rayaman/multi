@@ -936,7 +936,7 @@ function multi:mainloop()
 	while self.Active do
 		self:Do_Order()
 	end
-	print("Did you call multi:Stop()? This method should not be used when using multi:mainloop()! You now need to restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
+	print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
 end
 function multi._tFunc(self,dt)
 	for i=1,#self.Tasks do
