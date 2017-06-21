@@ -1,4 +1,27 @@
-# multi Version: 1.5.0
+# multi Version: 1.6.0
+Updated from 1.5.0
+Changed: steps and loops
+```lua
+-- Was
+step:OnStep(function(pos,self) -- same goes for tsteps as well
+	print(pos)
+end)
+multi:newLoop(function(dt,self)
+	print(dt)
+end)
+-- Is now
+step:OnStep(function(self,pos) -- same goes for tsteps as well
+	print(pos)
+end)
+multi:newLoop(function(self,dt)
+	print(dt)
+end)
+```
+Reasoning I wanted to keep objects consistant, but a lot of my older libraries use the old way of doing things. Therefore I added a backwards module
+```lua
+require("multi.all")
+require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
+```
 Updated from 1.4.1
 Added:
 - An easy way to manage timeouts
