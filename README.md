@@ -4,6 +4,9 @@ Added:
 - An easy way to manage timeouts
 - Small bug fixes
 
+IMPORTANT:
+Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.
+
 Example at end of the readme
 
 My multitasking library for lua</br>
@@ -210,7 +213,7 @@ require("multi.all")
 -- Lets create the events
 yawn={} -- ill just leave that there
 OnCustomSafeEvent=multi:newConnection(true) -- lets pcall the calls incase something goes wrong defualt
-OnCustomEvent=multi:newConnection(false) -- lets pcall the calls incase something goes wrong
+OnCustomEvent=multi:newConnection(false) -- lets not pcall the calls and let errors happen... We are good at coding though so lets get a speed advantage by not pcalling. Pcalling is useful for plugins and stuff that may have been coded badly and you can ingore those connections if need be.
 OnCustomEvent:Bind(yawn) -- create the connection lookup data in yawn
 
 -- Lets connect to them, a recent update adds a nice syntax to connect to these
@@ -224,7 +227,7 @@ cd3=OnCustomSafeEvent:Connect(function(arg1,arg2,...)
   print("CSE3",arg1,arg2,...)
 end) -- lets not give this connection a name
 
--- no need for connect, but I kept that function because of backwards compatibility
+-- no need for connect, but I kept that function because of backwards compatibility.
 OnCustomEvent(function(arg1,arg2,...)
   print(arg1,arg2,...)
 end)
