@@ -71,7 +71,7 @@ Throughout these examples I am going to do some strange things in order to show 
 -- Loops
 require("multi.all") -- gets the entire library
 count=0
-loop=multi:newLoop(function(dt,self) -- dt is delta time and self is a reference to itself
+loop=multi:newLoop(function(self,dt) -- dt is delta time and self is a reference to itself
   count=count+1
   if count > 10 then
     self:Break() -- All methods on the multi objects are upper camel case, where as methods on the multi or process/queuer namespace are lower camel case
@@ -111,7 +111,7 @@ This library aims to be Async like. In reality everything is still on one thread
 require("multi.all") -- gets the entire library
 count=0
 -- lets use the loop again to add to count!
-loop=multi:newLoop(function(dt,self)
+loop=multi:newLoop(function(self,dt)
   count=count+1
 end)
 event=multi:newEvent(function() return count==100 end) -- set the event
@@ -134,7 +134,7 @@ step2=multi:newStep(10,1,-1,1) -- a second step, notice the slight changes!
 step1:OnStart(function(self)
   print("Step Started!")
 end)
-step1:OnStep(function(pos,self)
+step1:OnStep(function(self,pos)
   if pos<=10 then -- what what is this? the step only goes to 10!!!
     print("Stepping... "..pos)
    else
@@ -153,7 +153,7 @@ end)
 -- step2 is bored lets give it some love :P
 step2.range=step2:newRange() -- Set up a range object to have a nested step in a sense! Each nest requires a new range
 -- it is in your interest not to share ranges between objects! You can however do it if it suits your needs though
-step2:OnStep(function(pos,self)
+step2:OnStep(function(self,pos)
   -- for 1=1,math.huge do
     --  print("Haha I am holding the code up because I can!!!")
   --end
@@ -166,7 +166,7 @@ end)
 -- TSteps are just like alarms and steps mixed together, the only difference in construction is the 4th Argument. On a TStep that argument controls time. The defualt is 1
 -- The Reset(n) works just like you would figure!
 step3=multi:newTStep(1,10,.5,2) -- lets go from 1 to 10 counting by .5 every 2 seconds
-step3:OnStep(function(pos,self)
+step3:OnStep(function(self,pos)
   print("Ok "..pos.."!")
 end)
 multi:mainloop()
@@ -398,7 +398,7 @@ updater:OnUpdate(function(self)
 	b=b+1
 end)
 a=0 -- a counter
-loop2=proc:newLoop(function(dt,self)
+loop2=proc:newLoop(function(self,dt)
 	print("Lets Go!")
 	self:hold(3) -- this will keep this object from doing anything! Note: You can only have one hold active at a time! Multiple are possible, but results may not be as they seem see * for how hold works
 	-- Within a process using hold will keep it alive until the hold is satisified!
@@ -466,10 +466,10 @@ queue = multi:newQueuer()
 queue:newAlarm(3):OnRing(function()
 	print("Ring ring!!!")
 end)
-queue:newStep(1,10):OnStep(function(pos,self)
+queue:newStep(1,10):OnStep(function(self,pos)
 	print(pos)
 end)
-queue:newLoop(function(dt,self)
+queue:newLoop(function(self,dt)
 	if dt==3 then
 		self:Break()
 		print("Done")
@@ -518,17 +518,17 @@ require("multi.*") -- now I can use that lovely * symbol to require everything
 test=multi:newThreadedProcess("main") -- you can thread processors and all Actors see note for a list of actors you can thread!
 test2=multi:newThreadedProcess("main2")
 count=0
-test:newLoop(function(dt,self)
+test:newLoop(function(self,dt)
 	count=count+1
 	thread.sleep(.01)
 end)
-test2:newLoop(function(dt,self)
+test2:newLoop(function(self,dt)
 	print("Hello!")
 	thread.sleep(1) -- sleep for some time
 end)
 -- threads take a name object then the rest as normal
 step=multi:newThreadedTStep("step",1,10)
-step:OnStep(function(p,self)
+step:OnStep(function(self,p)
 	print("step",p)
 	thread.skip(21) -- skip n cycles
 end)
@@ -536,11 +536,11 @@ step:OnEnd(function()
 	print("Killing thread!")
 	thread.kill() -- kill the thread
 end)
-loop=multi:newThreadedLoop("loop",function(dt,self)
+loop=multi:newThreadedLoop("loop",function(self,dt)
 	print(dt)
 	thread.sleep(1.1)
 end)
-loop2=multi:newThreadedLoop("loop",function(dt,self)
+loop2=multi:newThreadedLoop("loop",function(self,dt)
 	print(dt)
 	thread.hold(function() return count>=100 end)
 	print("Count is "..count)
@@ -634,7 +634,7 @@ require("multi.task")
 multi:newTask(function()
 	print("Hi!")
 end)
-multi:newLoop(function(dt,self)
+multi:newLoop(function(self,dt)
 	print("Which came first the task or the loop?")
 	self:Break()
 end)

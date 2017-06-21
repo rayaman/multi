@@ -15,7 +15,7 @@ function multi:newLoop(func)
 	end
 	function c:Act()
 		for i=1,#self.func do
-			self.func[i](self.Parent.clock()-self.Start,self)
+			self.func[i](self,self.Parent.clock()-self.Start)
 		end
 	end
 	function c:OnLoop(func)

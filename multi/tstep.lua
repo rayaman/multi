@@ -42,7 +42,7 @@ function multi:newTStep(start,reset,count,set)
 				end
 			end
 			for i=1,#self.func do
-				self.func[i](self.pos,self)
+				self.func[i](self,self.pos)
 			end
 			self.pos=self.pos+self.count
 			if self.pos-self.count==self.endAt then
