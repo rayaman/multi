@@ -8,7 +8,7 @@ end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
 package.path="lua/?/init.lua;lua/?.lua;"..package.path
-require("multi.all") -- get it all and have it on all lanes
+require("multi.updater") -- get it all and have it on all lanes
 local multi=multi
 -- Step 2 set up the linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff
@@ -31,8 +31,21 @@ end
 function THREAD.get(name)
 	__GlobalLinda:get(name)
 end
+local function randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
+end
 function THREAD.waitFor(name)
-	--
+	local function wait()
+		math.randomseed(os.time())
+		__SleepingLinda:receive(.001,randomString(12))
+	end
+	repeat wait() until __GlobalLinda:get(name)
+	return __GlobalLinda:get(name)
 end
 function THREAD.testFor(name,val,sym)
 	--
@@ -45,63 +58,24 @@ if os.getOS()=="windows" then
 else
 	THREAD.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
 end
--- Step 4 change the coroutine threading methods to work the same, but with lanes TODO when the lanes scheduler is ready!
-function THREAD.skip(n)
-	-- Do Nothing
-end
 function THREAD.kill() -- trigger the lane destruction
 	-- coroutine.yield({"_kill_",":)"})
 end
---[[ Step 5 We need to get sleeping working so we need a lane to handle timing... We want idle wait not busy wait
+--[[ Step 4 We need to get sleeping working to handle timing... We want idle wait, not busy wait
 Idle wait keeps the CPU running better where busy wait wastes CPU cycles... Lanes does not have a sleep method
-however, a linda recieve will in fact be a idle wait! So when wait is called we can pack the cmd up and send it to
-the sleeping thread manager to send the variable for the other thread to consume, sending only after a certain time has passed!
-]]
-local function randomString(n)
-	local str = ''
-	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-	for i=1,n do
-		str = str..''..strings[math.random(1,#strings)]
-	end
-	return str
-end
+however, a linda recieve will in fact be a idle wait! So we use that and wrap it in a nice package]]
 function THREAD.sleep(n)
 	math.randomseed(os.time())
-	local randKey=randomString(12) -- generate a random string a-Z and 0-9
-	__SleepingLinda:send("tired","SLEEP|"..randKey.."|"..tostring(n)) -- send the data that needs to be managed
-	local dat=__SleepingLinda:receive(randKey)
-	return dat
+	__SleepingLinda:receive(n,randomString(12))
 end
 function THREAD.hold(n)
-	while not(n()) do
-		-- holding
+	local function wait()
+		math.randomseed(os.time())
+		__SleepingLinda:receive(.001,randomString(12))
 	end
+	repeat wait() until n()
 end
--- start the time manager lane
---~ lanes.gen("*", function()
---~ 	local timers={}
---~ 	while true do -- forever loop!
---~ 		local data=__SleepingLinda:receive(.001,"tired") -- timeout after .001 seconds and handle the other stuff
---~ 		if data then -- the .001 is an entarnal timer that keeps this thread from using too much CPU as well!
---~ 			print(data)
---~ 			local cmd,key,sec=data:match("(%S-)|(%S-)|(.+)")
---~ 			if cmd=="SLEEP" then
---~ 				print("GOT!")
---~ 				timers[#timers+1]={os.clock()+tonumber(sec),key}
---~ 				--__SleepingLinda:set()
---~ 			elseif cmd=="audit" then
---~ 				--
---~ 			end
---~ 		end
---~ 		for i=1,#timers do
---~ 			if os.clock()>=timers[i][1] then
---~ 				__SleepingLinda:send(timers[i][2],true)
---~ 				table.remove(timers,i)
---~ 			end
---~ 		end
---~ 	end
---~ end)() -- The global timer is now activated, and it works great!
--- Step 6 Basic Threads!
+-- Step 5 Basic Threads!
 function multi:newSystemThread(name,func)
     local c={}
     local __self=c
@@ -123,5 +97,9 @@ function multi:newSystemThread(name,func)
 	end)
     return c
 end
-_G["GLOBAL"]=GLOBAL
-_G["__GlobalLinda"]=__GlobalLinda
+print("Intergrated Lanes!")
+multi.intergration={} -- for module creators
+multi.intergration.lanes={} -- for module creators
+multi.intergration.lanes.GLOBAL=GLOBAL -- for module creators
+multi.intergration.lanes.THREAD=THREAD -- for module creators
+return {init=function() return GLOBAL,THREAD end}
