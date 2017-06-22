@@ -22,7 +22,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,6,1}
+multi.Version={1,7,1}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
