@@ -753,12 +753,24 @@ Updated from 1.6.0 to 1.7.0
 Modified: multi.intergration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
 Example Usage:
+sThread is a handle to a global interface for threads to interact with themselfs
+thread is the interfact for multithreads as seen in the threading section
+
+GLOBAL a table that can be used throughout each and every thread
+
+sThreads have a few methods
+sThread.set(name,val) -- you can use the GLOBAL table instead modifies the same table anyway
+sThread.get(name) -- you can use the GLOBAL table instead modifies the same table anyway
+sThread.waitFor(name) -- waits until a value exists, if it does it returns it
+sThread.getCores() -- returns the number of cores on your cpu
+sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running
+sThread.hold(n) -- sleeps until a condition is met
 ```lua
-local GLOBAL,lthread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
 require("multi.alarm")
 require("multi.threading")
 multi:newAlarm(2):OnRing(function(self)
-	GLOBAL["NumOfCores"]=lthread.getCores()
+	GLOBAL["NumOfCores"]=sThread.getCores()
 end)
 multi:newAlarm(7):OnRing(function(self)
 	GLOBAL["AnotherTest"]=true
@@ -769,8 +781,8 @@ end)
 multi:newSystemThread("test",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
 	print("Waiting for variable: NumOfCores")
-	print("Got it: ",lthread.waitFor("NumOfCores"))
-	lthread.hold(function()
+	print("Got it: ",sThread.waitFor("NumOfCores"))
+	sThread.hold(function()
 		return GLOBAL["AnotherTest"] -- note this would hold the entire systemthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
 	end)
 	print("Holding works!")
@@ -790,8 +802,6 @@ multi:newSystemThread("test",function() -- spawns a thread in another lua proces
 end)
 multi:mainloop()
 ```
-Once I am happy with the intergration and feel it is ready I will document it better
-
 
 Updated from 1.5.0 to 1.6.0
 Changed: steps and loops
