@@ -26,85 +26,7 @@ multi:mainloop() -- the main loop of the program, multi:umanager() exists as wel
 ```
 The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
 
-
-Updated from 1.6.0 to 1.7.0
-Modified: multi.intergration.lanesManager.lua
-It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
-Example Usage:
-```lua
-local GLOBAL,lthread=require("multi.intergration.lanesManager").init()
-require("multi.alarm")
-require("multi.threading")
-multi:newAlarm(2):OnRing(function(self)
-	GLOBAL["NumOfCores"]=lthread.getCores()
-end)
-multi:newAlarm(7):OnRing(function(self)
-	GLOBAL["AnotherTest"]=true
-end)
-multi:newAlarm(13):OnRing(function(self)
-	GLOBAL["FinalTest"]=true
-end)
-multi:newSystemThread("test",function() -- spawns a thread in another lua process
-	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	print("Waiting for variable: NumOfCores")
-	print("Got it: ",lthread.waitFor("NumOfCores"))
-	lthread.hold(function()
-		return GLOBAL["AnotherTest"] -- note this would hold the entire systemthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
-	end)
-	print("Holding works!")
-	multi:newThread("tests",function()
-		thread.hold(function()
-			return GLOBAL["FinalTest"] -- note this will not hold the entire systemthread. As seen with the TLoop constantly going!
-		end)
-		print("Final test works!")
-		os.exit()
-	end)
-	local a=0
-	multi:newTLoop(function()
-		a=a+1
-		print(a)
-	end,.5)
-	multi:mainloop()
-end)
-multi:mainloop()
-```
-Once I am happy with the intergration and feel it is ready I will document it better
-
-
-Updated from 1.5.0 to 1.6.0
-Changed: steps and loops
-```lua
--- Was
-step:OnStep(function(pos,self) -- same goes for tsteps as well
-	print(pos)
-end)
-multi:newLoop(function(dt,self)
-	print(dt)
-end)
--- Is now
-step:OnStep(function(self,pos) -- same goes for tsteps as well
-	print(pos)
-end)
-multi:newLoop(function(self,dt)
-	print(dt)
-end)
-```
-Reasoning I wanted to keep objects consistant, but a lot of my older libraries use the old way of doing things. Therefore I added a backwards module
-```lua
-require("multi.all")
-require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
-```
-Updated from 1.4.1 to 1.5.0
-Added:
-- An easy way to manage timeouts
-- Small bug fixes
-
-1.4.1 - First Public release of the library
-
-IMPORTANT:
-Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.
-
-Example at end of the readme
+View Changes: https://github.com/rayaman/multi#changes
 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
@@ -825,6 +747,84 @@ Looping...</br>
 Looping...</br>
 We did it!	1	2	3</br>
 
+# Changes
+
+Updated from 1.6.0 to 1.7.0
+Modified: multi.intergration.lanesManager.lua
+It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
+Example Usage:
+```lua
+local GLOBAL,lthread=require("multi.intergration.lanesManager").init()
+require("multi.alarm")
+require("multi.threading")
+multi:newAlarm(2):OnRing(function(self)
+	GLOBAL["NumOfCores"]=lthread.getCores()
+end)
+multi:newAlarm(7):OnRing(function(self)
+	GLOBAL["AnotherTest"]=true
+end)
+multi:newAlarm(13):OnRing(function(self)
+	GLOBAL["FinalTest"]=true
+end)
+multi:newSystemThread("test",function() -- spawns a thread in another lua process
+	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
+	print("Waiting for variable: NumOfCores")
+	print("Got it: ",lthread.waitFor("NumOfCores"))
+	lthread.hold(function()
+		return GLOBAL["AnotherTest"] -- note this would hold the entire systemthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
+	end)
+	print("Holding works!")
+	multi:newThread("tests",function()
+		thread.hold(function()
+			return GLOBAL["FinalTest"] -- note this will not hold the entire systemthread. As seen with the TLoop constantly going!
+		end)
+		print("Final test works!")
+		os.exit()
+	end)
+	local a=0
+	multi:newTLoop(function()
+		a=a+1
+		print(a)
+	end,.5)
+	multi:mainloop()
+end)
+multi:mainloop()
+```
+Once I am happy with the intergration and feel it is ready I will document it better
+
+
+Updated from 1.5.0 to 1.6.0
+Changed: steps and loops
+```lua
+-- Was
+step:OnStep(function(pos,self) -- same goes for tsteps as well
+	print(pos)
+end)
+multi:newLoop(function(dt,self)
+	print(dt)
+end)
+-- Is now
+step:OnStep(function(self,pos) -- same goes for tsteps as well
+	print(pos)
+end)
+multi:newLoop(function(self,dt)
+	print(dt)
+end)
+```
+Reasoning I wanted to keep objects consistant, but a lot of my older libraries use the old way of doing things. Therefore I added a backwards module
+```lua
+require("multi.all")
+require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
+```
+Updated from 1.4.1 to 1.5.0
+Added:
+- An easy way to manage timeouts
+- Small bug fixes
+
+1.4.1 - First Public release of the library
+
+IMPORTANT:
+Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.
 # TODO (In order of importance)
 - Finish the wiki stuff. (10% done)</br>
 - Test for unknown bugs</br>
