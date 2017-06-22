@@ -1,4 +1,32 @@
 # multi Version: 1.7.0 (Taking multi-tasking to the next level)
+
+My multitasking library for lua</br>
+To install copy the multi folder into your enviroment and you are good to go</br>
+
+It is a pure lua binding if you ingore the intergrations (Stable!)</br>
+
+If you find any bugs or have any issues please let me know :)
+
+Also I will eventually add an example folder with a lot of examples for how you can use this library. Don't konw when that will be though :P
+
+# Discord
+For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
+https://discord.gg/U8UspuA</br>
+
+Usage:</br>
+```lua
+--Basic usage
+require("multi.all") -- gets the entire library
+alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
+alarm:OnRing(function(a)
+  print("3 Seconds have passed!")
+  a:Reset(n) -- if n were nil it will reset back to 3, or it would reset to n seconds
+end)
+multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow intergration in other loops Ex: love2d love.update function. More on this binding in the wiki!
+```
+The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
+
+
 Updated from 1.6.0 to 1.7.0
 Modified: multi.intergration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
@@ -40,7 +68,7 @@ multi:newSystemThread("test",function() -- spawns a thread in another lua proces
 end)
 multi:mainloop()
 ```
-Onec I am happy with the intergration and feel it is ready I will document it better
+Once I am happy with the intergration and feel it is ready I will document it better
 
 
 Updated from 1.5.0 to 1.6.0
@@ -77,32 +105,6 @@ IMPORTANT:
 Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.
 
 Example at end of the readme
-
-My multitasking library for lua</br>
-To install copy the multi folder into your enviroment and you are good to go</br>
-
-It is a pure lua binding if you ingore the intergrations (Stable!)</br>
-
-If you find any bugs or have any issues please let me know :)
-
-Also I will eventually add an example folder with a lot of examples for how you can use this library. Don't konw when that will be though :P
-
-# Discord
-For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
-https://discord.gg/U8UspuA</br>
-
-Usage:</br>
-```lua
---Basic usage
-require("multi.all") -- gets the entire library
-alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
-alarm:OnRing(function(a)
-  print("3 Seconds have passed!")
-  a:Reset(n) -- if n were nil it will reset back to 3, or it would reset to n seconds
-end)
-multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow intergration in other loops Ex: love2d love.update function. More on this binding in the wiki!
-```
-The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
