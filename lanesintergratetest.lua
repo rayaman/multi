@@ -1,10 +1,9 @@
 package.path="?/init.lua;?.lua;"..package.path
-local GLOBAL,lthread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
 require("multi.alarm")
 require("multi.threading")
-for i,v in pairs(lanes.ABOUT) do print(i,v) end
 multi:newAlarm(2):OnRing(function(self)
-	GLOBAL["NumOfCores"]=lthread.getCores()
+	GLOBAL["NumOfCores"]=sThread.getCores()
 end)
 multi:newAlarm(7):OnRing(function(self)
 	GLOBAL["AnotherTest"]=true
@@ -15,8 +14,8 @@ end)
 multi:newSystemThread("test",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
 	print("Waiting for variable: NumOfCores")
-	print("Got it: ",lthread.waitFor("NumOfCores"))
-	lthread.hold(function()
+	print("Got it: ",sThread.waitFor("NumOfCores"))
+	sThread.hold(function()
 		return GLOBAL["AnotherTest"] -- note this would hold the entire systemthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
 	end)
 	print("Holding works!")
