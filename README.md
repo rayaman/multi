@@ -3,7 +3,7 @@
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
 
-It is a pure lua binding if you ingore the intergrations (Stable!)</br>
+It is a pure lua binding if you ingore the intergrations</br>
 
 If you find any bugs or have any issues please let me know :)
 
@@ -12,6 +12,8 @@ Also I will eventually add an example folder with a lot of examples for how you 
 # Discord
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
+
+View Changes: https://github.com/rayaman/multi#changes
 
 Usage:</br>
 ```lua
@@ -25,8 +27,6 @@ end)
 multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow intergration in other loops Ex: love2d love.update function. More on this binding in the wiki!
 ```
 The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
-
-View Changes: https://github.com/rayaman/multi#changes
 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
