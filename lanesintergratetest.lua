@@ -17,12 +17,12 @@ multi:newSystemThread("test",function() -- spawns a thread in another lua proces
 	print("Waiting for variable: NumOfCores")
 	print("Got it: ",lthread.waitFor("NumOfCores"))
 	lthread.hold(function()
-		return GLOBAL["AnotherTest"] -- note this would hold the entire lthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
+		return GLOBAL["AnotherTest"] -- note this would hold the entire systemthread. Spawn a coroutine thread using multi:newThread() or multi:newThreaded...
 	end)
 	print("Holding works!")
 	multi:newThread("tests",function()
 		thread.hold(function()
-			return GLOBAL["FinalTest"] -- note this will hold the entire lthread. As seen with the TLoop constantly going!
+			return GLOBAL["FinalTest"] -- note this will not hold the entire systemthread. As seen with the TLoop constantly going!
 		end)
 		print("Final test works!")
 		os.exit()
