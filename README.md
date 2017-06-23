@@ -1,4 +1,4 @@
-# multi Version: 1.7.0 (Taking multi-tasking to the next level)
+# multi Version: 1.7.2 (Taking multi-tasking to the next level)
 
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
