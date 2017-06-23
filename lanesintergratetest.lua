@@ -1,6 +1,5 @@
 package.path="?/init.lua;?.lua;"..package.path
 local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
-require("multi.alarm")
 require("multi.threading")
 multi:newAlarm(2):OnRing(function(self)
 	GLOBAL["NumOfCores"]=sThread.getCores()
