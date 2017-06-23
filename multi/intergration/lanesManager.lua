@@ -91,7 +91,7 @@ function multi:newSystemThread(name,func)
 	c.status:OnUpdate(function(self)
 		local v,err,t=self.link.thread:join(.001)
 		if err then
-			print("Error in thread: '"..self.link.name.."' <"..err..">",t)
+			print("Error in thread: '"..self.link.name.."' <"..err..">")
 			self:Destroy()
 		end
 	end)

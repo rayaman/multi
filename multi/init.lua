@@ -22,7 +22,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,7,1}
+multi.Version={1,7,2}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -319,7 +319,7 @@ function multi:fromfile(path,int)
 	return test2
 end
 function multi:benchMark(sec,p,pt)
-	local temp=self:newLoop(function(t,self)
+	local temp=self:newLoop(function(self,t)
 		if self.clock()-self.init>self.sec then
 			if pt then
 				print(pt.." "..self.c.." Steps in "..sec.." second(s)!")
@@ -671,7 +671,7 @@ function multi:newProcess(file)
 	c.Jobs={}
 	c.queue={}
 	c.jobUS=2
-	c.l=self:newLoop(function(dt) c:uManager(dt) end)
+	c.l=self:newLoop(function(self,dt) c:uManager(dt) end)
 	c.l:Pause()
 	function c:getController()
 		return c.l
@@ -936,7 +936,7 @@ function multi:mainloop()
 	while self.Active do
 		self:Do_Order()
 	end
-	print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
+	--print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
 end
 function multi._tFunc(self,dt)
 	for i=1,#self.Tasks do
@@ -1001,6 +1001,93 @@ function multi:newEvent(task)
 		m:addBlock(self.func)
 		m:addBlock(self.Active)
 		m:tofile(path)
+	end
+	self:create(c)
+	return c
+end
+function multi:newUpdater(skip)
+	local c=self:newBase()
+	c.Type='updater'
+	c.pos=1
+	c.skip=skip or 1
+	function c:Act()
+		if self.pos>=self.skip then
+			self.pos=0
+			for i=1,#self.func do
+				self.func[i](self)
+			end
+		end
+		self.pos=self.pos+1
+	end
+	function c:setSkip(n)
+		self.skip=n
+	end
+	c.OnUpdate=self.OnMainConnect
+	self:create(c)
+	return c
+end
+function multi:newAlarm(set)
+	local c=self:newBase()
+	c.Type='alarm'
+	c.Priority=self.Priority_Low
+	c.timer=self:newTimer()
+	c.set=set or 0
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.set)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Act()
+		if self.timer:Get()>=self.set then
+			self:Pause()
+			self.Active=false
+			for i=1,#self.func do
+				self.func[i](self)
+			end
+		end
+	end
+	function c:Resume()
+		self.Parent.Resume(self)
+		self.timer:Resume()
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self:Resume()
+		self.timer:Reset()
+	end
+	function c:OnRing(func)
+		table.insert(self.func,func)
+	end
+	function c:Pause()
+		self.timer:Pause()
+		self.Parent.Pause(self)
+	end
+	self:create(c)
+	return c
+end
+function multi:newLoop(func)
+	local c=self:newBase()
+	c.Type='loop'
+	c.Start=self.clock()
+	if func then
+		c.func={func}
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Act()
+		for i=1,#self.func do
+			self.func[i](self,self.Parent.clock()-self.Start)
+		end
+	end
+	function c:OnLoop(func)
+		table.insert(self.func,func)
 	end
 	self:create(c)
 	return c
