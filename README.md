@@ -748,7 +748,7 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # Changes
-Updated from 1.7.1 to 1.7.2
+Updated from 1.7.1 to 1.7.2</br>
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
 Updated from 1.7.0 to 1.7.1 Bug fixes only
