@@ -752,16 +752,16 @@ Updated from 1.7.2 to 1.7.3</br>
 Changed how requiring the library works!
 `require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and intergrations everything else has been moved into the core of the library.
 ```lua
-	-- This means that these are no longer required and will cause an error if done so
-    require("multi.loop")
-    require("multi.alarm")
-    require("multi.updater")
-    require("multi.tloop")
-    require("multi.watcher")
-    require("multi.tstep")
-    require("multi.step")
-    require("multi.task")
-    -- ^ they are all part of the core now
+-- This means that these are no longer required and will cause an error if done so
+require("multi.loop")
+require("multi.alarm")
+require("multi.updater")
+require("multi.tloop")
+require("multi.watcher")
+require("multi.tstep")
+require("multi.step")
+require("multi.task")
+-- ^ they are all part of the core now
 ```
 
 Updated from 1.7.1 to 1.7.2</br>
