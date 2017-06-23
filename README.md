@@ -14,6 +14,9 @@ Also I will eventually add an example folder with a lot of examples for how you 
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
 
+# Planned feature
+Add system threads for love2d that work like the lanesManager.
+
 Usage:</br>
 ```lua
 --Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
