@@ -750,23 +750,25 @@ We did it!	1	2	3</br>
 # Changes
 Updated from 1.7.1 to 1.7.2
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
+
 Updated from 1.7.0 to 1.7.1 Bug fixes only
-Updated from 1.6.0 to 1.7.0
+
+Updated from 1.6.0 to 1.7.0</br>
 Modified: multi.intergration.lanesManager.lua
-It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
-Example Usage:
-sThread is a handle to a global interface for threads to interact with themselfs
-thread is the interfact for multithreads as seen in the threading section
+It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.</br>
+Example Usage:</br>
+sThread is a handle to a global interface for threads to interact with themself</br>
+thread is the interfact for multithreads as seen in the threading section</br>
 
 GLOBAL a table that can be used throughout each and every thread
 
-sThreads have a few methods
-sThread.set(name,val) -- you can use the GLOBAL table instead modifies the same table anyway
-sThread.get(name) -- you can use the GLOBAL table instead modifies the same table anyway
-sThread.waitFor(name) -- waits until a value exists, if it does it returns it
-sThread.getCores() -- returns the number of cores on your cpu
-sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running
-sThread.hold(n) -- sleeps until a condition is met
+sThreads have a few methods</br>
+sThread.set(name,val) -- you can use the GLOBAL table instead modifies the same table anyway</br>
+sThread.get(name) -- you can use the GLOBAL table instead modifies the same table anyway</br>
+sThread.waitFor(name) -- waits until a value exists, if it does it returns it</br>
+sThread.getCores() -- returns the number of cores on your cpu</br>
+sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running</br>
+sThread.hold(n) -- sleeps until a condition is met</br>
 ```lua
 local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
 require("multi.alarm")
@@ -805,7 +807,7 @@ end)
 multi:mainloop()
 ```
 
-Updated from 1.5.0 to 1.6.0
+Updated from 1.5.0 to 1.6.0</br>
 Changed: steps and loops
 ```lua
 -- Was
@@ -835,8 +837,8 @@ Added:
 
 1.4.1 - First Public release of the library
 
-IMPORTANT:
-Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.
+IMPORTANT:</br>
+Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.</br>
 # TODO (In order of importance)
 - Finish the wiki stuff. (10% done)</br>
 - Test for unknown bugs</br>
