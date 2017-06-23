@@ -17,7 +17,7 @@ View Changes: https://github.com/rayaman/multi#changes
 
 Usage:</br>
 ```lua
---Basic usage
+--Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
 require("multi.all") -- gets the entire library
 alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
 alarm:OnRing(function(a)
@@ -61,7 +61,7 @@ Throughout these examples I am going to do some strange things in order to show 
 
 # LOOPS
 ```lua
--- Loops
+-- Loops: Have been moved to the core of the library require("multi") would work as well
 require("multi.all") -- gets the entire library
 count=0
 loop=multi:newLoop(function(self,dt) -- dt is delta time and self is a reference to itself
@@ -305,6 +305,7 @@ Note: This will make more sense when you run it for your self</br>
 
 # UPDATER
 ```lua
+-- Updaters: Have been moved to the core of the library require("multi") would work as well
 require("multi.all")
 updater=multi:newUpdater(5) -- really simple, think of a look with the skip feature of a step
 updater:OnUpdate(function(self)
