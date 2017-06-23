@@ -1,38 +1,48 @@
 package.path="?/init.lua;?.lua;"..package.path
 local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
 require("multi.threading") -- obvious copy/paste below with no attempt to clean it up :P
+local function comma_value(amount)
+	local formatted = amount
+	while true do
+		formatted, k = string.gsub(formatted, "^(-?%d+)(%d%d%d)", '%1,%2')
+		if (k==0) then
+			break
+		end
+	end
+	return formatted
+end
 multi:newSystemThread("test1",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 1"):OnBench(function(self,c) GLOBAL["T1"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 1"):OnBench(function(self,c) GLOBAL["T1"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("test2",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 2"):OnBench(function(self,c) GLOBAL["T2"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 2"):OnBench(function(self,c) GLOBAL["T2"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("test3",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 3"):OnBench(function(self,c) GLOBAL["T3"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 3"):OnBench(function(self,c) GLOBAL["T3"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("test4",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 4"):OnBench(function(self,c) GLOBAL["T4"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 4"):OnBench(function(self,c) GLOBAL["T4"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("test5",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 5"):OnBench(function(self,c) GLOBAL["T5"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 5"):OnBench(function(self,c) GLOBAL["T5"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("test6",function() -- spawns a thread in another lua process
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
-	multi:benchMark(5,nil,"Thread 6"):OnBench(function(self,c) GLOBAL["T6"]=c multi:Stop() end)
+	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 6"):OnBench(function(self,c) GLOBAL["T6"]=c multi:Stop() end)
 	multi:mainloop()
 end)
 multi:newSystemThread("Combiner",function() -- spawns a thread in another lua process
-	print("Bench: ",sThread.waitFor("T1")+sThread.waitFor("T2")+sThread.waitFor("T3")+sThread.waitFor("T4")+sThread.waitFor("T5")+sThread.waitFor("T6"))
+	print("Bench: ",comma_value(tostring(sThread.waitFor("T1")+sThread.waitFor("T2")+sThread.waitFor("T3")+sThread.waitFor("T4")+sThread.waitFor("T5")+sThread.waitFor("T6"))))
 	GLOBAL["DONE"]=true
 end)
 multi:newThread("test0",function()
@@ -48,4 +58,5 @@ multi:newThread("test0",function()
 		end
 	end
 end)
+GLOBAL["Bench"]=10
 multi:mainloop()
