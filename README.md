@@ -748,7 +748,9 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # Changes
-
+Updated from 1.7.1 to 1.7.2
+Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
+Updated from 1.7.0 to 1.7.1 Bug fixes only
 Updated from 1.6.0 to 1.7.0
 Modified: multi.intergration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.
