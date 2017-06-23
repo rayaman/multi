@@ -1,4 +1,5 @@
-# multi Version: 1.7.2 (Taking multi-tasking to the next level)
+# multi Version: 1.7.3 (Restructuring the library, but nothing besides how you require it changes!)
+View Changes: https://github.com/rayaman/multi#changes
 
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
@@ -13,12 +14,10 @@ Also I will eventually add an example folder with a lot of examples for how you 
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
 
-View Changes: https://github.com/rayaman/multi#changes
-
 Usage:</br>
 ```lua
 --Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
-require("multi.all") -- gets the entire library
+require("multi") -- gets the entire library
 alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
 alarm:OnRing(function(a)
   print("3 Seconds have passed!")
@@ -44,15 +43,15 @@ Check out the wiki for detailed usage, but here are the objects:</br>
 - Timer</br>
 - Updater</br>
 - Thread*</br>
-- Trigger**</br>
+- Trigger</br>
 - Task</br>
 - Job</br>
 - Function</br>
-- Watcher***</br>
-#Both a process and queue act like the multi namespace, but allows for some cool things. Because they use the other objects an example on them will be done last</br>
+- Watcher</br>
+Note: *Both a process and queue act like the multi namespace, but allows for some cool things. Because they use the other objects an example on them will be done last*</br>
 *Uses the built in coroutine features of lua, these have an interesting interaction with the other means of multi-tasking</br>
-**Triggers are kind of useless after the creation of the Connection</br>
-***Watchers have no real purpose as well I made it just because.</br>
+Triggers are kind of useless after the creation of the Connection</br>
+Watchers have no real purpose as well I made it just because.</br>
 
 # Examples of each object being used</br>
 We already showed alarms in action so lets move on to a Loop object
@@ -62,7 +61,7 @@ Throughout these examples I am going to do some strange things in order to show 
 # LOOPS
 ```lua
 -- Loops: Have been moved to the core of the library require("multi") would work as well
-require("multi.all") -- gets the entire library
+require("multi") -- gets the entire library
 count=0
 loop=multi:newLoop(function(self,dt) -- dt is delta time and self is a reference to itself
   count=count+1
@@ -101,7 +100,7 @@ This library aims to be Async like. In reality everything is still on one thread
 ```lua
 -- Events, these were the first objects introduced into the library. I seldomly use them in their pure form though, but later on you'll see their advance uses!
 -- Events on there own don't really do much... We are going to need 2 objects at least to get something going
-require("multi.all") -- gets the entire library
+require("multi") -- gets the entire library
 count=0
 -- lets use the loop again to add to count!
 loop=multi:newLoop(function(self,dt)
@@ -119,7 +118,7 @@ Stopped that loop!
 
 # STEPS
 ```lua
-require("multi.all")
+require("multi")
 -- Steps, are like for loops but non blocking... You can run a loop to infintity and everything will still run I will combine Steps with Ranges in this example.
 step1=multi:newStep(1,10,1,0) -- Some explaining is due. Argument 1 is the Start # Argument 2 is the ResetAt # (inclusive) Argument 3 is the count # (in our case we are counting by +1, this can be -1 but you need to adjust your start and resetAt numbers)
 -- The 4th Argument is for skipping. This is useful for timing and for basic priority management. A priority management system is included!
@@ -180,7 +179,7 @@ Ok 10!</br>
 
 # TLOOPS
 ```lua
-require("multi.all")
+require("multi")
 -- TLoops are loops that run ever n second. We will also look at condition objects as well
 -- Here we are going to modify the old loop to be a little different
 count=0
@@ -202,7 +201,7 @@ Count is 101!
 These are my favorite objects and you'll see why. They are very useful objects for ASync connections!
 
 ```lua
-require("multi.all")
+require("multi")
 -- Lets create the events
 yawn={} -- ill just leave that there
 OnCustomSafeEvent=multi:newConnection(true) -- lets pcall the calls incase something goes wrong defualt
@@ -260,7 +259,7 @@ You may think timers should be bundled with alarms, but they are a bit different
 # TIMERS
 ```lua
 -- You see the thing is that all time based objects use timers eg. Alarms, TSteps, and Loops. Timers are more low level!
-require("multi.all")
+require("multi")
 local clock = os.clock
 function sleep(n)  -- seconds
   local t0 = clock()
@@ -306,7 +305,7 @@ Note: This will make more sense when you run it for your self</br>
 # UPDATER
 ```lua
 -- Updaters: Have been moved to the core of the library require("multi") would work as well
-require("multi.all")
+require("multi")
 updater=multi:newUpdater(5) -- really simple, think of a look with the skip feature of a step
 updater:OnUpdate(function(self)
   --print("updating...")
@@ -379,7 +378,7 @@ Notice: Even though I started each bench at the same time the order that they fi
 # Processes
 A process allows you to group the Actor objects within a controlable interface
 ```lua
-require("multi.all")
+require("multi")
 proc=multi:newProcess() -- takes an optional file as an argument, but for this example we aren't going to use that
 -- a process works just like the multi object!
 b=0
@@ -456,6 +455,7 @@ end
 # Queuer (WIP)
 A queuer works just like a process however objects are processed in order that they were created...
 ```lua
+require("multi")
 queue = multi:newQueuer()
 queue:newAlarm(3):OnRing(function()
 	print("Ring ring!!!")
@@ -509,6 +509,7 @@ function require(path)
 	_require(path)
 end
 require("multi.*") -- now I can use that lovely * symbol to require everything
+-- Pointless I know I... Don't look at me like that :P
 test=multi:newThreadedProcess("main") -- you can thread processors and all Actors see note for a list of actors you can thread!
 test2=multi:newThreadedProcess("main2")
 count=0
@@ -572,7 +573,7 @@ Count is 100</br>
 If you ever wanted to pause a function then great now you can
 The uses of the Function object allows one to have a method that can run free in a sense
 ```lua
-require("multi.all")
+require("multi")
 func=multi:newFunction(function(self,arg1,arg2,...)
 	self:Pause()
 	return arg1
@@ -591,7 +592,7 @@ Hello3</br>
 
 ```lua
 -- Works the same as a regular updater!
-require("multi.all")
+require("multi")
 multi:newThreadedUpdater("Test",10000):OnUpdate(function(self)
 	print(self.pos)
 end)
@@ -607,7 +608,7 @@ multi:mainloop()
 Triggers were what I used before connections became a thing, also Function objects are a lot like triggers and can be paused as well, while triggers cannot...</br>
 They are simple to use, but in most cases you are better off using a connection</br>
 ```lua
-require("multi.trigger")
+require("multi")
 -- They work like connections but can only have one event binded to them
 trig=multi:newTrigger(function(self,a,b,c,...)
 	print(a,b,c,...)
@@ -623,8 +624,7 @@ trig:Fire(1,2,3,"Hello",true)
 # Tasks
 Tasks allow you to run a block of code before the multi mainloops does it thing. Tasks still have a use, but depending on how you program they aren't needed.</br>
 ```lua
-require("multi.loop")
-require("multi.task")
+require("multi")
 multi:newTask(function()
 	print("Hi!")
 end)
@@ -647,7 +647,7 @@ As seen in the example above the tasks were done before anything else in the mai
 # Jobs
 Jobs were a strange feature that was created for throttling connections! When I was building a irc bot around this library I couldn't have messages posting too fast due to restrictions. Jobs allowed functions to be added to a queue that were executed after a certain amount of time has passed
 ```lua
-require("multi.alarm") -- jobs use alarms I am pondering if alarms should be added to the core or if jobs should use timers instead...
+require("multi") -- jobs use alarms I am pondering if alarms should be added to the core or if jobs should use timers instead...
 -- jobs are built into the core of the library so no need to require them
 print(multi:hasJobs())
 multi:setJobSpeed(1) -- set job speed to 1 second
@@ -681,8 +681,7 @@ Another job!</br>
 # Watchers
 Watchers allow you to monitor a variable and trigger an event when the variable has changed!
 ```lua
-require("multi.watcher")
-require("multi.tloop")
+require("multi")
 a=0
 watcher=multi:newWatcher(_G,"a") -- watch a in the global enviroment
 watcher:OnValueChanged(function(self,old,new)
@@ -703,7 +702,7 @@ multi:mainloop()
 Timeout management
 ```lua
 -- Note: I used a tloop so I could control the output of the program a bit.
-require("multi.tloop")
+require("multi")
 a=0
 inc=1 -- change to 0 to see it not met at all, 1 if you want to see the first condition not met but the second and 2 if you want to see it meet the condition on the first go.
 loop=multi:newTLoop(function(self)
@@ -749,6 +748,22 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # Changes
+Updated from 1.7.2 to 1.7.3</br>
+Changed how requiring the library works!
+`require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and intergrations everything else has been moved into the core of the library.
+```lua
+	-- This means that these are no longer required and will cause an error if done so
+    require("multi.loop")
+    require("multi.alarm")
+    require("multi.updater")
+    require("multi.tloop")
+    require("multi.watcher")
+    require("multi.tstep")
+    require("multi.step")
+    require("multi.task")
+    -- ^ they are all part of the core now
+```
+
 Updated from 1.7.1 to 1.7.2</br>
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
@@ -772,8 +787,7 @@ sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running</br
 sThread.hold(n) -- sleeps until a condition is met</br>
 ```lua
 local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
-require("multi.alarm")
-require("multi.threading")
+require("multi.all")
 multi:newAlarm(2):OnRing(function(self)
 	GLOBAL["NumOfCores"]=sThread.getCores()
 end)

@@ -1115,3 +1115,263 @@ function multi:newLoop(func)
 	self:create(c)
 	return c
 end
+function multi:newFunction(func)
+	local c={}
+	c.func=func
+	mt={
+		__index=multi,
+		__call=function(self,...) if self.Active then return self:func(...) end local t={...} return "PAUSED" end
+	}
+	c.Parent=self
+	function c:Pause()
+		self.Active=false
+	end
+	function c:Resume()
+		self.Active=true
+	end
+	setmetatable(c,mt)
+	self:create(c)
+	return c
+end
+function multi:newStep(start,reset,count,skip)
+	local c=self:newBase()
+	think=1
+	c.Type='step'
+	c.pos=start or 1
+	c.endAt=reset or math.huge
+	c.skip=skip or 0
+	c.spos=0
+	c.count=count or 1*think
+	c.funcE={}
+	c.funcS={}
+	c.start=start or 1
+	if start~=nil and reset~=nil then
+		if start>reset then
+			think=-1
+		end
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.funcE)
+		m:addBlock(self.funcS)
+		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,spos=self.spos,count=self.count,start=self.start})
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Act()
+		if self~=nil then
+			if self.spos==0 then
+				if self.pos==self.start then
+					for fe=1,#self.funcS do
+						self.funcS[fe](self)
+					end
+				end
+				for i=1,#self.func do
+					self.func[i](self,self.pos)
+				end
+				self.pos=self.pos+self.count
+				if self.pos-self.count==self.endAt then
+					self:Pause()
+					for fe=1,#self.funcE do
+						self.funcE[fe](self)
+					end
+					self.pos=self.start
+				end
+			end
+		end
+		self.spos=self.spos+1
+		if self.spos>=self.skip then
+			self.spos=0
+		end
+	end
+	c.Reset=c.Resume
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+	end
+	function c:OnStep(func)
+		table.insert(self.func,1,func)
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+	end
+	function c:Break()
+		self.Active=nil
+	end
+	function c:Update(start,reset,count,skip)
+		self.start=start or self.start
+		self.endAt=reset or self.endAt
+		self.skip=skip or self.skip
+		self.count=count or self.count
+		self:Resume()
+	end
+	self:create(c)
+	return c
+end
+function multi:newTask(func)
+	table.insert(self.Tasks,func)
+end
+function multi:newTLoop(func,set)
+	local c=self:newBase()
+	c.Type='tloop'
+	c.set=set or 0
+	c.timer=self:newTimer()
+	c.life=0
+	if func then
+		c.func={func}
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Act()
+		if self.timer:Get()>=self.set then
+			self.life=self.life+1
+			for i=1,#self.func do
+				self.func[i](self,self.life)
+			end
+			self.timer:Reset()
+		end
+	end
+	function c:Resume()
+		self.Parent.Resume(self)
+		self.timer:Resume()
+	end
+	function c:Pause()
+		self.timer:Pause()
+		self.Parent.Pause(self)
+	end
+	function c:OnLoop(func)
+		table.insert(self.func,func)
+	end
+	self:create(c)
+	return c
+end
+function multi:newTrigger(func)
+	local c={}
+	c.Type='trigger'
+	c.trigfunc=func or function() end
+	function c:Fire(...)
+		self:trigfunc(...)
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.trigfunc)
+		m:tofile(path)
+	end
+	self:create(c)
+	return c
+end
+function multi:newTStep(start,reset,count,set)
+	local c=self:newBase()
+	think=1
+	c.Type='tstep'
+	c.Priority=self.Priority_Low
+	c.start=start or 1
+	local reset = reset or math.huge
+	c.endAt=reset
+	c.pos=start or 1
+	c.skip=skip or 0
+	c.count=count or 1*think
+	c.funcE={}
+	c.timer=self.clock()
+	c.set=set or 1
+	c.funcS={}
+	function c:Update(start,reset,count,set)
+		self.start=start or self.start
+		self.pos=self.start
+		self.endAt=reset or self.endAt
+		self.set=set or self.set
+		self.count=count or self.count or 1
+		self.timer=self.clock()
+		self:Resume()
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.funcE)
+		m:addBlock(self.funcS)
+		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,timer=self.timer,count=self.count,start=self.start,set=self.set})
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Act()
+		if self.clock()-self.timer>=self.set then
+			self:Reset()
+			if self.pos==self.start then
+				for fe=1,#self.funcS do
+					self.funcS[fe](self)
+				end
+			end
+			for i=1,#self.func do
+				self.func[i](self,self.pos)
+			end
+			self.pos=self.pos+self.count
+			if self.pos-self.count==self.endAt then
+				self:Pause()
+				for fe=1,#self.funcE do
+					self.funcE[fe](self)
+				end
+				self.pos=self.start
+			end
+		end
+	end
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+	end
+	function c:OnStep(func)
+		table.insert(self.func,func)
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+	end
+	function c:Break()
+		self.Active=nil
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self.timer=self.clock()
+		self:Resume()
+	end
+	self:create(c)
+	return c
+end
+function multi:newWatcher(namespace,name)
+	local function WatcherObj(ns,n)
+		if self.Type=='queue' then
+			print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
+			self=multi
+		end
+		local c=self:newBase()
+		c.Type='watcher'
+		c.ns=ns
+		c.n=n
+		c.cv=ns[n]
+		function c:OnValueChanged(func)
+			table.insert(self.func,func)
+		end
+		function c:Act()
+			if self.cv~=self.ns[self.n] then
+				for i=1,#self.func do
+					self.func[i](self,self.cv,self.ns[self.n])
+				end
+				self.cv=self.ns[self.n]
+			end
+		end
+		self:create(c)
+		return c
+	end
+	if type(namespace)~='table' and type(namespace)=='string' then
+		return WatcherObj(_G,namespace)
+	elseif type(namespace)=='table' and (type(name)=='string' or 'number') then
+		return WatcherObj(namespace,name)
+	else
+		print('Warning, invalid arguments! Nothing returned!')
+	end
+end
