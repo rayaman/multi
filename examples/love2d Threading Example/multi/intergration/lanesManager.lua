@@ -122,6 +122,8 @@ function multi:newSystemThread(name,func)
 end
 print("Intergrated Lanes!")
 multi.intergration={} -- for module creators
+multi.intergration.GLOBAL=GLOBAL
+multi.intergration.THREAD=THREAD
 multi.intergration.lanes={} -- for module creators
 multi.intergration.lanes.GLOBAL=GLOBAL -- for module creators
 multi.intergration.lanes.THREAD=THREAD -- for module creators
