@@ -953,8 +953,8 @@ function multi:newCondition(func)
 end
 multi.NewCondition=multi.newCondition
 function multi:mainloop()
-	if not mulit.isRunning then
-		mulit.isRunning=true
+	if not multi.isRunning then
+		multi.isRunning=true
 		for i=1,#self.Tasks do
 			self.Tasks[i](self)
 		end
