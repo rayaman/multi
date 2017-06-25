@@ -67,7 +67,7 @@ multi.jobUS=2
 multi.clock=os.clock
 multi.time=os.time
 multi.LinkedPath=multi
-mulit.isRunning=false
+multi.isRunning=false
 multi.queuefinal=function(self)
 	self:Destroy()
 	if self.Parent.Mainloop[#self.Parent.Mainloop] then
