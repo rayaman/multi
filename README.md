@@ -1,4 +1,4 @@
-# multi Version: 1.7.4 (Added loveManager to the intergrations)
+# multi Version: 1.7.5 (Typos and imporoved module creation supprt, examples to come soon)
 View Changes: https://github.com/rayaman/multi#changes
 
 My multitasking library for lua</br>
@@ -751,13 +751,21 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # Changes
+Updated from 1.7.4 to 1.7.5</br>
+Fixed some typos in the readme... (I am sure there are more there are always more)
+Added more features for module support
+TODO:
+Work on performance of the library... I see 3 places where I can make this thing run quicker
+
+I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!
+
 Updated from 1.7.3 to 1.7.4</br>
 Added: the example folder which will be populated with more examples in the near future!</br>
 The loveManager intergration that mimics the lanesManager intergration almost exactly to keep coding in both enviroments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
 NOTE: This code has only been tested to work on love2d version 1.10.2 thoough it should work version 0.9.0
 ```lua
-require("core.Library")
+require("core.Library") -- Didn't add this to a repo yet! Will do eventually... Allows for injections and other cool things
 require("multi.compat.love2d") -- allows for multitasking and binds my libraies to the love2d engine that i am using
 GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager
 --IMPORTANT
@@ -853,8 +861,8 @@ Updated from 1.6.0 to 1.7.0</br>
 Modified: multi.intergration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.</br>
 Example Usage:</br>
-sThread is a handle to a global interface for threads to interact with themself</br>
-thread is the interfact for multithreads as seen in the threading section</br>
+sThread is a handle to a global interface for system threads to interact with themself</br>
+thread is the interface for multithreads as seen in the threading section</br>
 
 GLOBAL a table that can be used throughout each and every thread
 

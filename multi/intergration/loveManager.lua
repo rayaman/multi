@@ -291,6 +291,8 @@ function THREAD.hold(n)
 	multi.OBJ_REF:Resume()
 end
 __channels__={}
+multi.intergration.GLOBAL=GLOBAL
+multi.intergration.THREAD=THREAD
 updater=multi:newUpdater()
 updater:OnUpdate(function(self)
 	local data=multi.intergration.love2d.mainChannel:pop()
