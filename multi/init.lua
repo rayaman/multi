@@ -67,6 +67,7 @@ multi.jobUS=2
 multi.clock=os.clock
 multi.time=os.time
 multi.LinkedPath=multi
+mulit.isRunning=false
 multi.queuefinal=function(self)
 	self:Destroy()
 	if self.Parent.Mainloop[#self.Parent.Mainloop] then
@@ -952,12 +953,17 @@ function multi:newCondition(func)
 end
 multi.NewCondition=multi.newCondition
 function multi:mainloop()
-	for i=1,#self.Tasks do
-		self.Tasks[i](self)
-	end
-	rawset(self,'Start',self.clock())
-	while self.Active do
-		self:Do_Order()
+	if not mulit.isRunning then
+		mulit.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			self:Do_Order()
+		end
+	else
+		return "Already Running!"
 	end
 	--print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
 end
