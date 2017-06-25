@@ -1,0 +1,3 @@
+function gui:addDominance()
+	_GuiPro.TopHovered=self
+end

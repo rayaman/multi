@@ -1,0 +1,3 @@
+function gui:setNewFont(FontSize)
+	self.Font=love.graphics.setNewFont(tonumber(FontSize))
+end

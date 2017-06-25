@@ -1,0 +1,36 @@
+function _GuiPro.gradient(colors)
+    local direction = colors.direction or "horizontal"
+	colors.direction=nil
+	trans = colors.trans or 255
+	trans=math.floor(trans)
+    if direction == "horizontal" then
+        direction = true
+    elseif direction == "vertical" then
+        direction = false
+    else
+        error("Invalid direction '" .. tostring(direction) "' for gradient.  Horizontal or vertical expected.")
+    end
+    local result = love.image.newImageData(direction and 1 or #colors, direction and #colors or 1)
+    for __i, color in ipairs(colors) do
+        local x, y
+        if direction then
+            x, y = 0, __i - 1
+        else
+            x, y = __i - 1, 0
+        end
+        result:setPixel(x, y, color[1], color[2], color[3], trans)
+    end
+    result = love.graphics.newImage(result)
+    result:setFilter('linear', 'linear')
+    return result
+end
+function _GuiPro.drawinrect(img, x, y, w, h, r, ox, oy, kx, ky)
+    love.graphics.draw(img, x, y, r, w / img:getWidth(), h / img:getHeight(), ox, oy, kx, ky)
+end
+function gui:ApplyGradient(rules)
+	self.Image=nil
+	self.Type=self.Type.."w/GradImage"
+	self.rotation=0
+	self.ImageVisibility=rules.visibility or 1
+	self:SetImage(_GuiPro.gradient(rules))
+end

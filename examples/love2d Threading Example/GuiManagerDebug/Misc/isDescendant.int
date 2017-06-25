@@ -1,0 +1,9 @@
+function gui:isDescendant(obj)
+	local things=obj:GetAllChildren()
+	for i=1,#things do
+		if things[i]==self then
+			return true
+		end
+	end
+	return false
+end

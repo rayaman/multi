@@ -1,0 +1,9 @@
+function gui:Destroy()
+	check=self.Parent:getChildren()
+	local cc=0
+	for cc=1,#check do
+		if check[cc]==self then
+			table.remove(self.Parent.Children,cc)
+		end
+	end
+end

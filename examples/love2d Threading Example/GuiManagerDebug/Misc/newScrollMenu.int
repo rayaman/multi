@@ -1,0 +1,98 @@
+function gui:newScrollMenu(title,tabN,onloop,x, y, w, h, sx ,sy ,sw ,sh)
+	local Main = self:newFrame(x, y, w, h, sx ,sy ,sw ,sh)
+	local Title=Main:newTextButton(title,"Title",0,0,0,20,0,0,1)
+	Title.Tween=-4
+	Title.FontSize=12
+	Title:OnReleased(function(b,self)
+		self.Parent.Tick=not(self.Parent.Tick)
+	end)
+	local scroll=Main:newTextButton("","Scroll",-20,20,20,-20,1,0,0,1)
+	scroll:OnClicked(function(b,self,x,y)
+		self.Parent.Mover:SetDualDim(0,y-10,20,20)
+		if self.Parent.Mover.offset.pos.y<0 then
+			self.Parent.Mover:SetDualDim(0,0,20,20)
+		end
+		if self.Parent.Mover.offset.pos.y>self.Parent.height-40 then
+			self.Parent.Mover:SetDualDim(0,self.Parent.height-40,20,20)
+		end
+		local temp = #self.Parent.TList
+		self.Parent.pos=(math.floor((temp*self.Parent.Mover.offset.pos.y)/self.height))+1
+	end)
+	Main:OnUpdate(function(self)
+		if self.Tick==false then
+			self.Visibility=0
+		end
+	end)
+	scroll:OnUpdate(function(self)
+		self.Visible=self.Parent.Tick
+	end)
+	local Mover=scroll:newTextLabel("",0,0,20,20)
+	Main.Mover=Mover
+	Main.TList=tabN
+	Main.pos=1
+	Main.Tick=true
+	function Main:Update(title,tabN,onloop)
+		ch=self:getChildren()
+		for i=#ch,1,-1 do
+			ch[i]:Destroy()
+		end
+		Title=Main:newTextButton(title,"Title",0,0,0,20,0,0,1)
+		Title.Tween=-4
+		Title.FontSize=12
+		Title:OnReleased(function(b,self)
+			self.Parent.Tick=not(self.Parent.Tick)
+		end)
+		scroll=Main:newTextButton("","Scroll",-20,20,20,-20,1,0,0,1)
+		scroll:OnClicked(function(b,self,x,y)
+			self.Parent.Mover:SetDualDim(0,y-10,20,20)
+			if self.Parent.Mover.offset.pos.y<0 then
+				self.Parent.Mover:SetDualDim(0,0,20,20)
+			end
+			if self.Parent.Mover.offset.pos.y>self.Parent.height-40 then
+				self.Parent.Mover:SetDualDim(0,self.Parent.height-40,20,20)
+			end
+			local temp = #self.Parent.TList
+			self.Parent.pos=(math.floor((temp*self.Parent.Mover.offset.pos.y)/self.height))+1
+		end)
+		local Mover=scroll:newTextLabel("",0,0,20,20)
+		Main.Mover=Mover
+		Main.TList=tabN
+		Main.pos=1
+		Main.Tick=true
+		scroll:OnUpdate(function(self)
+			self.Visible=self.Parent.Tick
+		end)
+		for i=1,math.floor(Main.height/20)-1 do
+			local temp=Main:newTextButton("","Item"..i,0,i*20,-20,20,0,0,1)
+			temp.FontSize=10
+			temp.Tween=-4
+			temp.pos=i
+			temp:OnUpdate(function(self)
+				self.text=self.Parent.TList[(self.Parent.pos+self.pos)-1]
+				self.Visible=self.Parent.Tick
+			end)
+			if onloop then
+				onloop(temp,i)
+			end
+		end
+	end
+	io.write(tostring(Main.height).."\n")
+	for i=1,math.floor(Main.height/20)-1 do
+		local temp=Main:newTextButton("Item"..i,0,i*20,-20,20,0,0,1)
+		temp.FontSize=10
+		temp.Tween=-4
+		temp.pos=i
+		temp:OnUpdate(function(self)
+			if self.Parent.TList[(self.Parent.pos+self.pos)-1]~=nil then
+				self.text=self.Parent.TList[(self.Parent.pos+self.pos)-1]
+			else
+				self.text=""
+			end
+			self.Visible=self.Parent.Tick
+		end)
+		if onloop then
+			onloop(temp,i)
+		end
+	end
+	return Main
+end

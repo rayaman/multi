@@ -1,0 +1,5 @@
+function DrawThings(items)
+	for i=1,#items do
+		items[i]:draw()
+	end
+end

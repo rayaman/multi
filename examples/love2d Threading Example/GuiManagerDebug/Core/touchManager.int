@@ -1,0 +1,204 @@
+--[[WORKING ON
+doubleTap - UnFinished!
+touchRendering - Broken
+]]
+function gui:TClickable(mx,my)
+	local x,y,w,h=love.graphics.getScissor()
+	if _GuiPro.HasStencel then
+		local obj=_GuiPro.StencelHolder
+		if self:isDescendant(obj) then
+			return math.sqrt((mx-obj.x)^2+(my-obj.y)^2)<=(obj.offset.size.x or 0)
+		end
+	end
+	if not(x) then
+		return true
+	end
+	return not(mx>x+w or mx<x or my>y+h or my<y)
+end
+function gui:touchable(t)
+	local touches = love.touch.getTouches()
+	local x,y=0,0
+	for i, id in ipairs(touches) do
+		if self.id==id then
+			x, y = love.touch.getPosition(id)
+			return (x > self.x and x < self.x+self.width and y > self.y and y < self.y+self.height and self:TClickable(x,y) and self:eventable())
+		end
+	end
+	self.id=-1
+end
+multi:newTask(function() -- A bit of post-loading haha
+	gui.touchpressed=multi:newConnection()
+	gui.touchreleased=multi:newConnection()
+	gui.touchmoved=multi:newConnection()
+	love.touchpressed=Library.convert(love.touchpressed or function() end)
+	love.touchreleased=Library.convert(love.touchreleased or function() end)
+	love.touchmoved=Library.convert(love.touchmoved or function() end)
+	love.touchpressed:inject(function(id, x, y, dx, dy, pressure) gui.touchpressed:Fire(id, x, y, dx, dy, pressure) return {id, x, y, dx, dy, pressure} end,1)
+	love.touchreleased:inject(function(id, x, y, dx, dy, pressure) gui.touchreleased:Fire(id, x, y, dx, dy, pressure) return {id, x, y, dx, dy, pressure} end,1)
+	love.touchmoved:inject(function(id, x, y, dx, dy, pressure) gui.touchmoved:Fire(id, x, y, dx, dy, pressure) return {id, x, y, dx, dy, pressure} end,1)
+	_GuiPro.TouchReady=true
+	_GuiPro.TouchRegister={}
+	gui.touchpressed:connect(function(id, x, y, dx, dy, pressure)
+		for i,v in pairs(_GuiPro.TouchRegister) do
+			if #v.tid==0 then
+				if (x > v.x and x < v.x+v.width and y > v.y and y < v.y+v.height and v:TClickable(x,y) and v:eventable()) then 
+					v:addTID(id)
+					v.touchcount=1
+					for i=1,#v.ToFuncP do
+						v.ToFuncP[i](v,id, x-v.x, y-v.y, dx, dy or 0, pressure or 1)
+					end
+				end
+			elseif not(v:hasTID(id)) then
+				if (x > v.x and x < v.x+v.width and y > v.y and y < v.y+v.height and v:TClickable(x,y) and v:eventable()) then
+					v:addTID(id)
+					v.touchcount=v.touchcount+1
+					for i=1,#v.ToFuncP do
+						v.ToFuncP[i](v,id, x-v.x, y-v.y, dx, dy or 0, pressure or 1)
+					end
+				end
+			end
+		end
+	end)
+	gui.touchreleased:connect(function(id, x, y, dx, dy, pressure)
+		for i,v in pairs(_GuiPro.TouchRegister) do
+			if v:hasTID(id) then
+				v:removeTID(id)
+				for i=1,#v.ToFuncR do
+					v.ToFuncR[i](v,id, x-v.x, y-v.y, dx, dy or 0, pressure or 1)
+				end
+			end
+		end
+	end)
+	gui.touchmoved:connect(function(id, x, y, dx, dy, pressure)
+		for i,v in pairs(_GuiPro.TouchRegister) do
+			if v:hasTID(id) and (x > v.x and x < v.x+v.width and y > v.y and y < v.y+v.height and v:TClickable(x,y) and v:eventable()) then 
+				for i=1,#v.ToFuncM do
+					v.ToFuncM[i](v,id, x-v.x, y-v.y, dx, dy or 0, pressure or 1)
+				end
+			elseif v:hasTID(id) and not((x > v.x and x < v.x+v.width and y > v.y and y < v.y+v.height and v:TClickable(x,y) and v:eventable())) then 
+				v:removeTID(id)
+				for i=1,#v.ToFuncR do
+					v.ToFuncR[i](v,id, x-v.x, y-v.y, dx, dy or 0, pressure or 1)
+				end
+			end
+		end
+	end)
+end)
+-- now that that is done lets set up some more post loading checks
+_GuiPro.int=multi:newProcess()
+_GuiPro.int:Start()
+_GuiPro.int:setJobSpeed(.001)
+_GuiPro.EXACT=0
+_GuiPro.LAX=.01
+_GuiPro.LAZY=.05
+-- now lets define the reg function
+function gui.Compare(a,b,v,tp)
+	if tp==">" then
+		if (a+v>b or a-v>b) then
+			return true
+		end
+	elseif tp=="<" then
+		if (a+v<b or a-v<b) then
+			return true
+		end
+	elseif tp=="<=" then
+		if (a+v<=b or a-v<=b) then
+			return true
+		end
+	elseif tp==">=" then
+		if (a+v>=b or a-v>=b) then
+			return true
+		end
+	elseif tp=="==" then -- this one is gonna be tricky
+		if (a>=b-v and a<=b+v) or (b>=a-v and b<=a+v) then
+			return true
+		end
+	end
+	return false
+end
+function gui:regesterTouch()
+	local obj=self
+	obj.ToFuncP={}
+	obj.ToFuncM={}
+	obj.ToFuncR={}
+	obj.To2Func={}
+	obj.ToDTFunc={}
+	obj.touchRendering =_GuiPro.EXACT -- exact(0), lax(), #
+	function obj:removeTID(id)
+		for i=1,#self.tid do
+			if self.tid[i]==id then
+				table.remove(self.tid,i)
+				self.touchcount=self.touchcount-1
+				return
+			end
+		end
+	end
+	function obj:hasTID(id)
+		for i=1,#self.tid do
+			if self.tid[i]==id then
+				return true
+			end
+		end
+		return false
+	end
+	obj.txl1=0
+	obj.tyl1=0
+	obj.txl2=0
+	obj.tyl2=0
+	obj.LS=0
+	obj:OnUpdate(function(self)
+		if self.touchcount==2 then
+			local x1,y1=love.touch.getPosition( self.tid[1] )
+			local x2,y2=love.touch.getPosition( self.tid[2] )
+			local CS=math.sqrt((x2-x1)^2+(y2-y1)^2)
+			if gui.Compare(CS,self.LS,self.touchRendering,">") then
+				for i=1,#self.To2Func do
+					self.To2Func[i](self,CS,x1-self.x,y1-self.y,x2-self.x,y2-self.y)
+				end
+			elseif gui.Compare(CS,self.LS,self.touchRendering,"<") then
+				for i=1,#self.To2Func do
+					self.To2Func[i](self,-CS,x1-self.x,y1-self.y,x2-self.x,y2-self.y)
+				end
+			elseif gui.Compare(CS,self.LS,self.touchRendering,"==") then
+				for i=1,#self.To2Func do
+					self.To2Func[i](self,0,x1-self.x,y1-self.y,x2-self.x,y2-self.y)
+				end
+			end
+			-- if self.txl1~=x1 or self.txl2~=x2 or self.tyl1~=y1 or self.tyl2~=y2 then
+				-- for i=1,#self.To2Func do
+					-- self.To2Func[i](self,0,x1-self.x,y1-self.y,x2-self.x,y2-self.y)
+				-- end
+			-- end
+			self.LS=CS
+			self.txl1=x1
+			self.txl2=x2
+			self.tyl1=y1
+			self.tyl2=y2
+		end
+	end)
+	function obj:OnDoubleTap(func)
+		table.insert(self.ToDTFunc,func)
+	end
+	function obj:On2TouchMoved(func)
+		table.insert(self.To2Func,func)
+	end
+	function obj:addTID(id)
+		table.insert(self.tid,id)
+	end
+	function obj:OnTouchPressed(func)
+		table.insert(self.ToFuncP,func) -- event for touches
+	end
+	function obj:OnTouchReleased(func) -- event for touches
+		table.insert(self.ToFuncR,func)
+	end
+	function obj:OnTouchMoved(func) -- event for touches
+		table.insert(self.ToFuncM,func)
+	end
+	if _GuiPro.TouchReady then -- my sneaky test
+		print("Registred: "..tostring(obj))
+		table.insert(_GuiPro.TouchRegister,obj)
+	else
+		print("Attempting to register: "..tostring(obj))
+		_GuiPro.int:newJob(function() table.insert(_GuiPro.TouchRegister,obj) end) -- a sneaky way to ensure that your object gets registered eventually, even if you call the method before the touch patch was activated. 
+	end
+end

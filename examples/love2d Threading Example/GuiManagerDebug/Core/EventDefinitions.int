@@ -1,0 +1,85 @@
+function gui:OnClicked(func)
+	table.insert(self.funcs,func)
+end
+function gui:OnReleased(func)
+	table.insert(self.funcs2,func)
+end
+function gui:OnEnter(func)
+	table.insert(self.funcs3,func)
+end
+function gui:OnExit(func)
+	table.insert(self.funcs4,func)
+end
+function gui:OnUpdate(func)
+	table.insert(self.funcs5,func)
+end
+function gui:OnDragStart(func)
+	table.insert(self.func8,func)
+end
+function gui:OnDragging(func)
+	table.insert(self.func6,func)
+end
+function gui:OnDragEnd(func)
+	table.insert(self.func7,func)
+end
+function gui:WhileHovering(func)
+	table.insert(self.func9,func)
+end
+function gui:OnMouseMoved(func)
+	table.insert(self.func10,func)
+end
+function gui:getChildren()
+	return self.Children
+end
+function gui:LClicked()
+	return self.lclicked
+end
+function gui:RClicked()
+	return self.rclicked
+end
+function gui:MClicked()
+	return self.mclicked
+end
+function gui:Clicked()
+	return (self.lclicked or self.rclicked)
+end
+function gui:Hovering()
+	return self.hovering
+end
+function gui:FreeConnections()
+	self.funcs={function(b,self) if b=="l" then self.LRE=true end end,function(b,self) if b=="r" then self.RRE=true end end,function(b,self) if b=="m" then self.MRE=true end end}
+	self.funcs2={function(b,self) if b=="l" then self.LRE=false end end,function(b,self) if b=="r" then self.RRE=false end end,function(b,self) if b=="m" then self.MRE=false end end}
+	self.funcs3={function(self) self.HE=true end}
+	self.funcs4={function(self) self.HE=false end}
+	self.funcs5={function(self) self.x=(self.Parent.width*self.scale.pos.x)+self.offset.pos.x+self.Parent.x self.y=(self.Parent.height*self.scale.pos.y)+self.offset.pos.y+self.Parent.y self.width=(self.Parent.width*self.scale.size.x)+self.offset.size.x self.height=(self.Parent.height*self.scale.size.y)+self.offset.size.y end}
+end
+function gui:LClick()
+	for i=1,#self.funcs do
+		self.funcs[i]("l",self)
+	end
+end
+function gui:RClick()
+	for i=1,#self.funcs do
+		self.funcs[i]("r",self)
+	end
+end
+function gui:MClick()
+	for i=1,#self.funcs do
+		self.funcs[i]("m",self)
+	end
+end
+function gui:LRelease()
+	for i=1,#self.funcs2 do
+		self.funcs2[i]("l",self)
+	end
+end
+function gui:RRelease()
+	for i=1,#self.funcs2 do
+		self.funcs2[i]("r",self)
+	end
+end
+function gui:MRelease()
+	for i=1,#self.funcs2 do
+		self.funcs2[i]("m",self)
+	end
+end

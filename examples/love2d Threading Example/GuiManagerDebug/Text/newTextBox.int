@@ -1,0 +1,178 @@
+function string:insert(p,s)
+    return ("%s%s%s"):format(self:sub(1,p), s, self:sub(p+1))
+end
+function string:remove(p,l)
+	l=l or 1
+    return ("%s%s"):format(self:sub(1,p-1), self:sub(p+l))
+end
+function gui:newTextBox(t,name, x, y, w, h, sx ,sy ,sw ,sh)
+	x,y,w,h,sx,sy,sw,sh=filter(name, x, y, w, h, sx ,sy ,sw ,sh)
+	local c=self:newBase("TextBox",name, x, y, w, h, sx ,sy ,sw ,sh)
+	c.ClearOnFocus=false
+	c.LoseFocusOnEnter=true
+	c.Tween=0
+	c.XTween=0
+	c.FontHeight=_defaultfont:getHeight()
+	c.Font=_defaultfont
+	c.FontSize=15
+	c.TextFormat="center"
+    c.text = t
+	c.ttext= t
+	c.AutoScaleText=false
+	c.TextVisibility=1
+    c.Color = {220, 220, 220}
+    c.TextColor = {0, 0, 0}
+	c.Active=false
+	c.hidden=false
+	c.cursor={0,1}
+	c.mark=nil
+	c.arrowkeys=false
+	c.funcF={function()
+		love.keyboard.setTextInput(true)
+	end}
+	c.cooldown=false
+	c.cooldown2=false
+	c.funcE={function()
+		love.keyboard.setTextInput(false)
+	end}
+	function c:triggerEnter()
+		for cc=1,#self.funcE do
+			self.funcE[cc](self,self.ttext)
+		end
+		self.text=""
+		self.ttext=""
+	end
+	c.Enter=true
+	c.Alarm=multi:newAlarm(.1)
+	c.Alarm.parent=c
+	c.Alarm:OnRing(function(alarm) alarm.parent.cooldown=false end)
+	c.Alarm2=multi:newAlarm(.5)
+	c.Alarm2.parent=c
+	c.Alarm2:OnRing(function(alarm) alarm.parent.cooldown2=false end)
+	c.ArrowAlarm=multi:newAlarm(.1)
+	c.ArrowAlarm.parent=c
+	c.ArrowAlarm:OnRing(function(alarm) alarm.parent.arrowkeys=false end)
+	function c:OnFocus(func)
+		table.insert(self.funcF,func)
+	end
+	function c:OnEnter(func)
+		table.insert(self.funcE,func)
+	end
+	c:OnClicked(function(b,self)
+		for cc=1,#self.funcF do
+			self.funcF[cc](self)
+		end
+		if self.Active==false then
+			if self.ClearOnFocus==true then
+				self.text=""
+				self.ttext=""
+			end
+			for tb=1,#gui.TB do
+				if gui.TB[tb]~=nil then
+					gui.TB[tb].Active=false
+				end
+			end
+			self.Active=true
+		end
+	end)
+	c:OnClicked(function(b,self,x,y)
+		local dwidth, wrappedtext = _defaultfont:getWrap(self.text:sub(1,self.cursor[1]), self.width)
+		local height = _defaultfont:getHeight()
+		if #wrappedtext>=1 then
+			width= _defaultfont:getWidth(wrappedtext[#wrappedtext])
+			self.cursor[2]=#wrappedtext
+		else
+			self.cursor[2]=1
+			width=0
+		end
+		yc=math.ceil(((y/self.DPI)-(self.FontHeight/2)+self.Tween-self.y)/height)
+		xc=math.floor(x)
+	end)
+	c:AddDrawRuleE(function(self)
+		if self.Active then
+			local dwidth, wrappedtext = _defaultfont:getWrap(self.text:sub(1,self.cursor[1]), self.width)
+			local height = _defaultfont:getHeight()
+			if #wrappedtext>=1 then
+				width= _defaultfont:getWidth(wrappedtext[#wrappedtext])
+				self.cursor[2]=#wrappedtext
+			else
+				self.cursor[2]=1
+				width=0
+			end
+			x1=width+2+self.x+self.XTween
+			y1=(self.y+(height*(self.cursor[2]-1))+(self.FontHeight/2)+self.Tween)*self.DPI
+			x2=width+2+self.x+self.XTween
+			y2=(self.y+(self.FontHeight/2)+self.Tween*self.DPI)+height*self.cursor[2]
+			love.graphics.line(x1,y1,x2,y2)
+			end
+	end)
+	c:OnUpdate(function(self)
+		if love.keyboard.isDown("backspace") and self.Active and self.cooldown==false then
+			if #self.text>0 then
+				self.text = self.text:remove(self.cursor[1])
+				self.ttext = self.ttext:remove(self.cursor[1])
+				self.cursor[1]=self.cursor[1]-1
+			end
+			self.cooldown=true
+			self.Alarm:Reset()
+		elseif love.keyboard.isDown("backspace")==false then
+			self.cooldown=false
+		end
+		if love.keyboard.isDown("left") and self.arrowkeys==false and self.Active then
+			self.arrowkeys=true
+			self.cursor[1]=self.cursor[1]-1
+			if self.cursor[1]<0 then
+				self.cursor[1]=0
+			end
+			self.ArrowAlarm:Reset()
+		elseif love.keyboard.isDown("right") and self.arrowkeys==false and self.Active then
+			self.arrowkeys=true
+			self.cursor[1]=self.cursor[1]+1
+			if self.cursor[1]>#self.text then
+				self.cursor[1]=#self.text
+			end
+			self.ArrowAlarm:Reset()
+		end
+		if love.keyboard.isDown("delete") and self.Active then
+			if #self.text>0 then
+				self.text = ""
+				self.ttext = ""
+				self.cursor[1]=1
+			end
+		elseif (love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) and love.keyboard.isDown("return") and self.cooldown2==false then
+			self.text=self.text.."\n"
+			self.ttext=self.ttext.."\n"
+			self.cooldown2=true
+			c.Alarm2:Reset()
+		elseif (love.keyboard.isDown("return") or love.keyboard.isDown("enter") or love.keyboard.isDown("kpenter")) and self.Active and self.Enter and not(love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) then
+			if self.LoseFocusOnEnter then
+				self.Active=false
+			else
+				self.Active=true
+			end
+			for cc=1,#self.funcE do
+				self.funcE[cc](self,self.ttext)
+			end
+		end
+	end)
+	table.insert(gui.TB,c)
+    return c
+end
+--TEXT BOX HELPER FUNCTION
+function love.textinput(t)
+	for tb=1,#gui.TB do
+		if gui.TB[tb]~=nil then
+			if gui.TB[tb].Active then
+				if gui.TB[tb].hidden then
+					--gui.TB[tb].text=gui.TB[tb].text.."*"
+					gui.TB[tb].text=gui.TB[tb].text:insert(gui.TB[tb].cursor[1],"*")
+				else
+					--gui.TB[tb].text=gui.TB[tb].text..t
+					gui.TB[tb].text=gui.TB[tb].text:insert(gui.TB[tb].cursor[1],t)
+				end
+				gui.TB[tb].ttext=gui.TB[tb].ttext:insert(gui.TB[tb].cursor[1],t)
+				gui.TB[tb].cursor[1]=gui.TB[tb].cursor[1]+1
+			end
+		end
+	end
+end

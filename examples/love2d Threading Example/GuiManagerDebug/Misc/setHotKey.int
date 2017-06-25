@@ -1,0 +1,24 @@
+function gui:setHotKey(key)
+	local tab=key:split("+")
+	self.hotkeys=tab
+	self.cooldown=false
+	self.Alarm=multi:newAlarm(1)
+	self.Alarm.parent=self
+	self.args={}
+	self.funcHK=multi:newConnection()
+	self.Alarm:OnRing(function(alarm) alarm.parent.cooldown=false end)
+	function self:OnHotKey(func)
+		self.funcHK:connect(func)
+	end
+	self:OnUpdate(function(self)
+		if self.cooldown then return end
+		for i=1,#self.hotkeys do
+			if not(love.keyboard.isDown(self.hotkeys[i])) then
+				return
+			end
+		end
+		self.cooldown=true
+		self.funcHK:Fire(self)
+		self.Alarm:Reset()
+	end)
+end

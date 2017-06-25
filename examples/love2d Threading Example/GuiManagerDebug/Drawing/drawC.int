@@ -1,0 +1,89 @@
+function gui:drawC()
+	if love.mouse.isDown("l")==false and love.mouse.isDown("m")==false and love.mouse.isDown("r")==false then
+		_GuiPro.DragItem={}
+		_GuiPro.hasDrag=false
+	end
+	if self.Visible==true and self.VIS==true then
+		local b=true
+		for i,v in pairs(_GuiPro.Clips) do
+			if self:isDescendant(v)==true then
+				b=false
+			end
+		end
+		if b then
+			love.graphics.setStencilTest( )
+			_GuiPro.HasStencel=false
+			_GuiPro.StencelHolder=nil
+		end
+		local x,y,r,s=(self.offset.pos.x or 0)+self.Parent.x,(self.offset.pos.y or 0)+self.Parent.y,self.offset.size.x or 0,self.offset.size.y or 360
+		if self.CC then
+			x,y=x+r,y+r
+		end
+		self.x,self.y=x,y
+		_GuiPro.circleStencilFunction = function()
+			love.graphics.circle("fill",x,y,r,s)
+		end
+		if math.sqrt((love.mouse.getX()-x)^2+(love.mouse.getY()-y)^2)<=r and self:eventable() and self:Clickable() and self.Active==true then
+			self.hovering=true
+			if love.mouse.isDown("l") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.lclicked=true
+			elseif love.mouse.isDown("r") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.rclicked=true
+			elseif love.mouse.isDown("m") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.mclicked=true
+			else
+				if string.find(self.Type, "Button") and _GuiPro.hasDrag==false then
+					love.graphics.setColor(self.Color[1]-5, self.Color[2]-5, self.Color[3]-5,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.rclicked=false
+				self.lclicked=false
+				self.mclicked=false
+			end
+		else
+			love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+			self.hovering=false
+			self.rclicked=false
+			self.lclicked=false
+			self.mclicked=false
+		end
+		if self.ClipDescendants==true then
+			_GuiPro.Clips[tostring(self)]=self
+			_GuiPro.HasStencel=true
+			_GuiPro.StencelHolder=self
+			love.graphics.stencil(_GuiPro.circleStencilFunction)
+			love.graphics.setStencilTest("notequal",0)
+		end
+		love.graphics.circle("fill",x,y,r,s)
+		love.graphics.setColor(self.BorderColor[1], self.BorderColor[2], self.BorderColor[3],self.BorderVisibility*254)
+		for b=0,self.BorderSize-1 do
+			love.graphics.circle("line",x,y,r+b,s)
+		end
+		if string.find(self.Type, "Text") then
+			if self.text~=nil then
+				if self.AutoScaleText then
+					self.FontSize=math.floor(self.height/1.45833)
+				end
+				love.graphics.setColor(self.TextColor[1],self.TextColor[2],self.TextColor[3],self.TextVisibility*254)
+				love.graphics.setFont(self.Font)
+				love.graphics.printf(self.text, x-(r/2)+(self.XTween), y-(r/2)+self.Tween, r, self.TextFormat)
+			end
+		end
+	end
+end

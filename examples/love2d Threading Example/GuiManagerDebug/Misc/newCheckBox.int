@@ -1,0 +1,41 @@
+if love.filesystem.exists("CheckBoxes.png") then
+	_GuiPro.UC=gui:getTile("CheckBoxes.png",0,0,16,16)
+	_GuiPro.C=gui:getTile("CheckBoxes.png",16,0,16,16)
+	_GuiPro.UCH=gui:getTile("CheckBoxes.png",0,16,16,16)
+	_GuiPro.CH=gui:getTile("CheckBoxes.png",16,16,16,16)
+end
+function gui:newCheckBox(name,x,y)
+	if not(_GuiPro.UC) then error("CheckBoxes.png not found! Cannot currently use checkbox without the data") end
+	if type(name)~="String" then
+		x,y,name=name,x,"CheckBox"
+	end
+	local c=self:newImageLabel(_GuiPro.UC,name, x, y, 16,16)
+	c.Visibility=0
+	c.check=false
+	c:OnEnter(function(self)
+		if self.check then
+			self:SetImage(_GuiPro.CH)
+		else
+			self:SetImage(_GuiPro.UCH)
+		end
+	end)
+	function c:isChecked()
+		return self.check
+	end
+	c:OnExit(function(self)
+		if self.check then
+			self:SetImage(_GuiPro.C)
+		else
+			self:SetImage(_GuiPro.UC)
+		end
+	end)
+	c:OnReleased(function(b,self)
+		self.check=not(self.check)
+		if self.check then
+			self:SetImage(_GuiPro.CH)
+		else
+			self:SetImage(_GuiPro.UCH)
+		end
+	end)
+    return c
+end

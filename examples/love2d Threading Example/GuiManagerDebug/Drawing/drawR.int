@@ -1,0 +1,118 @@
+function gui:drawR()
+	if love.mouse.isDown("l")==false and love.mouse.isDown("m")==false and love.mouse.isDown("r")==false then
+		_GuiPro.DragItem={}
+		_GuiPro.hasDrag=false
+	end
+	if self.Visible==true and self.VIS==true then
+		local b=true
+		for i,v in pairs(_GuiPro.Clips) do
+			if self:isDescendant(v)==true then
+				b=false
+			end
+		end
+		if b==true then
+			love.graphics.setStencilTest()
+			love.graphics.setScissor()
+		end
+		self.x=(self.Parent.width*self.scale.pos.x)+self.offset.pos.x+self.Parent.x
+		self.y=(self.Parent.height*self.scale.pos.y)+self.offset.pos.y+self.Parent.y
+		self.width=(self.Parent.width*self.scale.size.x)+self.offset.size.x
+		self.height=(self.Parent.height*self.scale.size.y)+self.offset.size.y
+		if self.DrawRulesB then
+			for dr=1,#self.DrawRulesB do
+				self.DrawRulesB[dr](self)
+			end
+		end
+		if (love.mouse.getX() > self.x and love.mouse.getX() < self.x+self.width and love.mouse.getY() > self.y and love.mouse.getY() < self.y+self.height and self:Clickable() and self:eventable()) or self:touchable("r") and self.Active==true then
+			self.hovering=true
+			if love.mouse.isDown("l") or self:touchable("r") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.lclicked=true
+			elseif love.mouse.isDown("r") or self:touchable("r") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.rclicked=true
+			elseif love.mouse.isDown("m") or self:touchable("r") and _GuiPro.hasDrag==false then
+				if string.find(self.Type, "Button") then
+					love.graphics.setColor(self.Color[1]-10, self.Color[2]-10, self.Color[3]-10,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.mclicked=true
+			else
+				if string.find(self.Type, "Button") or self:touchable("r") and _GuiPro.hasDrag==false then
+					love.graphics.setColor(self.Color[1]-5, self.Color[2]-5, self.Color[3]-5,self.Visibility*254)
+				else
+					love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+				end
+				self.rclicked=false
+				self.lclicked=false
+				self.mclicked=false
+			end
+		else
+			love.graphics.setColor(self.Color[1],self.Color[2],self.Color[3],self.Visibility*254)
+			self.hovering=false
+			self.rclicked=false
+			self.lclicked=false
+			self.mclicked=false
+		end
+		if self.ClipDescendants==true then
+			_GuiPro.Clips[tostring(self)]=self
+			love.graphics.setScissor(self.x, self.y, self.width, self.height)
+		end
+		if self:hasRoundness() then
+		  love.graphics.stencil(self.stfunc, "replace", 1)
+		  love.graphics.setStencilTest("greater", 0)
+		end
+		love.graphics.rectangle("fill", self.x, self.y, self.width, self.height,(self.rx or 1)*self.DPI,(self.ry or 1)*self.DPI,(self.segments or 1)*self.DPI)
+		if string.find(self.Type, "Image") then
+			self:ImageRule()
+		end
+		if self.Type=="Video" then
+			self:VideoRule()
+		end
+		if self:hasRoundness() then
+		  love.graphics.setStencilTest()
+		end
+		love.graphics.setColor(self.BorderColor[1], self.BorderColor[2], self.BorderColor[3],self.BorderVisibility*254)
+		for b=0,self.BorderSize-1 do
+			love.graphics.rectangle("line", self.x-(b/2), self.y-(b/2), self.width+b, self.height+b,(self.rx or 1)*self.DPI,(self.ry or 1)*self.DPI,(self.segments or 1)*self.DPI)
+		end
+		if string.find(self.Type, "Text") then
+			if self.text~=nil then
+				if self.AutoScaleText then
+					self.FontSize=math.floor(self.height/1.45833)
+				end
+				love.graphics.setColor(self.TextColor[1],self.TextColor[2],self.TextColor[3],self.TextVisibility*254)
+				if self.Font==_defaultfont then
+					love.graphics.setFont(self.Font)
+					love.graphics.printf(self.text, self.x+2+(self.XTween*self.DPI)+((self.marginL or 0)*self.DPI or self.XTween*self.DPI), self.y+(self.FontHeight/2)+self.Tween*self.DPI, self.width+(0 or (self.marginR or 0)*self.DPI), self.TextFormat)
+				else
+					if type(self.Font)=="string" then
+						self.Font=love.graphics.newFont(self.Font,self.FontSize)
+						self.FontHeight=self.Font:getHeight()
+					else
+						love.graphics.setFont(self.Font)
+					end
+					if type(self.FontSize)=="string" then
+						self.FontSize=tonumber(self.FontSize)
+						love.graphics.setNewFont(self.FontSize)
+					end
+					love.graphics.printf(self.text, self.x+2+((self.marginL or 0)*self.DPI or self.XTween*self.DPI), self.y+math.floor((self.FontHeight-self.FontSize)/2)+self.Tween*self.DPI, self.width+(0 or (self.marginR or 0)*self.DPI), self.TextFormat)
+				end
+			end
+		end
+		if self.DrawRulesE then
+			for dr=1,#self.DrawRulesE do
+				self.DrawRulesE[dr](self)
+			end
+		end
+	end
+end

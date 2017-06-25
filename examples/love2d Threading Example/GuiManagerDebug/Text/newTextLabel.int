@@ -1,0 +1,16 @@
+function gui:newTextLabel(t,name, x, y, w, h, sx ,sy ,sw ,sh)
+	x,y,w,h,sx,sy,sw,sh=filter(name, x, y, w, h, sx ,sy ,sw ,sh)
+	local c=self:newBase("TextLabel",name, x, y, w, h, sx ,sy ,sw ,sh)
+	c.Tween=0
+	c.XTween=0
+	c.FontHeight=_defaultfont:getHeight()
+	c.Font=_defaultfont
+	c.FontSize=15
+	c.TextFormat="center"
+    c.text = t
+	c.AutoScaleText=false
+	c.TextVisibility=1 -- 0=invisible,1=solid (self.TextVisibility*254+1)
+    c.Color = {220, 220, 220}
+    c.TextColor = {0, 0, 0}
+    return c
+end

@@ -1,0 +1,4 @@
+function gui:Center()
+	local x,y=self:getFullSize()
+	self:SetDualDim(-math.floor(x/2),-math.floor(y/2),nil,nil,.5,.5)
+end

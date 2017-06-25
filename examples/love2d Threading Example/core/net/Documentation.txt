@@ -1,0 +1,106 @@
+Hey guys, I am currently working on a net library which aims to make Async servers/clients a piece of cake. It is still in heavy development, but a release will be made soon. The basic features are done and work great. The modules are being worked on though.
+Right now I have the core and 4 modules finished
++CORE <-- The base library
++net.identity <-- makes registration and login for users seamless
++net.sft <-- a Simple File Transfer module.
+NOTE: Once net.aft Is complete net.sft will no longer be supported
++net.aft <-- an Advanced File Transfer module.
+NOTE: As of right now user can only download files in aft
++net.chatting <-- allows for chatting between users
+
+I will go into detail on how the core and 'stable' modules work
+
+
+[color=#FF0000][b]Creating A Server[/b][/color]
+EXAMPLE:1
+[code]
+--[[Filename: server.lua
++Dependencies:
++the net library
++the bin library
++the multimanager library
++luasocket
+
+I suggest using luajit when creating the server for that extra boost in performance!
+]]
+
+require("net")
+-- All you need is a port for the server init
+server=net:newServer(12345)
+--server=net:newTCPServer(12345)
+
+--[[The commented line above creates a TCP server
+CID: Client ID, unique for each user connected to the server. If you are using a TCP Server then you get the handle used for communication
+IP_OR_HANDLE, works much like CID_OR_HANDLE, where you get a handle if using TCP
+The reason for this is so modules could be made for both types of servers and work flawlessly, The only exception is the sft and aft module, TCP is recommended to ensure things are sent in order 
+PORT_OR_IP is like the above as well... Think of it this way UDP_TCP for each argument
+]]
+
+server:OnDataRecived(function(serv,data,CID_OR_HANDLE,IP_OR_HANDLE,PORT_OR_IP)
+	if data=="Hello Server!" then -- the client say hi lets say something back
+		serv:send(IP_OR_HANDLE,"Hey client!",PORT_OR_IP,CID_OR_HANDLE)-- cid only needs to be passed for UDP Servers, you can exclude the cid argument if you want though. The server stores ports and IPs for each CID while they are logged on!
+	end
+end)
+multi:mainloop()
+[/code]
+
+This is the basic setup for a server where you can send data back and forth. Note: modules that receive data will bypass triggering this event to save CPU time... Only events that are important get triggered If you want to speed up your code and make your event triggered when data you want gets passed use "!eventname! ...rest_of_your_data_here"
+
+For example You would do this:
+EXAMPLE:2
+[code]
+--[[
+Assume your client is sending this data: "!gamedata! MOVE bob 10 10"
+take a look at the new server OnDataRecieved event
+]]
+
+require("net")
+server=net:newServer(12345)
+world={["bob"]={x=0,y=0}}
+server:OnDataRecived(function(serv,data,CID_OR_HANDLE,IP_OR_HANDLE,PORT_OR_IP)
+	local cmd,entity,arg1,arg2=data:match("!gamedata! (%S+) (%S+) (%S+) (%S+)")
+	if cmd=="MOVE" then
+		--lets move bob
+		world[entity].x=tonumber(arg1)
+		world[entity].y=tonumber(arg2)
+		--Now lets tell every client connected what happened
+		serv:sendAll("!gamedata! UPDATE "..entity.." "..arg1.." "..arg2) -- note only data is needed now!
+	end
+end,"gamedata") -- notice this string right here it allows the CORE to know that you should call this when !gamedata! is within a method. This is useful especally when you have many connections to the server OnDataRecieved event
+multi:mainloop()
+[/code]
+
+Now that was fun... But what if I'm sending binary data over to the client... Doesn't non-ASCII tend to get messed up?
+Yes it does and even when using TCP data tends to not always transfer right
+
+net.normalize(data) converts data into all ASCII characters to keep your data safe, so even binary data can be passed. Since this uses base64 encoding every 3 characters become 4 so your data size becomes a bit bigger. To avoid problems keep all data being normalized data under 384 characters! The data here is converted into 512 bytes.
+net.denormalize(data) takes the normalized and converts it back to what it was originally.
+
+Take a look at this example
+EXAMPLE:3
+[code]
+--Assume your client is sending this data: "!gamedata! MSG bob NORMILZED_MSG NIL" empty data so pattern matches
+
+require("net")
+function CheckMSG(data)
+	-- TODO: modify the message for things that break our rules
+	returns data
+end
+server=net:newServer(12345)
+world={["bob"]={x=0,y=0}}
+server:OnDataRecived(function(serv,data,CID_OR_HANDLE,IP_OR_HANDLE,PORT_OR_IP)
+	local cmd,entity,arg1,arg2=data:match("!gamedata! (%S+) (%S+) (%S+) (%S+)")
+	if cmd=="MOVE" then
+		--lets move bob
+		world[entity].x=tonumber(arg1) -- we are sending the numbers as binary data
+		world[entity].y=tonumber(arg2)
+		--Now lets tell every client connected what happened
+		serv:sendAll("!gamedata! UPDATE "..entity.." "..arg1.." "..arg2) -- note only data is needed now!
+	elseif cmd=="MSG" then -- client is sending a message NOTE: I have a module that handles chatting however for example sake here is a simple chat message
+		--Lets look at the data We normalize the data because we can have \n characters in the data and TCP/UDP are line based so that would mess up packets!
+		local msg=CheckMSG(net.denormalize(arg1))
+		serv:sendAll("!gamedata! MSG "..entity.." "..msg.." NIL")
+	end
+end,"gamedata") -- notice this string right here it allows the CORE to know that you should call this when !gamedata! is within a method. This is useful especally when you have many connections to the server OnDataRecieved event
+multi:mainloop()
+[/code]

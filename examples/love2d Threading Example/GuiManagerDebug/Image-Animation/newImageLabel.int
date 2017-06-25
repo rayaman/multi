@@ -1,0 +1,18 @@
+function gui:newImageLabel(i,name, x, y, w, h, sx ,sy ,sw ,sh)
+	x,y,w,h,sx,sy,sw,sh=filter(name, x, y, w, h, sx ,sy ,sw ,sh)
+	local c=self:newBase("ImageLabel",name, x, y, w, h, sx ,sy ,sw ,sh)
+	if type(i)=="string" then
+		c.Image=love.graphics.newImage(i)
+	else
+		c.Image=i
+	end
+	c.Visibility=0
+	c.ImageVisibility=1
+	c.rotation=0
+	if c.Image~=nil then
+		c.ImageHeigth=c.Image:getHeight()
+		c.ImageWidth=c.Image:getWidth()
+		c.Quad=love.graphics.newQuad(0,0,w,h,c.ImageWidth,c.ImageHeigth)
+	end
+  return c
+end

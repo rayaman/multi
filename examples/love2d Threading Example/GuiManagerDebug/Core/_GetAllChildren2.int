@@ -1,0 +1,21 @@
+function GetAllChildren2(Object)
+	local Stuff = {}
+	function Seek(Items)
+		for i=1,#Items do
+			table.insert(Stuff,Items[i])
+			local NItems = Items[i]:getChildren()
+			if NItems ~= nil then
+				Seek(NItems)
+			end
+		end
+	end
+	local Objs = Object:getChildren()
+	for i=1,#Objs do
+		table.insert(Stuff,Objs[i])
+		local Items = Objs[i]:getChildren()
+		if Items ~= nil then
+			Seek(Items)
+		end
+	end
+	return Stuff
+end
