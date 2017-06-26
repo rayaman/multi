@@ -15,7 +15,9 @@ For real-time assistance with my libraries! A place where you can ask questions 
 https://discord.gg/U8UspuA</br>
 
 # Planned feature
-Add system threads for love2d that work like the lanesManager.
+- [x] Add system threads for love2d that work like the lanesManager.
+- [ ] Improve performance of the library
+- [ ] Add more features to support module support
 
 Usage:</br>
 ```lua
@@ -943,5 +945,5 @@ Added:
 IMPORTANT:</br>
 Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.</br>
 # TODO (In order of importance)
-- Finish the wiki stuff. (10% done)</br>
-- Test for unknown bugs</br>
+- [ ] Finish the wiki stuff. (10% done)</br>
+- [ ] Test for unknown bugs</br>
