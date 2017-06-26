@@ -1,4 +1,4 @@
-# multi Version: 1.7.5 (Typos and imporoved module creation supprt, examples to come soon)
+# multi Version: 1.7.5 (Typos and improved module creation supprt, examples to come soon)
 View Changes: https://github.com/rayaman/multi#changes
 
 My multitasking library for lua</br>
