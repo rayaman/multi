@@ -15,9 +15,9 @@ For real-time assistance with my libraries! A place where you can ask questions 
 https://discord.gg/U8UspuA</br>
 
 # Planned feature
-- [x] Add system threads for love2d that work like the lanesManager.
+- [x] Add system threads for love2d that work like the lanesManager (loveManager).
 - [ ] Improve performance of the library
-- [ ] Add more features to support module support
+- [ ] Add more features to support module creators
 
 Usage:</br>
 ```lua
