@@ -31,7 +31,7 @@ end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
 package.path="lua/?/init.lua;lua/?.lua;"..package.path
-require("multi.updater") -- get it all and have it on all lanes
+require("multi.all") -- get it all and have it on all lanes
 local multi=multi
 -- Step 2 set up the linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff

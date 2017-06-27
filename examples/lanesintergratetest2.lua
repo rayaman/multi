@@ -1,6 +1,5 @@
 package.path="?/init.lua;?.lua;"..package.path
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
-require("multi.threading") -- obvious copy/paste below with no attempt to clean it up :P
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init() -- loads the lanesManager and includes the entire multi library
 local function comma_value(amount)
 	local formatted = amount
 	while true do
@@ -40,8 +39,6 @@ multi:newSystemThread("test6",function() -- spawns a thread in another lua proce
 	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
 	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 6"):OnBench(function(self,c) GLOBAL["T6"]=c multi:Stop() end)
 	multi:mainloop()
-end)
-multi:newSystemThread("Combiner",function() -- spawns a thread in another lua process
 	print("Bench: ",comma_value(tostring(sThread.waitFor("T1")+sThread.waitFor("T2")+sThread.waitFor("T3")+sThread.waitFor("T4")+sThread.waitFor("T5")+sThread.waitFor("T6"))))
 	GLOBAL["DONE"]=true
 end)
@@ -58,5 +55,5 @@ multi:newThread("test0",function()
 		end
 	end
 end)
-GLOBAL["Bench"]=10
+GLOBAL["Bench"]=60
 multi:mainloop()

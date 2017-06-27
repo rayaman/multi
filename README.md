@@ -1,5 +1,6 @@
-# multi Version: 1.7.5 (Typos and improved module creation supprt, examples to come soon)
+# multi Version: 1.7.6 (Examples and more module creation support, small tweaks to cut down the amount of code needed to get things to work)
 View Changes: https://github.com/rayaman/multi#changes
+**Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
@@ -14,14 +15,22 @@ Also I will eventually add an example folder with a lot of examples for how you 
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
 
-# Planned feature
-- [x] Add system threads for love2d that work like the lanesManager (loveManager).
+# Planned features/TODO
+- [x] Add system threads for love2d that works like the lanesManager (loveManager, slight differences).
 - [ ] Improve performance of the library
 - [ ] Add more features to support module creators
-
+- [ ] Make a framework for eaiser thread task distributing 
+- [ ] Fix Error handling on multi objects
+- [ ] Add Remote Proxies **May or may not be completed**
+- [ ] sThread.wrapper(obj) **May or may not be completed**
+- [ ] SystemThreaded Actors
+- [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
+- [ ] Add more intergrations
+- [ ] Finish the wiki stuff. (11% done)</br>
+- [ ] Test for unknown bugs</br>
 Usage:</br>
 ```lua
---Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
+-- Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
 require("multi") -- gets the entire library
 alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
 alarm:OnRing(function(a)
@@ -753,13 +762,25 @@ Looping...</br>
 We did it!	1	2	3</br>
 
 # Changes
-Updated from 1.7.4 to 1.7.5</br>
-Fixed some typos in the readme... (I am sure there are more there are always more)
-Added more features for module support
-TODO:
-Work on performance of the library... I see 3 places where I can make this thing run quicker
+Updated from 1.7.5 to 1.7.6</br>
+Fixed:
+Typos like always
+Added:</br>
+multi:getPlatform() -- returns "love2d" if using the love2d platform or returns "lanes" if using lanes for threading</br>
+examples files</br>
+In Events added method setTask(func)</br>
+The old way still works and is more convient to be honest, but I felt a method to do this was ok.</br>
 
-I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!
+Updated:
+some example files to reflect changes to the core. Changes allow for less typing</br>
+loveManager to require the compat if used so you don't need 2 require line to retrieve the library</br>
+Updated from 1.7.4 to 1.7.5</br>
+Fixed some typos in the readme... (I am sure there are more there are always more)</br>
+Added more features for module support</br>
+TODO:</br>
+Work on performance of the library... I see 3 places where I can make this thing run quicker</br>
+
+I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!</br>
 
 Updated from 1.7.3 to 1.7.4</br>
 Added: the example folder which will be populated with more examples in the near future!</br>
@@ -944,6 +965,3 @@ Added:
 
 IMPORTANT:</br>
 Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.</br>
-# TODO (In order of importance)
-- [ ] Finish the wiki stuff. (10% done)</br>
-- [ ] Test for unknown bugs</br>

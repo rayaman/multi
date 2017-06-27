@@ -45,7 +45,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,7,5}
+multi.Version={1,7,6}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -238,6 +238,15 @@ function multi:getChildren()
 end
 function multi:getVersion()
 	return multi.Version[1].."."..multi.Version[2].."."..multi.Version[3]
+end
+function multi:getPlatform()
+	if love then
+		if love.thread then
+			return "love2d"
+		end
+	else
+		return "lanes"
+	end
 end
 --Processor
 function multi:getError()
@@ -1019,6 +1028,9 @@ function multi:newEvent(task)
 				self.func[_E](self)
 			end
 		end
+	end
+	function c:SetTask(func)
+		self.Task=func
 	end
 	function c:OnEvent(func)
 		table.insert(self.func,func)

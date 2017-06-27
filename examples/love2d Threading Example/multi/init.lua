@@ -45,7 +45,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,7,5}
+multi.Version={1,7,6}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -67,7 +67,7 @@ multi.jobUS=2
 multi.clock=os.clock
 multi.time=os.time
 multi.LinkedPath=multi
-mulit.isRunning=false
+multi.isRunning=false
 multi.queuefinal=function(self)
 	self:Destroy()
 	if self.Parent.Mainloop[#self.Parent.Mainloop] then
@@ -238,6 +238,15 @@ function multi:getChildren()
 end
 function multi:getVersion()
 	return multi.Version[1].."."..multi.Version[2].."."..multi.Version[3]
+end
+function multi:getPlatform()
+	if love then
+		if love.thread then
+			return "love2d"
+		end
+	else
+		return "lanes"
+	end
 end
 --Processor
 function multi:getError()
@@ -953,8 +962,8 @@ function multi:newCondition(func)
 end
 multi.NewCondition=multi.newCondition
 function multi:mainloop()
-	if not mulit.isRunning then
-		mulit.isRunning=true
+	if not multi.isRunning then
+		multi.isRunning=true
 		for i=1,#self.Tasks do
 			self.Tasks[i](self)
 		end
@@ -1019,6 +1028,9 @@ function multi:newEvent(task)
 				self.func[_E](self)
 			end
 		end
+	end
+	function c:SetTask(func)
+		self.Task=func
 	end
 	function c:OnEvent(func)
 		table.insert(self.func,func)

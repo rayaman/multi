@@ -1,6 +1,5 @@
 require("core.Library")
-require("multi.compat.love2d") -- allows for multitasking and binds my libraies to the love2d engine that i am using
-GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager
+GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
 --IMPORTANT
 -- Do not make the above local, this is the one difference that the lanesManager does not have
 -- If these are local the functions will have the upvalues put into them that do not exist on the threaded side

@@ -1,3 +1,4 @@
+require("multi.compat.love2d")
 multi.intergration={}
 multi.intergration.love2d={}
 multi.intergration.love2d.ThreadBase=[[
@@ -326,6 +327,7 @@ updater:OnUpdate(function(self)
 		data=multi.intergration.love2d.mainChannel:pop()
 	end
 end)
+print("Intergrated Love2d!")
 return {
 	init=function(t)
 		if t then
