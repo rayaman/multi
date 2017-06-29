@@ -30,8 +30,8 @@ function os.getOS()
 end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
-package.path="lua/?/init.lua;lua/?.lua;"..package.path
-require("multi.all") -- get it all and have it on all lanes
+--~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
+require("multi") -- get it all and have it on all lanes
 function multi:canSystemThread()
 	return true
 end
