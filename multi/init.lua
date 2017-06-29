@@ -45,7 +45,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,8,0}
+multi.Version={1,8,1}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
