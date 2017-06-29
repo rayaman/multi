@@ -1,4 +1,4 @@
-# multi Version: 1.8.0 (How much thread could a thread thread if a thread could thread thread?)
+# multi Version: 1.8.1
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
@@ -788,7 +788,13 @@ We did it!	1	2	3</br>
 
 Changes
 -------
-Updated from 1.7.6 to 1.8.0</br>
+Updated from 1.8.0 to 1.8.1</br>
+No real change!</br>
+Changed the structure of the library. Combined the coroutine based threads into the core!</br>
+Only compat and intergrations are not part of the core and never will be by nature.</br>
+This should make the library more convient to use.</br>
+I left multi/all.lua file so if anyone had libraries/projects that used that it will still work!</br>
+Updated from 1.7.6 to 1.8.0</br> (How much thread could a thread thread if a thread could thread thread?)
 Added:</br>
 - multi:newSystemThreadedQueue()
 - multi:systemThreadedBenchmark()
