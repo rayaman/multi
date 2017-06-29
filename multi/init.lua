@@ -45,7 +45,7 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,7,6}
+multi.Version={1,8,0}
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -248,6 +248,9 @@ function multi:getPlatform()
 		return "lanes"
 	end
 end
+function multi:canSystemThread()
+	return false
+end
 --Processor
 function multi:getError()
 	if self.error then
@@ -417,7 +420,7 @@ function multi:protect()
 				local status, err=pcall(Loop[_D].Act,Loop[_D])
 				if err and not(Loop[_D].error) then
 					Loop[_D].error=err
-					self.OnError:Fire(err,Loop[_D])
+					self.OnError:Fire(Loop[_D],err)
 				end
 			end
 		end

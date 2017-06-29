@@ -30,13 +30,13 @@ else
 	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
 end
 function thread.sleep(n)
-	coroutine.yield({"_sleep_",n})
+	coroutine.yield({"_sleep_",n or 0})
 end
 function thread.hold(n)
-	coroutine.yield({"_hold_",n})
+	coroutine.yield({"_hold_",n or function() return true end})
 end
 function thread.skip(n)
-	coroutine.yield({"_skip_",n})
+	coroutine.yield({"_skip_",n or 0})
 end
 function thread.kill()
 	coroutine.yield({"_kill_",":)"})
@@ -79,6 +79,7 @@ function multi:newThread(name,func)
 	c.Name=name
 	c.thread=coroutine.create(func)
 	c.sleep=1
+	c.Type="thread"
 	c.firstRunDone=false
 	c.timer=multi.scheduler:newTimer()
 	c.ref.Globals=self:linkDomain("Globals")
@@ -140,6 +141,10 @@ multi.scheduler:OnUpdate(function(self)
 					_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
 				else
 					_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+				end
+				if _==false then
+					self.Parent.OnError:Fire(self.Threads[i],ret)
+					print("Error in thread: <"..self.Threads[i].Name.."> "..ret)
 				end
 				if ret==true or ret==false then
 					print("Thread Ended!!!")

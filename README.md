@@ -1,5 +1,4 @@
-# multi Version: 1.7.6 (Examples and more module creation support, small tweaks to cut down the amount of code needed to get things to work)
-View Changes: https://github.com/rayaman/multi#changes
+# multi Version: 1.8.0 (How much thread could a thread thread if a thread could thread thread?)
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
@@ -11,24 +10,35 @@ If you find any bugs or have any issues please let me know :)
 
 ~~Also I will eventually add an example folder with a lot of examples for how you can use this library. Don't konw when that will be though :P~~ Added!
 
-# Discord
+
+[TOC]
+
+Discord
+-------
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
 https://discord.gg/U8UspuA</br>
 
-# Planned features/TODO
-- [x] Add system threads for love2d that works like the lanesManager (loveManager, slight differences).
-- [ ] Improve performance of the library
-- [ ] Add more features to support module creators
-- [ ] Make a framework for eaiser thread task distributing 
-- [ ] Fix Error handling on multi objects
-- [ ] Add Remote Proxies **May or may not be completed**
+Planned features/TODO
+---------------------
+- [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
+- [ ] Improve performance of the library -- It has increased a bit, but I feel I can get a little more out of it
+- [x] ~~Add more features to support module creators~~
+- [x] ~~Make a framework for eaiser thread task distributing~~
+- [x] ~~Fix Error handling on threaded multi objects~~ Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!
+- [x] ~~Add multi:OnError(function(obj,err))~~
 - [ ] sThread.wrapper(obj) **May or may not be completed**
-- [ ] SystemThreaded Actors
+- [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
 - [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
 - [ ] Add more intergrations
-- [ ] Finish the wiki stuff. (11% done)</br>
-- [ ] Test for unknown bugs</br>
+- [ ] Finish the wiki stuff. (11% done)
+- [ ] Test for unknown bugs
+
+Known Bugs/Issues
+-----------------
+In regards to intergrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P
+
 Usage:</br>
+-----
 ```lua
 -- Basic usage Alarms: Have been moved to the core of the library require("multi") would work as well
 require("multi") -- gets the entire library
@@ -72,7 +82,8 @@ We already showed alarms in action so lets move on to a Loop object
 
 Throughout these examples I am going to do some strange things in order to show other features of the library!
 
-# LOOPS
+LOOPS
+-----
 ```lua
 -- Loops: Have been moved to the core of the library require("multi") would work as well
 require("multi") -- gets the entire library
@@ -110,7 +121,8 @@ With loops out of the way lets go down the line
 
 This library aims to be Async like. In reality everything is still on one thread *unless you are using the lanes intergration module WIP* (More on that later)
 
-# EVENTS
+EVENTS
+------
 ```lua
 -- Events, these were the first objects introduced into the library. I seldomly use them in their pure form though, but later on you'll see their advance uses!
 -- Events on there own don't really do much... We are going to need 2 objects at least to get something going
@@ -130,7 +142,8 @@ multi:mainloop()
 # Output
 Stopped that loop!
 
-# STEPS
+STEPS
+-----
 ```lua
 require("multi")
 -- Steps, are like for loops but non blocking... You can run a loop to infintity and everything will still run I will combine Steps with Ranges in this example.
@@ -191,7 +204,8 @@ Stepping... 3</br>
 Ok 9.5!</br>
 Ok 10!</br>
 
-# TLOOPS
+TLOOPS
+------
 ```lua
 require("multi")
 -- TLoops are loops that run ever n second. We will also look at condition objects as well
@@ -211,7 +225,8 @@ multi:mainloop()
 # Output
 Count is 101!
 
-# Connections
+Connections
+-----------
 These are my favorite objects and you'll see why. They are very useful objects for ASync connections!
 
 ```lua
@@ -264,13 +279,13 @@ CSE2	1	100	Hello!</br>
 CSE1	1	100	Hi Ya Folks!!!</br>
 CSE2	1	100	Hi Ya Folks!!!</br>
 CSE3	1	100	Hi Ya Folks!!!</br>
-------</br>
 CSE2	1	100	Hi Ya Folks!!!</br>
 CSE3	1	100	Hi Ya Folks!!!</br>
-------</br>
+</br>
 
 You may think timers should be bundled with alarms, but they are a bit different and have cool features</br>
-# TIMERS
+TIMERS
+------
 ```lua
 -- You see the thing is that all time based objects use timers eg. Alarms, TSteps, and Loops. Timers are more low level!
 require("multi")
@@ -316,7 +331,8 @@ Note: This will make more sense when you run it for your self</br>
 4.002</br>
 5.003</br>
 
-# UPDATER
+UPDATER
+-------
 ```lua
 -- Updaters: Have been moved to the core of the library require("multi") would work as well
 require("multi")
@@ -369,7 +385,6 @@ multi:mainloop() -- Notice how the past few examples did not need this, well onl
 Note: These numbers will vary drastically depending on your compiler and cpu power</br>
 Regular Bench:  2094137 Steps in 3 second(s)!</br>
 P1</br>
----------------</br>
 Below_Normal: 236022 Steps in 3 second(s)!</br>
 Normal: 314697 Steps in 3 second(s)!</br>
 Above_Normal: 393372 Steps in 3 second(s)!</br>
@@ -378,7 +393,6 @@ Core: 550722 Steps in 3 second(s)!</br>
 Low: 157348 Steps in 3 second(s)!</br>
 Idle: 78674 Steps in 3 second(s)!</br>
 P2</br>
----------------</br>
 Core: 994664 Steps in 3 second(s)!</br>
 High: 248666 Steps in 3 second(s)!</br>
 Above_Normal: 62166 Steps in 3 second(s)!</br>
@@ -389,7 +403,8 @@ Low: 971 Steps in 3 second(s)!</br>
 
 Notice: Even though I started each bench at the same time the order that they finished differed the order is likely to vary on your machine as well!</br>
 
-# Processes
+Processes
+---------
 A process allows you to group the Actor objects within a controlable interface
 ```lua
 require("multi")
@@ -466,7 +481,8 @@ function multi:hold(task)
 end
 ```
 
-# Queuer (WIP)
+Queuer (WIP)
+------------
 A queuer works just like a process however objects are processed in order that they were created...
 ```lua
 require("multi")
@@ -514,7 +530,8 @@ Done</br>
 10</br>
 Ring ring!!!</br>
 
-# Threads
+Threads
+-------
 These fix the hold problem that you get with regular objects, and they work exactly the same! They even have some extra features that make them really useful.</br>
 ```lua
 _require=require -- lets play with the require method a bit
@@ -576,14 +593,16 @@ step	3</br>
 Hello!</br>
 Ring</br>
 Count is 100</br>
-# Threadable Actors
+Threadable Actors
+-----------------
 - Alarms
 - Events
 - Loop/TLoop
 - Process
 - Step/TStep
 
-# Functions
+Functions
+---------
 If you ever wanted to pause a function then great now you can
 The uses of the Function object allows one to have a method that can run free in a sense
 ```lua
@@ -602,7 +621,8 @@ Hello</br>
 PAUSED</br>
 Hello3</br>
 
-# ThreadedUpdater
+ThreadedUpdater
+---------------
 
 ```lua
 -- Works the same as a regular updater!
@@ -618,7 +638,8 @@ multi:mainloop()
 ...</br>
 .inf</br>
 
-# Triggers
+Triggers
+--------
 Triggers were what I used before connections became a thing, also Function objects are a lot like triggers and can be paused as well, while triggers cannot...</br>
 They are simple to use, but in most cases you are better off using a connection</br>
 ```lua
@@ -635,7 +656,8 @@ trig:Fire(1,2,3,"Hello",true)
 1	2	3</br>
 1	2	3	Hello	true</br>
 
-# Tasks
+Tasks
+-----
 Tasks allow you to run a block of code before the multi mainloops does it thing. Tasks still have a use, but depending on how you program they aren't needed.</br>
 ```lua
 require("multi")
@@ -658,7 +680,8 @@ Which came first the task or the loop?</br>
 
 As seen in the example above the tasks were done before anything else in the mainloop! This is useful when making libraries around the multitasking features and you need things to happen in a certain order!</br>
 
-# Jobs
+Jobs
+----
 Jobs were a strange feature that was created for throttling connections! When I was building a irc bot around this library I couldn't have messages posting too fast due to restrictions. Jobs allowed functions to be added to a queue that were executed after a certain amount of time has passed
 ```lua
 require("multi") -- jobs use alarms I am pondering if alarms should be added to the core or if jobs should use timers instead...
@@ -692,7 +715,8 @@ There are 4 jobs in the queue!</br>
 A job!</br></br>
 Another job!</br>
 
-# Watchers
+Watchers
+--------
 Watchers allow you to monitor a variable and trigger an event when the variable has changed!
 ```lua
 require("multi")
@@ -714,6 +738,7 @@ multi:mainloop()
 .inf-1	inf</br>
 
 Timeout management
+------------------
 ```lua
 -- Note: I used a tloop so I could control the output of the program a bit.
 require("multi")
@@ -761,7 +786,128 @@ Looping...</br>
 Looping...</br>
 We did it!	1	2	3</br>
 
-# Changes
+Changes
+-------
+Updated from 1.7.6 to 1.8.0</br>
+Added:</br>
+- multi:newSystemThreadedQueue()
+- multi:systemThreadedBenchmark()
+- More example files
+- multi:canSystemThread() -- true if an intergration was added false otherwise (For module creation)
+- Fixed a few bugs in the loveManager
+
+# Using multi:systemThreadedBenchmark()
+```lua
+package.path="?/init.lua;"..package.path
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+multi:systemThreadedBenchmark(3):OnBench(function(self,count)
+	print("First Bench: "..count)
+	multi:systemThreadedBenchmark(3,"All Threads: ")
+end)
+multi:mainloop()
+```
+
+# Using multi:newSystemThreadedQueue()
+```lua
+-- in love2d, this file will be in the same example folder as before, but is named main2.lua
+require("core.Library")
+GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+--IMPORTANT
+-- Do not make the above local, this is the one difference that the lanesManager does not have
+-- If these are local the functions will have the upvalues put into them that do not exist on the threaded side
+-- You will need to ensure that the function does not refer to any upvalues in its code. It will print an error if it does though
+-- Also each thread has a .1 second delay! This is used to generate a random values for each thread!
+require("core.GuiManager")
+gui.ff.Color=Color.Black
+function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
+	local c={}
+	c.name=name
+	if love then
+		if love.thread then
+			function c:init()
+				self.chan=love.thread.getChannel(self.name)
+				function self:push(v)
+					self.chan:push(v)
+				end
+				function self:pop()
+					return self.chan:pop()
+				end
+				GLOBAL[self.name]=self
+				return self
+			end
+			return c
+		else
+			error("Make sure you required the love.thread module!")
+		end
+	else
+		c.linda=lanes.linda()
+		function c:push(v)
+			self.linda:send("Q",v)
+		end
+		function c:pop()
+			return ({self.linda:receive(0,"Q")})[2]
+		end
+		function c:init()
+			return self
+		end
+		GLOBAL[name]=c
+	end
+	return c
+end
+queue=multi:newSystemThreadedQueue("QUEUE"):init()
+queue:push("This is a test")
+queue:push("This is a test2")
+queue:push("This is a test3")
+queue:push("This is a test4")
+multi:newSystemThread("test2",function()
+	queue=sThread.waitFor("QUEUE"):init()
+	data=queue:pop()
+	while data do
+		print(data)
+		data=queue:pop()
+	end
+	queue:push("DONE!")
+end)
+multi:newThread("test!",function()
+	thread.hold(function() return queue:pop() end)
+	t.text="Done!"
+end)
+t=gui:newTextLabel("no done yet!",0,0,300,100)
+t:centerX()
+t:centerY()
+```
+# In Lanes
+```lua
+-- The code is compatible with each other, I just wanted to show different things you can do in both examples
+-- This file can be found in the examples folder as lanesintergrationtest4.lua
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+queue=multi:newSystemThreadedQueue("QUEUE"):init()
+queue:push("This is a test")
+queue:push("This is a test2")
+queue:push("This is a test3")
+queue:push("This is a test4")
+multi:newSystemThread("test2",function()
+	queue=sThread.waitFor("QUEUE"):init()
+	data=queue:pop()
+	while data do
+		print(data)
+		data=queue:pop()
+	end
+	queue:push("This is a test5")
+	queue:push("This is a test6")
+	queue:push("This is a test7")
+	queue:push("This is a test8")
+end)
+multi:newThread("test!",function() -- this is a lua thread
+	thread.sleep(.1)
+	data=queue:pop()
+	while data do
+		print(data)
+		data=queue:pop()
+	end
+end)
+multi:mainloop()
+```
 Updated from 1.7.5 to 1.7.6</br>
 Fixed:
 Typos like always

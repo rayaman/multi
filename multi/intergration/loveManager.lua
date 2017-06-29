@@ -1,7 +1,11 @@
 require("multi.compat.love2d")
+function multi:canSystemThread()
+	return true
+end
 multi.intergration={}
 multi.intergration.love2d={}
 multi.intergration.love2d.ThreadBase=[[
+__THREADNAME__=({...})[1]
 require("love.filesystem")
 require("love.system")
 require("love.timer")
@@ -43,6 +47,8 @@ function ToStr(val, name, skipnewlines, depth)
         tmp = tmp .. string.format("%q", val)
     elseif type(val) == "boolean" then
         tmp = tmp .. (val and "true" or "false")
+	elseif type(val) == "function" then
+        tmp = tmp .. "loadDump([===["..dump(val).."]===])"
     else
         tmp = tmp .. "\"[inserializeable datatype:" .. type(val) .. "]\""
     end
@@ -57,6 +63,8 @@ function resolveType(tp,d)
 		return loadDump(d)
 	elseif tp=="table" then
 		return loadstring("return "..d)()
+	elseif tp=="nil" then
+		return nil
 	else
 		return d
 	end
@@ -67,7 +75,7 @@ function resolveData(v)
 		data=ToStr(v)
 	elseif type(v)=="function" then
 		data=dump(v)
-	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" then
+	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" or type(v)=="nil" then
 		data=tostring(v)
 	end
 	return data
@@ -77,7 +85,7 @@ local function randomString(n)
 	local c=os.clock()
 	local a=0
 	while os.clock()<c+.1 do
-		a=a+1
+		a=a+1 -- each cpu has a different load... Doing this allows up to make unique seeds for the random string
 	end
 	math.randomseed(a)
 	local str = ''
@@ -119,6 +127,9 @@ function sThread.waitFor(name)
 		while data do
 			if type(data)=="string" then
 				local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
+				if name=="__DIEPLZ"..__THREADNAME__.."__" then
+					error("Thread: "..__THREADNAME__.." has been stopped!")
+				end
 				if cmd=="SYNC" then
 					__proxy__[name]=resolveType(tp,d)
 				end
@@ -143,6 +154,9 @@ function sThread.hold(n)
 		while data do
 			if type(data)=="string" then
 				local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
+				if name=="__DIEPLZ"..__THREADNAME__.."__" then
+					error("Thread: "..__THREADNAME__.." has been stopped!")
+				end
 				if cmd=="SYNC" then
 					__proxy__[name]=resolveType(tp,d)
 				end
@@ -160,6 +174,9 @@ updater:OnUpdate(function(self)
 	while data do
 		if type(data)=="string" then
 			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
+			if name=="__DIEPLZ"..__THREADNAME__.."__" then
+				error("Thread: "..__THREADNAME__.." has been stopped!")
+			end
 			if cmd=="SYNC" then
 				__proxy__[name]=resolveType(tp,d)
 			end
@@ -214,6 +231,8 @@ function ToStr(val, name, skipnewlines, depth)
         tmp = tmp .. string.format("%q", val)
     elseif type(val) == "boolean" then
         tmp = tmp .. (val and "true" or "false")
+	elseif type(val) == "function" then
+        tmp = tmp .. "loadDump([===["..dump(val).."]===])"
     else
         tmp = tmp .. "\"[inserializeable datatype:" .. type(val) .. "]\""
     end
@@ -228,6 +247,8 @@ function resolveType(tp,d)
 		return loadDump(d)
 	elseif tp=="table" then
 		return loadstring("return "..d)()
+	elseif tp=="nil" then
+		return nil
 	else
 		return d
 	end
@@ -238,7 +259,7 @@ function resolveData(v)
 		data=ToStr(v)
 	elseif type(v)=="function" then
 		data=dump(v)
-	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" then
+	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" or type(v)=="nil" then
 		data=tostring(v)
 	end
 	return data
@@ -257,15 +278,28 @@ function dump(func)
 	end
 	return table.concat(code)
 end
+local function randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
+end
 function multi:newSystemThread(name,func) -- the main method
     local c={}
     c.name=name
+	c.ID=c.name.."<ID|"..randomString(8)..">"
     c.thread=love.thread.newThread(multi.intergration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
-	c.thread:start()
+	c.thread:start(c.ID)
+	function c:kill()
+		multi.intergration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
+	end
 	return c
 end
 function love.threaderror( thread, errorstr )
-	print("Error in "..tostring(thread)..": "..errorstr)
+	multi.OnError:Fire(thread,errorstr)
+	print("Error in systemThread: "..tostring(thread)..": "..errorstr)
 end
 local THREAD={}
 function THREAD.set(name,val)
@@ -327,6 +361,7 @@ updater:OnUpdate(function(self)
 		data=multi.intergration.love2d.mainChannel:pop()
 	end
 end)
+require("multi.intergration.shared.shared")
 print("Intergrated Love2d!")
 return {
 	init=function(t)
