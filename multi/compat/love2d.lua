@@ -23,19 +23,6 @@ SOFTWARE.
 ]]
 require("multi")
 os.sleep=love.timer.sleep
---~ function bin.load(file,s,r)
---~ 	content, size = love.filesystem.read(file)
---~ 	local temp=bin.new(content)
---~ 	temp.filepath=file
---~     return temp
---~ end
---~ function bin:tofile(filename)
---~ 	if not(filename) or self.Stream then return nil end
---~ 	love.filesystem.write(filename,self.data)
---~ end
---~ function bin.stream(file,l)
---~ 	error("Sorry streaming is not available when using love2d :(, I am looking for a solution though :)")
---~ end
 function love.run()
 	if love.math then
 		love.math.setRandomSeed(os.time())

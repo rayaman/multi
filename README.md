@@ -1,4 +1,4 @@
-# multi Version: 1.8.1
+# multi Version: 1.8.2 (More support for love & lanes threading!)
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
@@ -8,25 +8,23 @@ It is a pure lua binding if you ingore the intergrations and the love2d compat</
 
 If you find any bugs or have any issues please let me know :)
 
-~~Also I will eventually add an example folder with a lot of examples for how you can use this library. Don't konw when that will be though :P~~ Added!
-
-
 [TOC]
 
 Discord
 -------
-For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries</br>
+For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.</br>
 https://discord.gg/U8UspuA</br>
 
 Planned features/TODO
 ---------------------
 - [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
 - [ ] Improve performance of the library -- It has increased a bit, but I feel I can get a little more out of it
+- [ ] Improve coroutine based threading scheduling
 - [x] ~~Add more features to support module creators~~
 - [x] ~~Make a framework for eaiser thread task distributing~~
 - [x] ~~Fix Error handling on threaded multi objects~~ Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!
 - [x] ~~Add multi:OnError(function(obj,err))~~
-- [ ] sThread.wrapper(obj) **May or may not be completed**
+- [ ] sThread.wrap(obj) **May or may not be completed** Theory: Allows interaction in one thread to affect it in another. The addition to threaded tables may make this possible!
 - [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
 - [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
 - [ ] Add more intergrations
@@ -788,6 +786,69 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Updated from 1.8.1 to 1.8.2</br>
+Added:</br>
+- multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/intergration/shared/shared.lua files to see how I did it!
+- Modified the GLOBAL metatable to sync before doing its tests
+- multi._VERSION was multi.Version, felt it would be more consistant this way... I left the old way of getting the version just incase someone has used that way. It will eventually be gone. Also multi:getVersion() will do the job just as well and keep your code nice and update related bug free!
+- Also everything that is included in the: multi/intergration/shared/shared.lua (Which is loaded automatically) works in both lanes and love2d enviroments!
+
+The threaded table is setup just like the threaded queue.</br>
+It provids GLOBAL like features without having to write to GLOBAL!</br>
+This is useful for module creators who want to keep their data private, but also use GLOBAL like coding.</br>
+It has a few features that makes it a bit better than plain ol GLOBAL (For now...)
+(ThreadedTable - TT for short)
+- TT:waitFor(name)
+- TT:sync()
+- TT["var"]=value
+- print(TT["var"])
+
+we also have the "sync" method, this one was made for love2d because we do a syncing trick to get data in a table format. The lanes side has a sync method as well so no worries. Using indexing calls sync once and may grab your variable. This allows you to have the lanes indexing 'like' syntax when doing regular indexing in love2d side of the module. As of right now both sides work flawlessly! And this effect is now the GLOBAL as well</br>
+
+On GLOBALS sync is a internal method for keeping the GLOBAL table in order. You can still use sThread.waitFor(name) to wait for variables that may of may not yet exist!
+
+Time for some examples:
+# Using multi:newSystemThreadedTable(name)
+```lua
+-- lanes Desktop lua! NOTE: this is in lanesintergratetest6.lua in the examples folder
+local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+test=multi:newSystemThreadedTable("YO"):init()
+test["test1"]="lol"
+multi:newSystemThread("test",function()
+	tab=sThread.waitFor("YO"):init()
+	print(tab:has("test1"))
+	sThread.sleep(3)
+	tab["test2"]="Whats so funny?"
+end)
+multi:newThread("test2",function()
+	print(test:waitFor("test2"))
+end)
+multi:mainloop()
+```
+
+```lua
+-- love2d gaming lua! NOTE: this is in main4.lua in the love2d examples
+require("core.Library")
+GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+require("core.GuiManager")
+gui.ff.Color=Color.Black
+test=multi:newSystemThreadedTable("YO"):init()
+test["test1"]="lol"
+multi:newSystemThread("test",function()
+	tab=sThread.waitFor("YO"):init()
+	print(tab["test1"])
+	sThread.sleep(3)
+	tab["test2"]="Whats so funny?"
+end)
+multi:newThread("test2",function()
+	print(test:waitFor("test2"))
+	t.text="DONE!"
+end)
+t=gui:newTextLabel("no done yet!",0,0,300,100)
+t:centerX()
+t:centerY()
+```
+
 Updated from 1.8.0 to 1.8.1</br>
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
@@ -814,6 +875,7 @@ multi:mainloop()
 ```
 
 # Using multi:newSystemThreadedQueue()
+Quick Note: queues shared across multiple objects will be pulling from the same "queue" keep this in mind when coding! Also the queue respects direction a push on the thread side cannot be popped on the thread side... Same goes for the mainthread!</br>
 ```lua
 -- in love2d, this file will be in the same example folder as before, but is named main2.lua
 require("core.Library")

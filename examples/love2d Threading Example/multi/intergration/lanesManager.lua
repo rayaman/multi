@@ -30,8 +30,11 @@ function os.getOS()
 end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
-package.path="lua/?/init.lua;lua/?.lua;"..package.path
-require("multi.all") -- get it all and have it on all lanes
+--~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
+require("multi") -- get it all and have it on all lanes
+function multi:canSystemThread()
+	return true
+end
 local multi=multi
 -- Step 2 set up the linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff
@@ -103,9 +106,10 @@ function multi:newSystemThread(name,func)
     local c={}
     local __self=c
     c.name=name
+	c.Type="sthread"
     c.thread=lanes.gen("*", func)()
 	function c:kill()
-		self.status:Destroy()
+		--self.status:Destroy()
 		self.thread:cancel()
 		print("Thread: '"..self.name.."' has been stopped!")
 	end
@@ -114,7 +118,8 @@ function multi:newSystemThread(name,func)
 	c.status:OnUpdate(function(self)
 		local v,err,t=self.link.thread:join(.001)
 		if err then
-			print("Error in thread: '"..self.link.name.."' <"..err..">")
+			multi.OnError:Fire(self.link,err)
+			print("Error in systemThread: '"..self.link.name.."' <"..err..">")
 			self:Destroy()
 		end
 	end)
@@ -124,7 +129,8 @@ print("Intergrated Lanes!")
 multi.intergration={} -- for module creators
 multi.intergration.GLOBAL=GLOBAL
 multi.intergration.THREAD=THREAD
-multi.intergration.lanes={} -- for module creators
+multi.intergration.lanes={}
 multi.intergration.lanes.GLOBAL=GLOBAL -- for module creators
 multi.intergration.lanes.THREAD=THREAD -- for module creators
+require("multi.intergration.shared.shared")
 return {init=function() return GLOBAL,THREAD end}

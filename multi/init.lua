@@ -45,7 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,8,1}
+multi.Version="1.8.2"
+multi._VERSION="1.8.2"
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -237,7 +238,7 @@ function multi:getChildren()
 	return self.Mainloop
 end
 function multi:getVersion()
-	return multi.Version[1].."."..multi.Version[2].."."..multi.Version[3]
+	return multi.Version
 end
 function multi:getPlatform()
 	if love then

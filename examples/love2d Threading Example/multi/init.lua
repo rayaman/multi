@@ -45,7 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version={1,7,6}
+multi.Version="1.8.2"
+multi._VERSION="1.8.2"
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -237,7 +238,7 @@ function multi:getChildren()
 	return self.Mainloop
 end
 function multi:getVersion()
-	return multi.Version[1].."."..multi.Version[2].."."..multi.Version[3]
+	return multi.Version
 end
 function multi:getPlatform()
 	if love then
@@ -247,6 +248,9 @@ function multi:getPlatform()
 	else
 		return "lanes"
 	end
+end
+function multi:canSystemThread()
+	return false
 end
 --Processor
 function multi:getError()
@@ -417,7 +421,7 @@ function multi:protect()
 				local status, err=pcall(Loop[_D].Act,Loop[_D])
 				if err and not(Loop[_D].error) then
 					Loop[_D].error=err
-					self.OnError:Fire(err,Loop[_D])
+					self.OnError:Fire(Loop[_D],err)
 				end
 			end
 		end
@@ -1392,4 +1396,634 @@ function multi:newWatcher(namespace,name)
 	else
 		print('Warning, invalid arguments! Nothing returned!')
 	end
+end
+-- Threading stuff
+thread={}
+multi.GlobalVariables={}
+if os.getOS()=="windows" then
+	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
+else
+	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
+end
+function thread.sleep(n)
+	coroutine.yield({"_sleep_",n or 0})
+end
+function thread.hold(n)
+	coroutine.yield({"_hold_",n or function() return true end})
+end
+function thread.skip(n)
+	coroutine.yield({"_skip_",n or 0})
+end
+function thread.kill()
+	coroutine.yield({"_kill_",":)"})
+end
+function thread.yeild()
+	coroutine.yield({"_sleep_",0})
+end
+function thread.getCores()
+	return thread.__CORES
+end
+function thread.set(name,val)
+	multi.GlobalVariables[name]=val
+	return true
+end
+function thread.get(name)
+	return multi.GlobalVariables[name]
+end
+function thread.waitFor(name)
+	thread.hold(function() return thread.get(name)~=nil end)
+	return thread.get(name)
+end
+function thread.testFor(name,val,sym)
+	thread.hold(function() return thread.get(name)~=nil end)
+	return thread.get(name)
+end
+function multi:newTBase(ins)
+	local c = {}
+	c.Active=true
+	c.func={}
+	c.ender={}
+	c.Id=0
+	c.PId=0
+	c.Parent=self
+	c.held=false
+	return c
+end
+function multi:newThread(name,func)
+	local c={}
+	c.ref={}
+	c.Name=name
+	c.thread=coroutine.create(func)
+	c.sleep=1
+	c.Type="thread"
+	c.firstRunDone=false
+	c.timer=multi.scheduler:newTimer()
+	c.ref.Globals=self:linkDomain("Globals")
+	function c.ref:send(name,val)
+		ret=coroutine.yield({Name=name,Value=val})
+		self:syncGlobals(ret)
+	end
+	function c.ref:get(name)
+		return self.Globals[name]
+	end
+	function c.ref:kill()
+		err=coroutine.yield({"_kill_"})
+		if err then
+			error("Failed to kill a thread! Exiting...")
+		end
+	end
+	function c.ref:sleep(n)
+		if type(n)=="function" then
+			ret=coroutine.yield({"_hold_",n})
+			self:syncGlobals(ret)
+		elseif type(n)=="number" then
+			n = tonumber(n) or 0
+			ret=coroutine.yield({"_sleep_",n})
+			self:syncGlobals(ret)
+		else
+			error("Invalid Type for sleep!")
+		end
+	end
+	function c.ref:syncGlobals(v)
+		self.Globals=v
+	end
+	table.insert(self:linkDomain("Threads"),c)
+	if not multi.scheduler:isActive() then
+		multi.scheduler:Resume()
+	end
+end
+multi:setDomainName("Threads")
+multi:setDomainName("Globals")
+multi.scheduler=multi:newUpdater()
+multi.scheduler.Type="scheduler"
+function multi.scheduler:setStep(n)
+	self.skip=tonumber(n) or 24
+end
+multi.scheduler.skip=0
+multi.scheduler.counter=0
+multi.scheduler.Threads=multi:linkDomain("Threads")
+multi.scheduler.Globals=multi:linkDomain("Globals")
+multi.scheduler:OnUpdate(function(self)
+	self.counter=self.counter+1
+	for i=#self.Threads,1,-1 do
+		ret={}
+		if coroutine.status(self.Threads[i].thread)=="dead" then
+			table.remove(self.Threads,i)
+		else
+			if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
+				if self.Threads[i].firstRunDone==false then
+					self.Threads[i].firstRunDone=true
+					self.Threads[i].timer:Start()
+					_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+				else
+					_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+				end
+				if _==false then
+					self.Parent.OnError:Fire(self.Threads[i],ret)
+					print("Error in thread: <"..self.Threads[i].Name.."> "..ret)
+				end
+				if ret==true or ret==false then
+					print("Thread Ended!!!")
+					ret={}
+				end
+			end
+			if ret then
+				if ret[1]=="_kill_" then
+					table.remove(self.Threads,i)
+				elseif ret[1]=="_sleep_" then
+					self.Threads[i].timer:Reset()
+					self.Threads[i].sleep=ret[2]
+				elseif ret[1]=="_skip_" then
+					self.Threads[i].timer:Reset()
+					self.Threads[i].sleep=math.huge
+					local event=multi:newEvent(function(evnt) return multi.scheduler.counter>=evnt.counter end)
+					event.link=self.Threads[i]
+					event.counter=self.counter+ret[2]
+					event:OnEvent(function(evnt)
+						evnt.link.sleep=0
+					end)
+				elseif ret[1]=="_hold_" then
+					self.Threads[i].timer:Reset()
+					self.Threads[i].sleep=math.huge
+					local event=multi:newEvent(ret[2])
+					event.link=self.Threads[i]
+					event:OnEvent(function(evnt)
+						evnt.link.sleep=0
+					end)
+				elseif ret.Name then
+					self.Globals[ret.Name]=ret.Value
+				end
+			end
+		end
+	end
+end)
+multi.scheduler:setStep()
+multi.scheduler:Pause()
+multi.OnError=multi:newConnection()
+function multi:newThreadedAlarm(name,set)
+	local c=self:newTBase()
+	c.Type='alarmThread'
+	c.timer=self:newTimer()
+	c.set=set or 0
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.set)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+		self.timer:Resume()
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self.rest=false
+		self.timer:Reset(n)
+	end
+	function c:OnRing(func)
+		table.insert(self.func,func)
+	end
+	function c:Pause()
+		self.timer:Pause()
+		self.rest=true
+	end
+	c.rest=false
+	c.updaterate=multi.Priority_Low -- skips
+	c.restRate=0 -- secs
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				if c.timer:Get()>=c.set then
+					c:Pause()
+					for i=1,#c.func do
+						c.func[i](c)
+					end
+				end
+				thread.skip(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedUpdater(name,skip)
+	local c=self:newTBase()
+	c.Type='updaterThread'
+	c.pos=1
+	c.skip=skip or 1
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	c.OnUpdate=self.OnMainConnect
+	c.rest=false
+	c.updaterate=0
+	c.restRate=.75
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				for i=1,#c.func do
+					c.func[i](c)
+				end
+				c.pos=c.pos+1
+				thread.skip(c.skip)
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedTStep(name,start,reset,count,set)
+	local c=self:newTBase()
+	local think=1
+	c.Type='tstepThread'
+	c.Priority=self.Priority_Low
+	c.start=start or 1
+	local reset = reset or math.huge
+	c.endAt=reset
+	c.pos=start or 1
+	c.skip=skip or 0
+	c.count=count or 1*think
+	c.funcE={}
+	c.timer=os.clock()
+	c.set=set or 1
+	c.funcS={}
+	function c:Update(start,reset,count,set)
+		self.start=start or self.start
+		self.pos=self.start
+		self.endAt=reset or self.endAt
+		self.set=set or self.set
+		self.count=count or self.count or 1
+		self.timer=os.clock()
+		self:Resume()
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.funcE)
+		m:addBlock(self.funcS)
+		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,timer=self.timer,count=self.count,start=self.start,set=self.set})
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+	end
+	function c:OnStep(func)
+		table.insert(self.func,func)
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+	end
+	function c:Break()
+		self.Active=nil
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self.timer=os.clock()
+		self:Resume()
+	end
+	c.updaterate=0--multi.Priority_Low -- skips
+	c.restRate=0
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				if os.clock()-c.timer>=c.set then
+					c:Reset()
+					if c.pos==c.start then
+						for fe=1,#c.funcS do
+							c.funcS[fe](c)
+						end
+					end
+					for i=1,#c.func do
+						c.func[i](c.pos,c)
+					end
+					c.pos=c.pos+c.count
+					if c.pos-c.count==c.endAt then
+						c:Pause()
+						for fe=1,#c.funcE do
+							c.funcE[fe](c)
+						end
+						c.pos=c.start
+					end
+				end
+				thread.skip(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedTLoop(name,func,n)
+	local c=self:newTBase()
+	c.Type='tloopThread'
+	c.restN=n or 1
+	if func then
+		c.func={func}
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	function c:OnLoop(func)
+		table.insert(self.func,func)
+	end
+	c.rest=false
+	c.updaterate=0
+	c.restRate=.75
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				for i=1,#c.func do
+					c.func[i](c)
+				end
+				thread.sleep(c.restN) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedStep(name,start,reset,count,skip)
+	local c=self:newTBase()
+	local think=1
+	c.Type='stepThread'
+	c.pos=start or 1
+	c.endAt=reset or math.huge
+	c.skip=skip or 0
+	c.spos=0
+	c.count=count or 1*think
+	c.funcE={}
+	c.funcS={}
+	c.start=start or 1
+	if start~=nil and reset~=nil then
+		if start>reset then
+			think=-1
+		end
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.funcE)
+		m:addBlock(self.funcS)
+		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,spos=self.spos,count=self.count,start=self.start})
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	c.Reset=c.Resume
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+	end
+	function c:OnStep(func)
+		table.insert(self.func,1,func)
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+	end
+	function c:Break()
+		self.rest=true
+	end
+	function c:Update(start,reset,count,skip)
+		self.start=start or self.start
+		self.endAt=reset or self.endAt
+		self.skip=skip or self.skip
+		self.count=count or self.count
+		self:Resume()
+	end
+	c.updaterate=0
+	c.restRate=.1
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				if c~=nil then
+					if c.spos==0 then
+						if c.pos==c.start then
+							for fe=1,#c.funcS do
+								c.funcS[fe](c)
+							end
+						end
+						for i=1,#c.func do
+							c.func[i](c.pos,c)
+						end
+						c.pos=c.pos+c.count
+						if c.pos-c.count==c.endAt then
+							c:Pause()
+							for fe=1,#c.funcE do
+								c.funcE[fe](c)
+							end
+							c.pos=c.start
+						end
+					end
+				end
+				c.spos=c.spos+1
+				if c.spos>=c.skip then
+					c.spos=0
+				end
+				ref:sleep(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedProcess(name)
+	local c = {}
+	setmetatable(c, multi)
+	function c:newBase(ins)
+		local ct = {}
+		setmetatable(ct, self.Parent)
+		ct.Active=true
+		ct.func={}
+		ct.ender={}
+		ct.Id=0
+		ct.PId=0
+		ct.Act=function() end
+		ct.Parent=self
+		ct.held=false
+		ct.ref=self.ref
+		table.insert(self.Mainloop,ct)
+		return ct
+	end
+	c.Parent=self
+	c.Active=true
+	c.func={}
+	c.Id=0
+	c.Type='process'
+	c.Mainloop={}
+	c.Tasks={}
+	c.Tasks2={}
+	c.Garbage={}
+	c.Children={}
+	c.Paused={}
+	c.Active=true
+	c.Id=-1
+	c.Rest=0
+	c.updaterate=.01
+	c.restRate=.1
+	c.Jobs={}
+	c.queue={}
+	c.jobUS=2
+	c.rest=false
+	function c:getController()
+		return nil
+	end
+	function c:Start()
+		self.rest=false
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	function c:Remove()
+		self.ref:kill()
+	end
+	function c:kill()
+		err=coroutine.yield({"_kill_"})
+		if err then
+			error("Failed to kill a thread! Exiting...")
+		end
+	end
+	function c:sleep(n)
+		if type(n)=="function" then
+			ret=coroutine.yield({"_hold_",n})
+		elseif type(n)=="number" then
+			n = tonumber(n) or 0
+			ret=coroutine.yield({"_sleep_",n})
+		else
+			error("Invalid Type for sleep!")
+		end
+	end
+	c.hold=c.sleep
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				ref:Sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				c:uManager()
+				ref:sleep(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	return c
+end
+function multi:newThreadedLoop(name,func)
+	local c=self:newTBase()
+	c.Type='loopThread'
+	c.Start=os.clock()
+	if func then
+		c.func={func}
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.func)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	function c:OnLoop(func)
+		table.insert(self.func,func)
+	end
+	c.rest=false
+	c.updaterate=0
+	c.restRate=.75
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				for i=1,#c.func do
+					c.func[i](os.clock()-self.Start,c)
+				end
+				thread.sleep(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
+end
+function multi:newThreadedEvent(name,task)
+	local c=self:newTBase()
+	c.Type='eventThread'
+	c.Task=task or function() end
+	function c:OnEvent(func)
+		table.insert(self.func,func)
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		m:addBlock(self.Type)
+		m:addBlock(self.Task)
+		m:addBlock(self.func)
+		m:addBlock(self.Active)
+		m:tofile(path)
+	end
+	function c:Resume()
+		self.rest=false
+	end
+	function c:Pause()
+		self.rest=true
+	end
+	c.rest=false
+	c.updaterate=0
+	c.restRate=1
+	multi:newThread(name,function(ref)
+		while true do
+			if c.rest then
+				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
+			else
+				if c.Task(self) then
+					for _E=1,#c.func do
+						c.func[_E](c)
+					end
+					c:Pause()
+				end
+				ref:sleep(c.updaterate) -- lets rest a bit
+			end
+		end
+	end)
+	self:create(c)
+	return c
 end
