@@ -132,5 +132,5 @@ multi.intergration.THREAD=THREAD
 multi.intergration.lanes={}
 multi.intergration.lanes.GLOBAL=GLOBAL -- for module creators
 multi.intergration.lanes.THREAD=THREAD -- for module creators
-require("multi.intergration.shared.shared")
+require("multi.integration.shared.shared")
 return {init=function() return GLOBAL,THREAD end}

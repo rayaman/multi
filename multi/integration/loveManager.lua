@@ -345,7 +345,7 @@ updater:OnUpdate(function(self)
 		data=multi.intergration.love2d.mainChannel:pop()
 	end
 end)
-require("multi.intergration.shared.shared")
+require("multi.integration.shared.shared")
 print("Intergrated Love2d!")
 return {
 	init=function(t)
