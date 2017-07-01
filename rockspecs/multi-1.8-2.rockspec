@@ -19,12 +19,12 @@ build = {
    type = "builtin",
    modules = {
       -- Note the required Lua syntax when listing submodules as keys
-      ["multi.init"] = "mulit/mulit/init.lua",
-      ["multi.all"] = "mulit/mulit/all.lua",
-      ["multi.compat.backwards[1,5,0]"] = "mulit/mulit/compat/backwards[1,5,0].lua",
-      ["multi.compat"] = "mulit/mulit/compat/love2d.lua",
-      ["multi.integration.lanesManager"] = "mulit/mulit/integration/lanesManager.lua",
-      ["multi.integration.loveManager"] = "mulit/mulit/integration/loveManager.lua",
-      ["multi.integration.shared.shared"] = "mulit/multi/integration/shared/shared.lua"
+      ["multi.init"] = "multi/init.lua",
+      ["multi.all"] = "multi/all.lua",
+      ["multi.compat.backwards[1,5,0]"] = "multi/compat/backwards[1,5,0].lua",
+      ["multi.compat"] = "multi/compat/love2d.lua",
+      ["multi.integration.lanesManager"] = "multi/integration/lanesManager.lua",
+      ["multi.integration.loveManager"] = "multi/integration/loveManager.lua",
+      ["multi.integration.shared.shared"] = "multi/integration/shared/shared.lua"
    }
 }
