@@ -1,4 +1,4 @@
-# multi Version: 1.8.2 (More support for love & lanes threading!)
+# multi Version: 1.8.3 (Performance Increase! Check changes for info)
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
@@ -537,13 +537,7 @@ Threads
 -------
 These fix the hold problem that you get with regular objects, and they work exactly the same! They even have some extra features that make them really useful.</br>
 ```lua
-_require=require -- lets play with the require method a bit
-function require(path)
-	path=path:gsub("%*","all")
-	_require(path)
-end
-require("multi.*") -- now I can use that lovely * symbol to require everything
--- Pointless I know I... Don't look at me like that :P
+require("multi")
 test=multi:newThreadedProcess("main") -- you can thread processors and all Actors see note for a list of actors you can thread!
 test2=multi:newThreadedProcess("main2")
 count=0
@@ -791,6 +785,22 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Updated from 1.8.2 to 1.8.3</br>
+Added:</br>
+**New Mainloop functions** Below you can see the slight differences... Function overhead is not too bad in lua, but has a real difference. multi:mainloop() and multi:unprotectedMainloop() use the same algorithm yet the dedicated unprotected one is slightly faster due to having less function overhead.
+- multi:mainloop()\* -- Bench:  16830003 Steps in 3 second(s)!
+- multi:protectedMainloop() -- Bench:  16699308 Steps in 3 second(s)!
+- multi:unprotectedMainloop() -- Bench:  16976627 Steps in 3 second(s)!
+- multi:prioritizedMainloop1() -- Bench:  15007133 Steps in 3 second(s)!
+- multi:prioritizedMainloop2() -- Bench:  15526248 Steps in 3 second(s)!
+
+\* The OG mainloop function remains the same and old methods to achieve what we have with the new ones still exist
+
+These new methods help by removing function overhead that is caused through the original mainloop function. The one downside is that you no longer have the flexiblity to change the processing during runtime.
+
+However there is a work around! You can use processes to run multiobjs as well and use the other methods on them.
+
+I may make a full comparison between each method and which is faster, but for now trust that the dedicated ones with less function overhead are infact faster. Not by much but still faster. :D
 Updated from 1.8.1 to 1.8.2</br>
 Added:</br>
 - multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/integration/shared/shared.lua files to see how I did it!

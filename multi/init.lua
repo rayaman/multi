@@ -45,8 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version="1.8.2"
-multi._VERSION="1.8.2"
+multi.Version="1.8.3"
+multi._VERSION="1.8.3"
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -978,7 +978,106 @@ function multi:mainloop()
 	else
 		return "Already Running!"
 	end
-	--print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
+end
+function multi:protectedMainloop()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			self:Do_Order()
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:unprotectedMainloop()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Active then
+						Loop[_D].Id=_D
+						self.CID=_D
+						Loop[_D]:Act()
+					end
+				end
+			end
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:prioritizedMainloop1()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			local PS=self
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if (PS.PList[PS.PStep])%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							Loop[_D].Id=_D
+							self.CID=_D
+							Loop[_D]:Act()
+						end
+					end
+				end
+			end
+			PS.PStep=PS.PStep+1
+			if PS.PStep>7 then
+				PS.PStep=1
+			end
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:prioritizedMainloop2()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			local PS=self
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if (PS.PStep)%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							Loop[_D].Id=_D
+							self.CID=_D
+							Loop[_D]:Act()
+						end
+					end
+				end
+			end
+			PS.PStep=PS.PStep+1
+			if PS.PStep>self.Priority_Idle then
+				PS.PStep=1
+			end
+		end
+	else
+		return "Already Running!"
+	end
 end
 function multi._tFunc(self,dt)
 	for i=1,#self.Tasks do
