@@ -10,6 +10,11 @@ If you find any bugs or have any issues please let me know :)
 
 [TOC]
 
+INSTALLING
+----------
+```
+luarocks install multi
+```
 Discord
 -------
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.</br>

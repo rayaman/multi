@@ -12,171 +12,180 @@
 <h1 id="multi-version:-1.8.2-(more-support-for-love-&amp;-lanes-threading!)"><a name="multi-version:-1.8.2-(more-support-for-love-&amp;-lanes-threading!)" href="#multi-version:-1.8.2-(more-support-for-love-&amp;-lanes-threading!)"></a>multi Version: 1.8.2 (More support for love &amp; lanes threading!)</h1><p><strong>Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?</strong><br></p><p>My multitasking library for lua<br><br>To install copy the multi folder into your enviroment and you are good to go<br></p><p>It is a pure lua binding if you ingore the integrations and the love2d compat<br></p><p>If you find any bugs or have any issues please let me know :)</p><p class="toc" style="undefined"></p><ul>
 <li><ul>
 <li><span class="title">
-<a href="#discord" title="Discord">Discord</a>
+<a href="#installing" title="INSTALLING">INSTALLING</a>
 </span>
 <!--span class="number">
 0
 </span-->
 </li>
 <li><span class="title">
-<a href="#planned-features/todo" title="Planned features/TODO">Planned features/TODO</a>
+<a href="#discord" title="Discord">Discord</a>
 </span>
 <!--span class="number">
 1
 </span-->
 </li>
 <li><span class="title">
-<a href="#known-bugs/issues" title="Known Bugs/Issues">Known Bugs/Issues</a>
+<a href="#planned-features/todo" title="Planned features/TODO">Planned features/TODO</a>
 </span>
 <!--span class="number">
 2
 </span-->
 </li>
 <li><span class="title">
-<a href="#usage:" title="Usage:">Usage:</a>
+<a href="#known-bugs/issues" title="Known Bugs/Issues">Known Bugs/Issues</a>
 </span>
 <!--span class="number">
 3
 </span-->
 </li>
 <li><span class="title">
-<a href="#loops" title="LOOPS">LOOPS</a>
+<a href="#usage:" title="Usage:">Usage:</a>
 </span>
 <!--span class="number">
 4
 </span-->
 </li>
 <li><span class="title">
-<a href="#events" title="EVENTS">EVENTS</a>
+<a href="#loops" title="LOOPS">LOOPS</a>
 </span>
 <!--span class="number">
 5
 </span-->
 </li>
 <li><span class="title">
-<a href="#steps" title="STEPS">STEPS</a>
+<a href="#events" title="EVENTS">EVENTS</a>
 </span>
 <!--span class="number">
 6
 </span-->
 </li>
 <li><span class="title">
-<a href="#tloops" title="TLOOPS">TLOOPS</a>
+<a href="#steps" title="STEPS">STEPS</a>
 </span>
 <!--span class="number">
 7
 </span-->
 </li>
 <li><span class="title">
-<a href="#connections" title="Connections">Connections</a>
+<a href="#tloops" title="TLOOPS">TLOOPS</a>
 </span>
 <!--span class="number">
 8
 </span-->
 </li>
 <li><span class="title">
-<a href="#timers" title="TIMERS">TIMERS</a>
+<a href="#connections" title="Connections">Connections</a>
 </span>
 <!--span class="number">
 9
 </span-->
 </li>
 <li><span class="title">
-<a href="#updater" title="UPDATER">UPDATER</a>
+<a href="#timers" title="TIMERS">TIMERS</a>
 </span>
 <!--span class="number">
 10
 </span-->
 </li>
 <li><span class="title">
-<a href="#processes" title="Processes">Processes</a>
+<a href="#updater" title="UPDATER">UPDATER</a>
 </span>
 <!--span class="number">
 11
 </span-->
 </li>
 <li><span class="title">
-<a href="#queuer-(wip)" title="Queuer (WIP)">Queuer (WIP)</a>
+<a href="#processes" title="Processes">Processes</a>
 </span>
 <!--span class="number">
 12
 </span-->
 </li>
 <li><span class="title">
-<a href="#threads" title="Threads">Threads</a>
+<a href="#queuer-(wip)" title="Queuer (WIP)">Queuer (WIP)</a>
 </span>
 <!--span class="number">
 13
 </span-->
 </li>
 <li><span class="title">
-<a href="#threadable-actors" title="Threadable Actors">Threadable Actors</a>
+<a href="#threads" title="Threads">Threads</a>
 </span>
 <!--span class="number">
 14
 </span-->
 </li>
 <li><span class="title">
-<a href="#functions" title="Functions">Functions</a>
+<a href="#threadable-actors" title="Threadable Actors">Threadable Actors</a>
 </span>
 <!--span class="number">
 15
 </span-->
 </li>
 <li><span class="title">
-<a href="#threadedupdater" title="ThreadedUpdater">ThreadedUpdater</a>
+<a href="#functions" title="Functions">Functions</a>
 </span>
 <!--span class="number">
 16
 </span-->
 </li>
 <li><span class="title">
-<a href="#triggers" title="Triggers">Triggers</a>
+<a href="#threadedupdater" title="ThreadedUpdater">ThreadedUpdater</a>
 </span>
 <!--span class="number">
 17
 </span-->
 </li>
 <li><span class="title">
-<a href="#tasks" title="Tasks">Tasks</a>
+<a href="#triggers" title="Triggers">Triggers</a>
 </span>
 <!--span class="number">
 18
 </span-->
 </li>
 <li><span class="title">
-<a href="#jobs" title="Jobs">Jobs</a>
+<a href="#tasks" title="Tasks">Tasks</a>
 </span>
 <!--span class="number">
 19
 </span-->
 </li>
 <li><span class="title">
-<a href="#watchers" title="Watchers">Watchers</a>
+<a href="#jobs" title="Jobs">Jobs</a>
 </span>
 <!--span class="number">
 20
 </span-->
 </li>
 <li><span class="title">
-<a href="#timeout-management" title="Timeout management">Timeout management</a>
+<a href="#watchers" title="Watchers">Watchers</a>
 </span>
 <!--span class="number">
 21
 </span-->
 </li>
 <li><span class="title">
-<a href="#changes" title="Changes">Changes</a>
+<a href="#timeout-management" title="Timeout management">Timeout management</a>
 </span>
 <!--span class="number">
 22
+</span-->
+</li>
+<li><span class="title">
+<a href="#changes" title="Changes">Changes</a>
+</span>
+<!--span class="number">
+23
 </span-->
 </li>
 </ul>
 </li>
 
 </ul>
-<p></p><h2 id="discord"><a name="discord" href="#discord"></a>Discord</h2><p>For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.<br><br><a href="https://discord.gg/U8UspuA">https://discord.gg/U8UspuA</a><br></p><h2 id="planned-features/todo"><a name="planned-features/todo" href="#planned-features/todo"></a>Planned features/TODO</h2><ul>
+<p></p><h2 id="installing"><a name="installing" href="#installing"></a>INSTALLING</h2><pre><code data-origin="<pre><code>luarocks install multi
+</code></pre>">luarocks install multi
+</code></pre><h2 id="discord"><a name="discord" href="#discord"></a>Discord</h2><p>For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.<br><br><a href="https://discord.gg/U8UspuA">https://discord.gg/U8UspuA</a><br></p><h2 id="planned-features/todo"><a name="planned-features/todo" href="#planned-features/todo"></a>Planned features/TODO</h2><ul>
 <li style="list-style: none"><input type="checkbox" class="task-list-item" checked="" data-task-index="0"> <del>Add system threads for love2d that works like the lanesManager (loveManager, slight differences).</del></li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="1"> Improve performance of the library — It has increased a bit, but I feel I can get a little more out of it</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="2"> Improve coroutine based threading scheduling</li><li style="list-style: none"><input type="checkbox" class="task-list-item" checked="" data-task-index="3"> <del>Add more features to support module creators</del></li><li style="list-style: none"><input type="checkbox" class="task-list-item" checked="" data-task-index="4"> <del>Make a framework for eaiser thread task distributing</del></li><li style="list-style: none"><input type="checkbox" class="task-list-item" checked="" data-task-index="5"> <del>Fix Error handling on threaded multi objects</del> Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!</li><li style="list-style: none"><input type="checkbox" class="task-list-item" checked="" data-task-index="6"> <del>Add multi:OnError(function(obj,err))</del></li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="7"> sThread.wrap(obj) <strong>May or may not be completed</strong> Theory: Allows interaction in one thread to affect it in another. The addition to threaded tables may make this possible!</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="8"> SystemThreaded Actors — After some tests i figured out a way to make this work… It will work slightly different though. This is due to the actor needing to be splittable…</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="9"> LoadBalancing for system threads (Once SystemThreaded Actors are done)</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="10"> Add more integrations</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="11"> Finish the wiki stuff. (11% done)</li><li style="list-style: none"><input type="checkbox" class="task-list-item" data-task-index="12"> Test for unknown bugs</li></ul><h2 id="known-bugs/issues"><a name="known-bugs/issues" href="#known-bugs/issues"></a>Known Bugs/Issues</h2><p>In regards to integrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to…) not use the multi library within the thread. A fix for this is to call <code>multi:Stop()</code> when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data… You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P</p><h2 id="usage:"><a name="usage:" href="#usage:"></a>Usage:<br></h2><pre class="lua hljs"><code class="lua" data-origin="<pre><code class=&quot;lua&quot;>-- Basic usage Alarms: Have been moved to the core of the library require(&quot;multi&quot;) would work as well
 require(&quot;multi&quot;) -- gets the entire library
 alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
