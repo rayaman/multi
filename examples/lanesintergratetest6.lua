@@ -1,5 +1,5 @@
 -- lanes Desktop lua! NOTE: this is in lanesintergratetest6.lua in the examples folder
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 test=multi:newSystemThreadedTable("YO"):init()
 test["test1"]="lol"
 multi:newSystemThread("test",function()

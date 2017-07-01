@@ -1,5 +1,5 @@
 require("core.Library")
-GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
 require("core.GuiManager")
 gui.ff.Color=Color.Black
 test=multi:newSystemThreadedTable("YO"):init()

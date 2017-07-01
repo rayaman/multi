@@ -1,5 +1,5 @@
 package.path="?/init.lua;?.lua;"..package.path
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init() -- loads the lanesManager and includes the entire multi library
+local GLOBAL,sThread=require("multi.integration.lanesManager").init() -- loads the lanesManager and includes the entire multi library
 local function comma_value(amount)
 	local formatted = amount
 	while true do

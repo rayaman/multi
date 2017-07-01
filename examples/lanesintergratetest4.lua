@@ -1,4 +1,4 @@
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 queue=multi:newSystemThreadedQueue("QUEUE"):init()
 queue:push("This is a test")
 queue:push("This is a test2")

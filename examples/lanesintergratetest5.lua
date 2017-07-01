@@ -1,5 +1,5 @@
 package.path="?/init.lua;"..package.path -- slightly different usage of the code
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 queue=multi:newSystemThreadedQueue("QUEUE")
 queue:push(1)
 queue:push(2)

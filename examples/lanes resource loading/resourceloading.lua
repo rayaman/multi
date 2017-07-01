@@ -1,4 +1,4 @@
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 require("proAudioRt") -- an audio library
 -- The hosting site with precompiled binaries is down, but here is a link to a archive
 -- https://web.archive.org/web/20160907180559/http://viremo.eludi.net:80/proteaAudio/proteaaudiolua.html documentation and downloads are availiable... I also have saved copies just in case :D

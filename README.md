@@ -4,7 +4,7 @@
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
 
-It is a pure lua binding if you ingore the intergrations and the love2d compat</br>
+It is a pure lua binding if you ingore the integrations and the love2d compat</br>
 
 If you find any bugs or have any issues please let me know :)
 
@@ -27,13 +27,13 @@ Planned features/TODO
 - [ ] sThread.wrap(obj) **May or may not be completed** Theory: Allows interaction in one thread to affect it in another. The addition to threaded tables may make this possible!
 - [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
 - [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
-- [ ] Add more intergrations
+- [ ] Add more integrations
 - [ ] Finish the wiki stuff. (11% done)
 - [ ] Test for unknown bugs
 
 Known Bugs/Issues
 -----------------
-In regards to intergrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P
+In regards to integrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P
 
 Usage:</br>
 -----
@@ -45,7 +45,7 @@ alarm:OnRing(function(a)
   print("3 Seconds have passed!")
   a:Reset(n) -- if n were nil it will reset back to 3, or it would reset to n seconds
 end)
-multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow intergration in other loops Ex: love2d love.update function. More on this binding in the wiki!
+multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow integration in other loops Ex: love2d love.update function. More on this binding in the wiki!
 ```
 The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
 
@@ -117,7 +117,7 @@ You broke me :(</br>
 
 With loops out of the way lets go down the line
 
-This library aims to be Async like. In reality everything is still on one thread *unless you are using the lanes intergration module WIP* (More on that later)
+This library aims to be Async like. In reality everything is still on one thread *unless you are using the lanes integration module WIP* (More on that later)
 
 EVENTS
 ------
@@ -788,10 +788,10 @@ Changes
 -------
 Updated from 1.8.1 to 1.8.2</br>
 Added:</br>
-- multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/intergration/shared/shared.lua files to see how I did it!
+- multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/integration/shared/shared.lua files to see how I did it!
 - Modified the GLOBAL metatable to sync before doing its tests
 - multi._VERSION was multi.Version, felt it would be more consistant this way... I left the old way of getting the version just incase someone has used that way. It will eventually be gone. Also multi:getVersion() will do the job just as well and keep your code nice and update related bug free!
-- Also everything that is included in the: multi/intergration/shared/shared.lua (Which is loaded automatically) works in both lanes and love2d enviroments!
+- Also everything that is included in the: multi/integration/shared/shared.lua (Which is loaded automatically) works in both lanes and love2d enviroments!
 
 The threaded table is setup just like the threaded queue.</br>
 It provids GLOBAL like features without having to write to GLOBAL!</br>
@@ -811,7 +811,7 @@ Time for some examples:
 # Using multi:newSystemThreadedTable(name)
 ```lua
 -- lanes Desktop lua! NOTE: this is in lanesintergratetest6.lua in the examples folder
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 test=multi:newSystemThreadedTable("YO"):init()
 test["test1"]="lol"
 multi:newSystemThread("test",function()
@@ -829,7 +829,7 @@ multi:mainloop()
 ```lua
 -- love2d gaming lua! NOTE: this is in main4.lua in the love2d examples
 require("core.Library")
-GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
 require("core.GuiManager")
 gui.ff.Color=Color.Black
 test=multi:newSystemThreadedTable("YO"):init()
@@ -852,7 +852,7 @@ t:centerY()
 Updated from 1.8.0 to 1.8.1</br>
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
-Only compat and intergrations are not part of the core and never will be by nature.</br>
+Only compat and integrations are not part of the core and never will be by nature.</br>
 This should make the library more convient to use.</br>
 I left multi/all.lua file so if anyone had libraries/projects that used that it will still work!</br>
 Updated from 1.7.6 to 1.8.0</br> (How much thread could a thread thread if a thread could thread thread?)
@@ -860,13 +860,13 @@ Added:</br>
 - multi:newSystemThreadedQueue()
 - multi:systemThreadedBenchmark()
 - More example files
-- multi:canSystemThread() -- true if an intergration was added false otherwise (For module creation)
+- multi:canSystemThread() -- true if an integration was added false otherwise (For module creation)
 - Fixed a few bugs in the loveManager
 
 # Using multi:systemThreadedBenchmark()
 ```lua
 package.path="?/init.lua;"..package.path
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 multi:systemThreadedBenchmark(3):OnBench(function(self,count)
 	print("First Bench: "..count)
 	multi:systemThreadedBenchmark(3,"All Threads: ")
@@ -879,7 +879,7 @@ Quick Note: queues shared across multiple objects will be pulling from the same 
 ```lua
 -- in love2d, this file will be in the same example folder as before, but is named main2.lua
 require("core.Library")
-GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
 --IMPORTANT
 -- Do not make the above local, this is the one difference that the lanesManager does not have
 -- If these are local the functions will have the upvalues put into them that do not exist on the threaded side
@@ -947,8 +947,8 @@ t:centerY()
 # In Lanes
 ```lua
 -- The code is compatible with each other, I just wanted to show different things you can do in both examples
--- This file can be found in the examples folder as lanesintergrationtest4.lua
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+-- This file can be found in the examples folder as lanesintegrationtest4.lua
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 queue=multi:newSystemThreadedQueue("QUEUE"):init()
 queue:push("This is a test")
 queue:push("This is a test2")
@@ -998,13 +998,13 @@ I'll show case some old versions of the multitasking library eventually so you c
 
 Updated from 1.7.3 to 1.7.4</br>
 Added: the example folder which will be populated with more examples in the near future!</br>
-The loveManager intergration that mimics the lanesManager intergration almost exactly to keep coding in both enviroments as close to possible. This is done mostly for library creation support!</br>
+The loveManager integration that mimics the lanesManager integration almost exactly to keep coding in both enviroments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
 NOTE: This code has only been tested to work on love2d version 1.10.2 thoough it should work version 0.9.0
 ```lua
 require("core.Library") -- Didn't add this to a repo yet! Will do eventually... Allows for injections and other cool things
 require("multi.compat.love2d") -- allows for multitasking and binds my libraies to the love2d engine that i am using
-GLOBAL,sThread=require("multi.intergration.loveManager").init() -- load the love2d version of the lanesManager
+GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2d version of the lanesManager
 --IMPORTANT
 -- Do not make the above local, this is the one difference that the lanesManager does not have
 -- If these are local the functions will have the upvalues put into them that do not exist on the threaded side
@@ -1075,7 +1075,7 @@ t:centerY()
 ```
 Updated from 1.7.2 to 1.7.3</br>
 Changed how requiring the library works!
-`require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and intergrations everything else has been moved into the core of the library.
+`require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and integrations everything else has been moved into the core of the library.
 ```lua
 -- This means that these are no longer required and will cause an error if done so
 require("multi.loop")
@@ -1095,7 +1095,7 @@ Moved updaters, loops, and alarms into the init.lua file. I consider them core f
 Updated from 1.7.0 to 1.7.1 Bug fixes only
 
 Updated from 1.6.0 to 1.7.0</br>
-Modified: multi.intergration.lanesManager.lua
+Modified: multi.integration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.</br>
 Example Usage:</br>
 sThread is a handle to a global interface for system threads to interact with themself</br>
@@ -1111,7 +1111,7 @@ sThread.getCores() -- returns the number of cores on your cpu</br>
 sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running</br>
 sThread.hold(n) -- sleeps until a condition is met</br>
 ```lua
-local GLOBAL,sThread=require("multi.intergration.lanesManager").init()
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 require("multi.all")
 multi:newAlarm(2):OnRing(function(self)
 	GLOBAL["NumOfCores"]=sThread.getCores()
@@ -1123,7 +1123,7 @@ multi:newAlarm(13):OnRing(function(self)
 	GLOBAL["FinalTest"]=true
 end)
 multi:newSystemThread("test",function() -- spawns a thread in another lua process
-	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the intergration. You would need to require the interaction again though
+	require("multi.all") -- now you can do all of your coding with the multi library! You could even spawn more threads from here with the integration. You would need to require the interaction again though
 	print("Waiting for variable: NumOfCores")
 	print("Got it: ",sThread.waitFor("NumOfCores"))
 	sThread.hold(function()
