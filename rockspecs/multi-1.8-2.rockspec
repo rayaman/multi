@@ -7,13 +7,13 @@ source = {
 description = {
    summary = "Lua Multi tasking library",
    detailed = [[
-      This library contains many methods for multi tasking. From simple side by code using multi objs, to using coroutine based Threads and System threads(When you have lua lanes installed or are using love2d. Optional)
+      This library contains many methods for multi tasking. From simple side by side code using multi objs, to using coroutine based Threads and System threads(When you have lua lanes installed or are using love2d. Optional) The core of the library works on lua 5.1+ however the systemthreading features are limited to 5.1
    ]],
    homepage = "https://github.com/rayaman/multi",
    license = "MIT"
 }
 dependencies = {
-   "lua >= 5.1, < 5.4"
+   "lua >= 5.1, < 5.2"
 }
 build = {
    type = "builtin",
