@@ -29,6 +29,7 @@ setmetatable(GLOBAL,{
 function __sync__()
 	local data=__mythread__:pop()
 	while data do
+		love.timer.sleep(.001)
 		if type(data)=="string" then
 			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
 			if name=="__DIEPLZ"..__THREADNAME__.."__" then
@@ -153,23 +154,7 @@ function sThread.hold(n)
 	repeat __sync__() until n()
 end
 updater=multi:newUpdater()
-updater:OnUpdate(function(self)
-	local data=__mythread__:pop()
-	while data do
-		if type(data)=="string" then
-			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
-			if name=="__DIEPLZ"..__THREADNAME__.."__" then
-				error("Thread: "..__THREADNAME__.." has been stopped!")
-			end
-			if cmd=="SYNC" then
-				__proxy__[name]=resolveType(tp,d)
-			end
-		else
-			__proxy__[name]=data
-		end
-		data=__mythread__:pop()
-	end
-end)
+updater:OnUpdate(__sync__)
 func=loadDump([=[INSERT_USER_CODE]=])()
 multi:mainloop()
 ]]
