@@ -2,14 +2,14 @@ require("multi.compat.love2d")
 function multi:canSystemThread()
 	return true
 end
-multi.intergration={}
-multi.intergration.love2d={}
-multi.intergration.love2d.ThreadBase=[[
+multi.integration={}
+multi.integration.love2d={}
+multi.integration.love2d.ThreadBase=[[
 __THREADNAME__=({...})[1]
 require("love.filesystem")
 require("love.system")
 require("love.timer")
-require("multi.all")
+require("multi")
 GLOBAL={}
 setmetatable(GLOBAL,{
 	__index=function(t,k)
@@ -29,6 +29,7 @@ setmetatable(GLOBAL,{
 function __sync__()
 	local data=__mythread__:pop()
 	while data do
+		love.timer.sleep(.001)
 		if type(data)=="string" then
 			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
 			if name=="__DIEPLZ"..__THREADNAME__.."__" then
@@ -79,7 +80,7 @@ function resolveType(tp,d)
 	elseif tp=="bool" then
 		return (d=="true")
 	elseif tp=="function" then
-		return loadDump(d)
+		return loadDump("[==["..d.."]==]")
 	elseif tp=="table" then
 		return loadstring("return "..d)()
 	elseif tp=="nil" then
@@ -91,11 +92,11 @@ end
 function resolveData(v)
 	local data=""
 	if type(v)=="table" then
-		data=ToStr(v)
+		return ToStr(v)
 	elseif type(v)=="function" then
-		data=dump(v)
+		return dump(v)
 	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" or type(v)=="nil" then
-		data=tostring(v)
+		return tostring(v)
 	end
 	return data
 end
@@ -152,24 +153,16 @@ end
 function sThread.hold(n)
 	repeat __sync__() until n()
 end
-updater=multi:newUpdater()
-updater:OnUpdate(function(self)
-	local data=__mythread__:pop()
-	while data do
-		if type(data)=="string" then
-			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
-			if name=="__DIEPLZ"..__THREADNAME__.."__" then
-				error("Thread: "..__THREADNAME__.." has been stopped!")
-			end
-			if cmd=="SYNC" then
-				__proxy__[name]=resolveType(tp,d)
-			end
-		else
-			__proxy__[name]=data
-		end
-		data=__mythread__:pop()
+multi:newLoop(function(self)
+	self:Pause()
+	local ld=multi:getLoad()
+	self:Resume()
+	if ld<80 then
+		love.timer.sleep(.01)
 	end
 end)
+updater=multi:newUpdater()
+updater:OnUpdate(__sync__)
 func=loadDump([=[INSERT_USER_CODE]=])()
 multi:mainloop()
 ]]
@@ -191,7 +184,7 @@ setmetatable(GLOBAL,{
 	end,
 })
 THREAD={} -- Allow main thread to interact with these objects as well
-multi.intergration.love2d.mainChannel=love.thread.getChannel("__MainChan__")
+multi.integration.love2d.mainChannel=love.thread.getChannel("__MainChan__")
 function ToStr(val, name, skipnewlines, depth)
     skipnewlines = skipnewlines or false
     depth = depth or 0
@@ -228,7 +221,7 @@ function resolveType(tp,d)
 	elseif tp=="bool" then
 		return (d=="true")
 	elseif tp=="function" then
-		return loadDump(d)
+		return loadDump("[==["..d.."]==]")
 	elseif tp=="table" then
 		return loadstring("return "..d)()
 	elseif tp=="nil" then
@@ -240,11 +233,11 @@ end
 function resolveData(v)
 	local data=""
 	if type(v)=="table" then
-		data=ToStr(v)
+		return ToStr(v)
 	elseif type(v)=="function" then
-		data=dump(v)
+		return dump(v)
 	elseif type(v)=="string" or type(v)=="number" or type(v)=="bool" or type(v)=="nil" then
-		data=tostring(v)
+		return tostring(v)
 	end
 	return data
 end
@@ -274,10 +267,10 @@ function multi:newSystemThread(name,func) -- the main method
     local c={}
     c.name=name
 	c.ID=c.name.."<ID|"..randomString(8)..">"
-    c.thread=love.thread.newThread(multi.intergration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
+    c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
 	c.thread:start(c.ID)
 	function c:kill()
-		multi.intergration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
+		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
 	end
 	return c
 end
@@ -310,11 +303,11 @@ function THREAD.hold(n)
 	multi.OBJ_REF:Resume()
 end
 __channels__={}
-multi.intergration.GLOBAL=GLOBAL
-multi.intergration.THREAD=THREAD
+multi.integration.GLOBAL=GLOBAL
+multi.integration.THREAD=THREAD
 updater=multi:newUpdater()
 updater:OnUpdate(function(self)
-	local data=multi.intergration.love2d.mainChannel:pop()
+	local data=multi.integration.love2d.mainChannel:pop()
 	while data do
 		--print("MAIN:",data)
 		if type(data)=="string" then
@@ -342,19 +335,21 @@ updater:OnUpdate(function(self)
 		else
 			__proxy__[name]=data
 		end
-		data=multi.intergration.love2d.mainChannel:pop()
+		data=multi.integration.love2d.mainChannel:pop()
 	end
 end)
 require("multi.integration.shared.shared")
-print("Intergrated Love2d!")
+print("Integrated Love2d!")
 return {
 	init=function(t)
 		if t then
 			if t.threadNamespace then
-				multi.intergration.love2d.ThreadBase:gsub("sThread",t.threadNamespace)
+				multi.integration.THREADNAME=t.threadNamespace
+				multi.integration.love2d.ThreadBase:gsub("sThread",t.threadNamespace)
 			end
 			if t.globalNamespace then
-				multi.intergration.love2d.ThreadBase:gsub("GLOBAL",t.globalNamespace)
+				multi.integration.GLOBALNAME=t.globalNamespace
+				multi.integration.love2d.ThreadBase:gsub("GLOBAL",t.globalNamespace)
 			end
 		end
 		return GLOBAL,THREAD
