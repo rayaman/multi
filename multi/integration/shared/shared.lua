@@ -247,3 +247,62 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 	c.updater.link=c
 	return c
 end
+if love then
+	if love.thread then
+		function multi:newSystemThreadedJobQueue(numOfCores)
+			local c={}
+			c.jobnum=1
+			c.cores=numOfCores or multi.integration.THREAD.getCores()
+			c.queueIN=multi:newSystemThreadedQueue("THREADED_JQ"):init()
+			c.queueOUT=multi:newSystemThreadedQueue("THREADED_JQO"):init()
+			function c:registerJob(name,func)
+				GLOBAL["__TJQ__"..name.."__"]=func
+			end
+			function c:pushJob(name,...)
+				self.queueOUT:push({self.jobnum,name,...})
+				self.jobnum=self.jobnum+1
+			end
+			local GLOBAL=multi.integration.GLOBAL -- set up locals incase we are using lanes
+			local sThread=multi.integration.THREAD -- set up locals incase we are using lanes
+			GLOBAL["__JQ_COUNT__"]=c.cores
+			for i=1,c.cores do
+				multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function()
+					GLOBAL=_G.GLOBAL
+					sThread=_G.sThread
+					local JQI=sThread.waitFor("THREADED_JQO"):init() -- Grab it
+					local JQO=sThread.waitFor("THREADED_JQ"):init() -- Grab it
+					sThread.sleep(.1) -- lets wait for things to work out
+					setmetatable(_G,{
+						__index=function(t,k,v)
+							return GLOBAL["__TJQ__"..k.."__"]
+						end
+					})
+					GLOBAL["THREADED_JQ"]=nil -- remove it
+					GLOBAL["THREADED_JQO"]=nil -- remove it
+					multi:newLoop(function()
+						sThread.sleep(.001) -- lets allow cpu time for other processes on our system!
+						local job=JQI:pop()
+						if job then
+							local ID=table.remove(job,1) -- return and remove
+							local name=table.remove(job,1) -- return and remove
+							local ret={sThread.waitFor("__TJQ__"..name.."__")(unpack(job))} -- unpack the rest
+							JQO:push({ID,ret})
+						end
+					end)
+				end)
+			end
+			c.OnJobCompleted=multi:newConnection()
+			c.updater=multi:newLoop(function(self)
+				local data=self.link.queueIN:pop()
+				while data do
+					if data then
+						self.link.OnJobCompleted:Fire(unpack(data))
+					end
+					data=self.link.queueIN:pop()
+				end
+			end)
+			c.updater.link=c
+			return c
+		end
+	end
+end
