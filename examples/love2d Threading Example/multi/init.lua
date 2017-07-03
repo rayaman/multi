@@ -45,8 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version="1.8.2"
-multi._VERSION="1.8.2"
+multi.Version="1.8.4"
+multi._VERSION="1.8.4"
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -108,11 +108,13 @@ function multi:setThrestimed(n)
 end
 function multi:getLoad()
 	return multi:newFunction(function(self)
+		multi.scheduler:Pause()
 		local sample=#multi.Mainloop
 		local FFloadtest=0
 		multi:benchMark(multi.threstimed):OnBench(function(_,l3) FFloadtest=l3*(1/multi.threstimed) end)
 		self:hold(function() return FFloadtest~=0 end)
 		local val=FFloadtest/sample
+		multi.scheduler:Resume()
 		if val>multi.threshold then
 			return 0
 		else
@@ -617,7 +619,11 @@ function multi:hold(task)
 		env:OnEvent(function(envt) envt:Pause() envt.Active=false end)
 		while env.Active do
 			if love then
-				self.Parent:lManager()
+				if love.graphics then
+					self.Parent:lManager()
+				else
+					self.Parent:Do_Order()
+				end
 			else
 				self.Parent:Do_Order()
 			end
@@ -978,7 +984,110 @@ function multi:mainloop()
 	else
 		return "Already Running!"
 	end
-	--print("Did you call multi:Stop()? This method should not be used when using multi:mainloop() unless of course you wanted to stop it! you can restart the multi, by using multi:reboot() and calling multi:mainloop() again or by using multi:uManager()")
+end
+function multi:protectedMainloop()
+	multi:protect()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			self:Do_Order()
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:unprotectedMainloop()
+	multi:unProtect()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Active then
+						Loop[_D].Id=_D
+						self.CID=_D
+						Loop[_D]:Act()
+					end
+				end
+			end
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:prioritizedMainloop1()
+	multi:enablePriority()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			local PS=self
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if (PS.PList[PS.PStep])%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							Loop[_D].Id=_D
+							self.CID=_D
+							Loop[_D]:Act()
+						end
+					end
+				end
+			end
+			PS.PStep=PS.PStep+1
+			if PS.PStep>7 then
+				PS.PStep=1
+			end
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:prioritizedMainloop2()
+	multi:enablePriority2()
+	if not multi.isRunning then
+		multi.isRunning=true
+		for i=1,#self.Tasks do
+			self.Tasks[i](self)
+		end
+		rawset(self,'Start',self.clock())
+		while self.Active do
+			local Loop=self.Mainloop
+			_G.ID=0
+			local PS=self
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if (PS.PStep)%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							Loop[_D].Id=_D
+							self.CID=_D
+							Loop[_D]:Act()
+						end
+					end
+				end
+			end
+			PS.PStep=PS.PStep+1
+			if PS.PStep>self.Priority_Idle then
+				PS.PStep=1
+			end
+		end
+	else
+		return "Already Running!"
+	end
 end
 function multi._tFunc(self,dt)
 	for i=1,#self.Tasks do
@@ -1494,7 +1603,7 @@ function multi:newThread(name,func)
 end
 multi:setDomainName("Threads")
 multi:setDomainName("Globals")
-multi.scheduler=multi:newUpdater()
+multi.scheduler=multi:newLoop()
 multi.scheduler.Type="scheduler"
 function multi.scheduler:setStep(n)
 	self.skip=tonumber(n) or 24
@@ -1503,7 +1612,7 @@ multi.scheduler.skip=0
 multi.scheduler.counter=0
 multi.scheduler.Threads=multi:linkDomain("Threads")
 multi.scheduler.Globals=multi:linkDomain("Globals")
-multi.scheduler:OnUpdate(function(self)
+multi.scheduler:OnLoop(function(self)
 	self.counter=self.counter+1
 	for i=#self.Threads,1,-1 do
 		ret={}
@@ -1557,7 +1666,6 @@ multi.scheduler:OnUpdate(function(self)
 		end
 	end
 end)
-multi.scheduler:setStep()
 multi.scheduler:Pause()
 multi.OnError=multi:newConnection()
 function multi:newThreadedAlarm(name,set)

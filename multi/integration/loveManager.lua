@@ -153,6 +153,14 @@ end
 function sThread.hold(n)
 	repeat __sync__() until n()
 end
+multi:newLoop(function(self)
+	self:Pause()
+	local ld=multi:getLoad()
+	self:Resume()
+	if ld<80 then
+		love.timer.sleep(.01)
+	end
+end)
 updater=multi:newUpdater()
 updater:OnUpdate(__sync__)
 func=loadDump([=[INSERT_USER_CODE]=])()

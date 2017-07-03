@@ -108,11 +108,13 @@ function multi:setThrestimed(n)
 end
 function multi:getLoad()
 	return multi:newFunction(function(self)
+		multi.scheduler:Pause()
 		local sample=#multi.Mainloop
 		local FFloadtest=0
 		multi:benchMark(multi.threstimed):OnBench(function(_,l3) FFloadtest=l3*(1/multi.threstimed) end)
 		self:hold(function() return FFloadtest~=0 end)
 		local val=FFloadtest/sample
+		multi.scheduler:Resume()
 		if val>multi.threshold then
 			return 0
 		else
@@ -617,7 +619,11 @@ function multi:hold(task)
 		env:OnEvent(function(envt) envt:Pause() envt.Active=false end)
 		while env.Active do
 			if love then
-				self.Parent:lManager()
+				if love.graphics then
+					self.Parent:lManager()
+				else
+					self.Parent:Do_Order()
+				end
 			else
 				self.Parent:Do_Order()
 			end

@@ -1,12 +1,23 @@
 # multi Version: 1.8.4 (System Threaded Job Queues)
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?** Also I added a Testing Branch. That Branch will have the latest updates, but those updates may be unstable. I like to keep the master as bug free as possible</br>
 
+In Changes you'll find documentation for(In Order):
+- System Threaded Job Queues
+- New mainloop functions
+- System Threaded Tables
+- System Threaded Benchmark
+- System Threaded Queues
+- Threading related features
+- And backwards compat stuff
+
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
 
 It is a pure lua binding if you ingore the integrations and the love2d compat</br>
 
 If you find any bugs or have any issues please let me know :)
+
+If you don't see a table of contents try using the ReadMe.html file. It is eaiser to navigate the readme</br>
 
 [TOC]
 
@@ -24,7 +35,8 @@ Planned features/TODO
 ---------------------
 - [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
 - [x] ~~Improve performance of the library~~
-- [ ] Improve coroutine based threading scheduling
+- [x] ~~Improve coroutine based threading scheduling~~
+- [ ] Improve love2d Idle thread cpu usage... Tricky Look at the rambling section for insight.
 - [x] ~~Add more features to support module creators~~
 - [x] ~~Make a framework for eaiser thread task distributing~~
 - [x] ~~Fix Error handling on threaded multi objects~~ Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!
@@ -39,6 +51,8 @@ Planned features/TODO
 Known Bugs/Issues
 -----------------
 In regards to integrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P
+
+Another bug concerns the SystemThreadedJobQueue, Only 1 can be used for now... Vreating more may not be a good idea.
 
 Usage:</br>
 -----
@@ -785,7 +799,53 @@ We did it!	1	2	3</br>
 
 Changes
 -------
-Updated from 1.8.2 to 1.8.3</br>
+Updated from 1.8.3 to 1.8.4
+---------------------------
+Added:
+- multi:newSystemThreadedJobQueue()
+- Improved stability of the library
+- Fixed a bug that made the benchmark and getload commands non-thread(coroutine) safe
+- Tweaked the loveManager to help improve idle cpu usage
+- Minor tweaks to the coroutine scheduling
+
+# Using multi:newSystemThreadedJobQueue()
+First you need to create the object
+This works the same way as love2d as it does with lanes... It is getting increasing harder to make both work the same way with speed in mind... Anyway...
+```lua
+-- Creating the object using lanes manager to show case this. Examples has the file for love2d
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
+jQueue=multi:newSystemThreadedJobQueue(n) -- this internally creates System threads. By defualt it will use the # of processors on your system You can set this number though.
+-- Only create 1 jobqueue! For now making more than 1 is buggy. You only really need one though. Just register new functions if you want 1 queue to do more. The one reason though is keeping track of jobIDs. I have an idea that I will roll out in the next update.
+jQueue:registerJob("TEST_JOB",function(a,s)
+	math.randomseed(s)
+	-- We will push a random #
+	TEST_JOB2() -- You can call other registered functions as well!
+	return math.random(0,255) -- send the result to the main thread
+end)
+jQueue:registerJob("TEST_JOB2",function()
+	print("Test Works!") -- this is called from the job since it is registered on the same queue
+end)
+tableOfOrder={} -- This is how we will keep order of our completed jobs. There is no guarantee that the order will be correct
+jQueue.OnJobCompleted(function(JOBID,n) -- whenever a job is completed you hook to the event that is called. This passes the JOBID folled by the returns of the job
+	-- JOBID is the completed job, starts at 1 and counts up by 1.
+	-- Threads finish at different times so jobids may be passed out of order! Be sure to have a way to order them
+	tableOfOrder[JOBID]=n -- we order ours by putting them into a table
+	if #tableOfOrder==10 then
+		print("We got all of the pieces!")
+	end
+end)
+-- Lets push the jobs now
+for i=1,10 do -- Job Name of registered function, ... varargs
+	jQueue:pushJob("TEST_JOB","This is a test!",math.random(1,1000000))
+end
+print("I pushed all of the jobs :)")
+multi:mainloop() -- Start the main loop :D
+```
+
+Thats it from this version!
+
+Updated from 1.8.2 to 1.8.3
+---------------------------
 Added:</br>
 **New Mainloop functions** Below you can see the slight differences... Function overhead is not too bad in lua, but has a real difference. multi:mainloop() and multi:unprotectedMainloop() use the same algorithm yet the dedicated unprotected one is slightly faster due to having less function overhead.
 - multi:mainloop()\* -- Bench:  16830003 Steps in 3 second(s)!
@@ -801,7 +861,9 @@ These new methods help by removing function overhead that is caused through the 
 However there is a work around! You can use processes to run multiobjs as well and use the other methods on them.
 
 I may make a full comparison between each method and which is faster, but for now trust that the dedicated ones with less function overhead are infact faster. Not by much but still faster. :D
-Updated from 1.8.1 to 1.8.2</br>
+
+Updated from 1.8.1 to 1.8.2
+---------------------------
 Added:</br>
 - multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/integration/shared/shared.lua files to see how I did it!
 - Modified the GLOBAL metatable to sync before doing its tests
@@ -864,7 +926,8 @@ t:centerX()
 t:centerY()
 ```
 
-Updated from 1.8.0 to 1.8.1</br>
+Updated from 1.8.0 to 1.8.1
+---------------------------
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
 Only compat and integrations are not part of the core and never will be by nature.</br>
@@ -991,7 +1054,8 @@ multi:newThread("test!",function() -- this is a lua thread
 end)
 multi:mainloop()
 ```
-Updated from 1.7.5 to 1.7.6</br>
+Updated from 1.7.5 to 1.7.6
+---------------------------
 Fixed:
 Typos like always
 Added:</br>
@@ -1003,7 +1067,8 @@ The old way still works and is more convient to be honest, but I felt a method t
 Updated:
 some example files to reflect changes to the core. Changes allow for less typing</br>
 loveManager to require the compat if used so you don't need 2 require line to retrieve the library</br>
-Updated from 1.7.4 to 1.7.5</br>
+Updated from 1.7.4 to 1.7.5
+---------------------------
 Fixed some typos in the readme... (I am sure there are more there are always more)</br>
 Added more features for module support</br>
 TODO:</br>
@@ -1011,7 +1076,8 @@ Work on performance of the library... I see 3 places where I can make this thing
 
 I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!</br>
 
-Updated from 1.7.3 to 1.7.4</br>
+Updated from 1.7.3 to 1.7.4
+---------------------------
 Added: the example folder which will be populated with more examples in the near future!</br>
 The loveManager integration that mimics the lanesManager integration almost exactly to keep coding in both enviroments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
@@ -1088,7 +1154,8 @@ t=gui:newTextLabel("no done yet!",0,0,300,100)
 t:centerX()
 t:centerY()
 ```
-Updated from 1.7.2 to 1.7.3</br>
+Updated from 1.7.2 to 1.7.3
+---------------------------
 Changed how requiring the library works!
 `require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and integrations everything else has been moved into the core of the library.
 ```lua
@@ -1104,12 +1171,15 @@ require("multi.task")
 -- ^ they are all part of the core now
 ```
 
-Updated from 1.7.1 to 1.7.2</br>
+Updated from 1.7.1 to 1.7.2
+---------------------------
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
 Updated from 1.7.0 to 1.7.1 Bug fixes only
+---------------------------
 
-Updated from 1.6.0 to 1.7.0</br>
+Updated from 1.6.0 to 1.7.0
+---------------------------
 Modified: multi.integration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.</br>
 Example Usage:</br>
@@ -1162,7 +1232,8 @@ end)
 multi:mainloop()
 ```
 
-Updated from 1.5.0 to 1.6.0</br>
+Updated from 1.5.0 to 1.6.0
+---------------------------
 Changed: steps and loops
 ```lua
 -- Was
@@ -1186,11 +1257,20 @@ require("multi.all")
 require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
 ```
 Updated from 1.4.1 to 1.5.0
+---------------------------
 Added:
 - An easy way to manage timeouts
 - Small bug fixes
 
 1.4.1 - First Public release of the library
+---------------------------
 
 IMPORTANT:</br>
 Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.</br>
+Rambling
+--------
+Love2d: Sleeping reduces the cpu time making my load detection think the system is under more load, thus preventing it from sleeping... I will look into other means. As of right now it will not eat all of your cpu if threads are active. For now I suggest killing threads that aren't needed anymore. On lanes threads at idle use 0% cpu and it is amazing. A state machine may solve what I need though. One state being idle state that sleeps and only goes into the active state if a job request or data is sent to it... after some time of not being under load it wil switch back into the idle state... We'll see what happens.
+
+Love2d doesn't like to send functions through channels. By defualt it does not support this. I achieve this by dumping the function and loadstring it on the thread. This however is slow. For the System Threaded Job Queue I had to change my original idea of sending functions as jobs. The current way you do it now is register a job functions once and then call that job across the thread through a queue. Each worker thread pops from the queue and returns the job. The Job ID is automatically updated and allows you to keep track of the order that the data comes in. A table with # indexes can be used to originze the data...
+
+In regards to benchmarking. If you see my bench marks and are wondering they are 10x better its because I am using luajit for my tests. I highly recommend using luajit for my library, but lua 5.1 will work just as well, but not as fast.

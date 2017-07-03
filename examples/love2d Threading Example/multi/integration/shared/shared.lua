@@ -280,7 +280,6 @@ if love then
 					GLOBAL["THREADED_JQ"]=nil -- remove it
 					GLOBAL["THREADED_JQO"]=nil -- remove it
 					multi:newLoop(function()
-						sThread.sleep(.001) -- lets allow cpu time for other processes on our system!
 						local job=JQI:pop()
 						if job then
 							local ID=table.remove(job,1) -- return and remove
