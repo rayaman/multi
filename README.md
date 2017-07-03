@@ -1,4 +1,4 @@
-# multi Version: 1.8.3 (Performance Increase! Check changes for info)
+# multi Version: 1.8.4 (System Threaded Job Queues)
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
 
 My multitasking library for lua</br>
@@ -23,7 +23,7 @@ https://discord.gg/U8UspuA</br>
 Planned features/TODO
 ---------------------
 - [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
-- [ ] Improve performance of the library -- It has increased a bit, but I feel I can get a little more out of it
+- [x] ~~Improve performance of the library~~
 - [ ] Improve coroutine based threading scheduling
 - [x] ~~Add more features to support module creators~~
 - [x] ~~Make a framework for eaiser thread task distributing~~
@@ -57,7 +57,7 @@ The library is modular so you only need to require what you need to. Because of 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
 - Process#</br>
-- Queuer#</br>
+- QueueQueuer#</br>
 - Alarm</br>
 - Loop</br>
 - Event</br>
@@ -890,7 +890,7 @@ multi:mainloop()
 ```
 
 # Using multi:newSystemThreadedQueue()
-Quick Note: queues shared across multiple objects will be pulling from the same "queue" keep this in mind when coding! Also the queue respects direction a push on the thread side cannot be popped on the thread side... Same goes for the mainthread!</br>
+Quick Note: queues shared across multiple objects will be pulling from the same "queue" keep this in mind when coding! ~~Also the queue respects direction a push on the thread side cannot be popped on the thread side... Same goes for the mainthread!</br>~~ Turns out i was wrong about this...
 ```lua
 -- in love2d, this file will be in the same example folder as before, but is named main2.lua
 require("core.Library")

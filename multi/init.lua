@@ -45,8 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version="1.8.3"
-multi._VERSION="1.8.3"
+multi.Version="1.8.4"
+multi._VERSION="1.8.4"
 multi.stage='stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -980,6 +980,7 @@ function multi:mainloop()
 	end
 end
 function multi:protectedMainloop()
+	multi:protect()
 	if not multi.isRunning then
 		multi.isRunning=true
 		for i=1,#self.Tasks do
@@ -994,6 +995,7 @@ function multi:protectedMainloop()
 	end
 end
 function multi:unprotectedMainloop()
+	multi:unProtect()
 	if not multi.isRunning then
 		multi.isRunning=true
 		for i=1,#self.Tasks do
@@ -1018,6 +1020,7 @@ function multi:unprotectedMainloop()
 	end
 end
 function multi:prioritizedMainloop1()
+	multi:enablePriority()
 	if not multi.isRunning then
 		multi.isRunning=true
 		for i=1,#self.Tasks do
@@ -1049,6 +1052,7 @@ function multi:prioritizedMainloop1()
 	end
 end
 function multi:prioritizedMainloop2()
+	multi:enablePriority2()
 	if not multi.isRunning then
 		multi.isRunning=true
 		for i=1,#self.Tasks do
@@ -1593,7 +1597,7 @@ function multi:newThread(name,func)
 end
 multi:setDomainName("Threads")
 multi:setDomainName("Globals")
-multi.scheduler=multi:newUpdater()
+multi.scheduler=multi:newLoop()
 multi.scheduler.Type="scheduler"
 function multi.scheduler:setStep(n)
 	self.skip=tonumber(n) or 24
@@ -1602,7 +1606,7 @@ multi.scheduler.skip=0
 multi.scheduler.counter=0
 multi.scheduler.Threads=multi:linkDomain("Threads")
 multi.scheduler.Globals=multi:linkDomain("Globals")
-multi.scheduler:OnUpdate(function(self)
+multi.scheduler:OnLoop(function(self)
 	self.counter=self.counter+1
 	for i=#self.Threads,1,-1 do
 		ret={}
@@ -1656,7 +1660,6 @@ multi.scheduler:OnUpdate(function(self)
 		end
 	end
 end)
-multi.scheduler:setStep()
 multi.scheduler:Pause()
 multi.OnError=multi:newConnection()
 function multi:newThreadedAlarm(name,set)
