@@ -1,5 +1,5 @@
 # multi Version: 1.8.4 (System Threaded Job Queues)
-**Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?**</br>
+**Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?** Also I added a Testing Branch. That Branch will have the latest updates, but those updates may be unstable. I like to keep the master as bug free as possible</br>
 
 My multitasking library for lua</br>
 To install copy the multi folder into your enviroment and you are good to go</br>
