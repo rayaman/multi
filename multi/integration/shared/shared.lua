@@ -21,6 +21,14 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+function multi.randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
+end
 function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
 	local c={} -- where we will store our object
 	c.name=name -- set the name this is important for the love2d side
@@ -262,8 +270,8 @@ if love then
 				self.queueOUT:push({self.jobnum,name,...})
 				self.jobnum=self.jobnum+1
 			end
-			local GLOBAL=multi.integration.GLOBAL -- set up locals incase we are using lanes
-			local sThread=multi.integration.THREAD -- set up locals incase we are using lanes
+			local GLOBAL=multi.integration.GLOBAL
+			local sThread=multi.integration.THREAD
 			GLOBAL["__JQ_COUNT__"]=c.cores
 			for i=1,c.cores do
 				multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function()
@@ -304,4 +312,32 @@ if love then
 			return c
 		end
 	end
+end
+function multi:newSystemThreadedExecute(cmd)
+	local c={}
+	local GLOBAL=multi.integration.GLOBAL -- set up locals incase we are using lanes
+	local sThread=multi.integration.THREAD -- set up locals incase we are using lanes
+	local name="Execute_Thread"..multi.randomString(16)
+	c.name=name
+	GLOBAL[name.."CMD"]=cmd
+	multi:newSystemThread(name,function()
+		if love then -- lets make sure we don't reference upvalues if using love2d
+			GLOBAL=_G.GLOBAL
+			sThread=_G.sThread
+			name=__THREADNAME__ -- global data same as the name we used in this functions creation
+		end -- Lanes should take the local upvalues ^^^
+		cmd=sThread.waitFor(name.."CMD")
+		local ret=os.execute(cmd)
+		GLOBAL[name.."R"]=ret
+	end)
+	c.OnCMDFinished=multi:newConnection()
+	c.looper=multi:newLoop(function(self)
+		local ret=GLOBAL[self.link.name.."R"]
+		if ret then
+			self.link.OnCMDFinished:Fire(ret)
+			self:Destroy()
+		end
+	end)
+	c.looper.link=c
+	return c
 end
