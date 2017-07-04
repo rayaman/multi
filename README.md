@@ -1,4 +1,4 @@
-# multi Version: 1.8.4 (System Threaded Job Queues)
+# multi Version: 1.8.5 (System Threaded Execute) Looking into some bugs...
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?** Also I added a Testing Branch. That Branch will have the latest updates, but those updates may be unstable. I like to keep the master as bug free as possible</br>
 
 # Note SystemThreadedTable's behavior is not stable! I am looking into this.
@@ -801,6 +801,23 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Updated from 1.8.4 to 1.8.5
+---------------------------
+Added:
+- SystemThreadedExecute(cmd)
+
+Allows the execution of system calls without hold up. It is possible to do the same using io.popen()! You decide which works best for you!
+```lua
+local GLOBAL,sThread=require("multi.integration.lanesManager").init()
+cmd=multi:newSystemThreadedExecute("SystemThreadedExecuteTest.lua") -- This file is important!
+cmd.OnCMDFinished(function(code) -- callback function to grab the exit code... Called when the command goes through
+	print("Got Code: "..code)
+end)
+multi:newTLoop(function()
+	print("...") -- lets show that we aren't being held up
+end,1)
+multi:mainloop()
+```
 Updated from 1.8.3 to 1.8.4
 ---------------------------
 Added:

@@ -5,7 +5,9 @@ end
 multi.integration={}
 multi.integration.love2d={}
 multi.integration.love2d.ThreadBase=[[
-__THREADNAME__=({...})[1]
+tab={...}
+__THREADNAME__=tab[2]
+__THREADID__=tab[1]
 require("love.filesystem")
 require("love.system")
 require("love.timer")
@@ -32,8 +34,8 @@ function __sync__()
 		love.timer.sleep(.001)
 		if type(data)=="string" then
 			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
-			if name=="__DIEPLZ"..__THREADNAME__.."__" then
-				error("Thread: "..__THREADNAME__.." has been stopped!")
+			if name=="__DIEPLZ"..__THREADID__.."__" then
+				error("Thread: "..__THREADID__.." has been stopped!")
 			end
 			if cmd=="SYNC" then
 				__proxy__[name]=resolveType(tp,d)
@@ -268,7 +270,7 @@ function multi:newSystemThread(name,func) -- the main method
     c.name=name
 	c.ID=c.name.."<ID|"..randomString(8)..">"
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
-	c.thread:start(c.ID)
+	c.thread:start(c.ID,c.name)
 	function c:kill()
 		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
 	end
