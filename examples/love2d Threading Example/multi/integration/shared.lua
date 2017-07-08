@@ -41,12 +41,15 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 				end
 				function self:pop() -- pop from the channel
 					local tab=self.chan:pop()
+					--print(tab)
 					if not tab then return end
 					return resolveType(tab[1],tab[2])
 				end
 				function self:peek()
-					local tp,d=unpack{self.chan:peek()}
-					return resolveType(tp,d)
+					local tab=self.chan:peek()
+					--print(tab)
+					if not tab then return end
+					return resolveType(tab[1],tab[2])
 				end
 				GLOBAL[self.name]=self -- send the object to the thread through the global interface
 				return self -- return the object
@@ -117,9 +120,11 @@ function multi:systemThreadedBenchmark(n,p)
 	end)
 	return c
 end
-function multi:newSystemThreadedTable(name)
+function multi:newSystemThreadedTable(name,n)
 	local c={} -- where we will store our object
 	c.name=name -- set the name this is important for the love2d side
+	c.cores=n
+	c.hasT={}
 	if love then -- check love
 		if love.thread then -- make sure we can use the threading module
 			function c:init() -- create an init function so we can mimic on bith love2d and lanes
@@ -130,18 +135,24 @@ function multi:newSystemThreadedTable(name)
 					return self[name]
 				end
 				function self:sync()
-					local data=self.chan:pop()
-					while data do
-						if type(data)=="string" then
-							local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
-							if cmd=="SYNC" then
-								self.tab[name]=resolveType(tp,d) -- this is defined in the loveManager.lua file
+					local data=self.chan:peek()
+					if data then
+						local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
+						if not self.hasT[name] then
+							if type(data)=="string" then
+								if cmd=="SYNC" then
+									self.tab[name]=resolveType(tp,d) -- this is defined in the loveManager.lua file
+									self.hasT[name]=true
+								end
+							else
+								self.tab[name]=data
 							end
-						else
-							self.tab[name]=data
+							self.chan:pop()
 						end
-						data=self.chan:pop()
 					end
+				end
+				function self:reset(name)
+					self.hasT[core]=nil
 				end
 				setmetatable(self,{
 					__index=function(t,k)
@@ -154,7 +165,9 @@ function multi:newSystemThreadedTable(name)
 						if type(v)=="userdata" then
 							self.chan:push(v)
 						else
-							self.chan:push("SYNC "..type(v).." "..k.." "..resolveData(v)) -- this is defined in the loveManager.lua file
+							for i=1,self.cores do
+								self.chan:push("SYNC "..type(v).." "..k.." "..resolveData(v)) -- this is defined in the loveManager.lua file
+							end
 						end
 					end,
 				})
@@ -197,11 +210,14 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 	c.cores=numOfCores or multi.integration.THREAD.getCores()
 	c.queueIN=multi:newSystemThreadedQueue("THREADED_JQ"):init()
 	c.queueOUT=multi:newSystemThreadedQueue("THREADED_JQO"):init()
-	c.REG=multi:newSystemThreadedTable("THREADED_JQ_F_REG"):init()
+	c.queueALL=multi:newSystemThreadedQueue("THREADED_QALL"):init()
+	c.REG=multi:newSystemThreadedQueue("THREADED_JQ_F_REG"):init()
 	-- registerJob(name,func)
 	-- pushJob(...)
 	function c:registerJob(name,func)
-		self.REG[name]=func
+		for i=1,self.cores do
+			self.REG:push({name,func})
+		end
 	end
 	function c:pushJob(name,...)
 		self.queueOUT:push({self.jobnum,name,...})
@@ -209,6 +225,18 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 	end
 	local GLOBAL=multi.integration.GLOBAL -- set up locals incase we are using lanes
 	local sThread=multi.integration.THREAD -- set up locals incase we are using lanes
+	function c:doToAll(func)
+		local TaskName=multi.randomString(16)
+		for i=1,self.cores do
+			self.queueALL:push({TaskName,func})
+		end
+	end
+	function c:start()
+		self:doToAll(function()
+			_G["__started__"]=true
+			SFunc()
+		end)
+	end
 	GLOBAL["__JQ_COUNT__"]=c.cores
 	for i=1,c.cores do
 		multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function()
@@ -221,25 +249,71 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 			end
 			JQI=sThread.waitFor("THREADED_JQO"):init() -- Grab it
 			JQO=sThread.waitFor("THREADED_JQ"):init() -- Grab it
-			FGLOBAL=sThread.waitFor("THREADED_JQ_F_REG"):init() -- Grab it
+			REG=sThread.waitFor("THREADED_JQ_F_REG"):init() -- Grab it
+			QALL=sThread.waitFor("THREADED_QALL"):init() -- Grab it
 			sThread.sleep(.1) -- lets wait for things to work out
-			setmetatable(_G,{
-				__index=FGLOBAL
-			})
 			GLOBAL["THREADED_JQ"]=nil -- remove it
 			GLOBAL["THREADED_JQO"]=nil -- remove it
 			GLOBAL["THREADED_JQ_F_REG"]=nil -- remove it
+			QALLT={}
+			FUNCS={}
+			SFunc=multi:newFunction(function(self)
+				MainLoop:Pause()
+				self:hold(.1)
+				MainLoop:Resume()
+				self:Pause()
+			end)
 			multi:newLoop(function()
-				sThread.sleep(__sleep__) -- lets allow cpu time for other processes on our system!
-				local job=JQI:pop()
-				if job then
-					local ID=table.remove(job,1) -- return and remove
-					local name=table.remove(job,1) -- return and remove
-					local ret={FGLOBAL:waitFor(name)(unpack(job))} -- unpack the rest
-					JQO:push({ID,ret})
+				local rd=REG:peek()
+				if rd then
+					if not FUNCS[rd[1]] then
+						FUNCS[rd[1]]=rd[2]
+						rd=nil -- lets clean up
+						REG:pop()
+					end
+				end
+				local d=QALL:peek()
+				if d then
+					if not QALLT[d[1]] then
+						QALLT[d[1]]=true
+						d[2]()
+						d=nil -- lets clean up
+						QALL:pop()
+					end
 				end
 			end)
-			multi:mainloop()
+			setmetatable(_G,{
+				__index=function(t,k)
+					return FUNCS[k]
+				end
+			})
+			MainLoop=multi:newLoop(function(self)
+				if __started__ then
+					local job=JQI:pop()
+					if job then
+						local d=QALL:peek()
+						if d then
+							if not QALLT[d[1]] then
+								QALLT[d[1]]=true
+								d[2]()
+								d=nil -- lets clean up
+								QALL:pop()
+							end
+						end
+						local ID=table.remove(job,1) -- return and remove
+						local name=table.remove(job,1) -- return and remove
+						if FUNCS[name] then
+							JQO:push({ID,FUNCS[name](unpack(job))})
+						else
+							self:hold(function() return FUNCS[name] end)
+							JQO:push({ID,FUNCS[name](unpack(job))})
+						end
+					end
+				end
+			end)
+			if not love then
+				multi:mainloop()
+			end
 		end)
 	end
 	c.OnJobCompleted=multi:newConnection()
@@ -254,64 +328,6 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 	end)
 	c.updater.link=c
 	return c
-end
-if love then
-	if love.thread then
-		function multi:newSystemThreadedJobQueue(numOfCores)
-			local c={}
-			c.jobnum=1
-			c.cores=numOfCores or multi.integration.THREAD.getCores()
-			c.queueIN=multi:newSystemThreadedQueue("THREADED_JQ"):init()
-			c.queueOUT=multi:newSystemThreadedQueue("THREADED_JQO"):init()
-			function c:registerJob(name,func)
-				GLOBAL["__TJQ__"..name.."__"]=func
-			end
-			function c:pushJob(name,...)
-				self.queueOUT:push({self.jobnum,name,...})
-				self.jobnum=self.jobnum+1
-			end
-			local GLOBAL=multi.integration.GLOBAL
-			local sThread=multi.integration.THREAD
-			GLOBAL["__JQ_COUNT__"]=c.cores
-			for i=1,c.cores do
-				multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function()
-					GLOBAL=_G.GLOBAL
-					sThread=_G.sThread
-					local JQI=sThread.waitFor("THREADED_JQO"):init() -- Grab it
-					local JQO=sThread.waitFor("THREADED_JQ"):init() -- Grab it
-					sThread.sleep(.1) -- lets wait for things to work out
-					setmetatable(_G,{
-						__index=function(t,k,v)
-							return GLOBAL["__TJQ__"..k.."__"]
-						end
-					})
-					GLOBAL["THREADED_JQ"]=nil -- remove it
-					GLOBAL["THREADED_JQO"]=nil -- remove it
-					multi:newLoop(function()
-						local job=JQI:pop()
-						if job then
-							local ID=table.remove(job,1) -- return and remove
-							local name=table.remove(job,1) -- return and remove
-							local ret={sThread.waitFor("__TJQ__"..name.."__")(unpack(job))} -- unpack the rest
-							JQO:push({ID,ret})
-						end
-					end)
-				end)
-			end
-			c.OnJobCompleted=multi:newConnection()
-			c.updater=multi:newLoop(function(self)
-				local data=self.link.queueIN:pop()
-				while data do
-					if data then
-						self.link.OnJobCompleted:Fire(unpack(data))
-					end
-					data=self.link.queueIN:pop()
-				end
-			end)
-			c.updater.link=c
-			return c
-		end
-	end
 end
 function multi:newSystemThreadedExecute(cmd)
 	local c={}

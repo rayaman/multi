@@ -45,8 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version="1.8.5"
-multi._VERSION="1.8.5"
+multi.Version="1.8.6"
+multi._VERSION="1.8.6"
 multi.stage='mostly-stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -607,7 +607,11 @@ function multi:hold(task)
 		timer:Start()
 		while timer:Get()<task do
 			if love then
-				self.Parent:lManager()
+				if love.thread then
+					self.Parent:Do_Order()
+				else
+					self.Parent:lManager()
+				end
 			else
 				self.Parent:Do_Order()
 			end

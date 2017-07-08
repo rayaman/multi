@@ -129,5 +129,5 @@ print("Integrated Lanes!")
 multi.integration={} -- for module creators
 multi.integration.GLOBAL=GLOBAL
 multi.integration.THREAD=THREAD
-require("multi.integration.shared.shared")
+require("multi.integration.shared")
 return {init=function() return GLOBAL,THREAD end}

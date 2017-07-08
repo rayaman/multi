@@ -1,7 +1,7 @@
-# multi Version: 1.8.5 (System Threaded Execute) Looking into some bugs...
+# multi Version: 1.8.6 (System Threaded Job Queues gets an update!) Also On the github you can check out the old versions of this library! It stems back from 2012 see rambling for more info...
 **Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?** Also I added a Testing Branch. That Branch will have the latest updates, but those updates may be unstable. I like to keep the master as bug free as possible</br>
 
-# Note SystemThreadedTable's behavior is not stable! I am looking into this.
+# Note SystemThreadedTable's behavior is not stable! I have found the cause of the problem and am currently figuring out a solution... The next update will probably include the fix!
 
 In Changes you'll find documentation for(In Order):
 - System Threaded Job Queues
@@ -801,8 +801,52 @@ We did it!	1	2	3</br>
 
 Changes
 -------
-Updated from 1.8.4 to 1.8.5
----------------------------
+Update: 1.8.6
+-------------
+Added:
+- jobQueue:doToAll(function)
+- jobQueue:start() is now required Call this after all calls to registerJob()'s. Calling it afterwards will not guarantee your next push job with that job will work. Not calling this will make pushing jobs impossible!
+- Fixed a bug with love2d Threaded Queue
+- Fixed some bugs
+
+This will run said function in every thread.
+```lua
+-- Going to use love2d code this time, almost the same as last time... See ramblings
+require("core.Library")
+GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2d version of the lanesManager and requires the entire multi library
+require("core.GuiManager")
+gui.ff.Color=Color.Black
+jQueue=multi:newSystemThreadedJobQueue()
+jQueue:registerJob("TEST_JOB",function(a,s)
+	math.randomseed(s)
+	TEST_JOB2()
+	return math.random(0,255)
+end)
+jQueue:registerJob("TEST_JOB2",function()
+	print("Test Works!")
+end)
+-- 1.8.6 EXAMPLE Change
+jQueue:start() -- This is now needed!
+--
+jQueue:doToAll(function()
+	print("Doing this 2? times!")
+end)
+tableOfOrder={}
+jQueue.OnJobCompleted(function(JOBID,n)
+	tableOfOrder[JOBID]=n
+	if #tableOfOrder==10 then
+		t.text="We got all of the pieces!"
+	end
+end)
+for i=1,10 do -- Job Name of registered function, ... varargs
+	jQueue:pushJob("TEST_JOB","This is a test!",math.random(1,1000000))
+end
+t=gui:newTextLabel("no done yet!",0,0,300,100)
+t:centerX()
+t:centerY()
+```
+Update: 1.8.5
+-------------
 Added:
 - SystemThreadedExecute(cmd)
 
@@ -818,8 +862,8 @@ multi:newTLoop(function()
 end,1)
 multi:mainloop()
 ```
-Updated from 1.8.3 to 1.8.4
----------------------------
+Update: 1.8.4
+-------------
 Added:
 - multi:newSystemThreadedJobQueue()
 - Improved stability of the library
@@ -863,8 +907,8 @@ multi:mainloop() -- Start the main loop :D
 
 Thats it from this version!
 
-Updated from 1.8.2 to 1.8.3
----------------------------
+Update: 1.8.3
+-------------
 Added:</br>
 **New Mainloop functions** Below you can see the slight differences... Function overhead is not too bad in lua, but has a real difference. multi:mainloop() and multi:unprotectedMainloop() use the same algorithm yet the dedicated unprotected one is slightly faster due to having less function overhead.
 - multi:mainloop()\* -- Bench:  16830003 Steps in 3 second(s)!
@@ -881,8 +925,8 @@ However there is a work around! You can use processes to run multiobjs as well a
 
 I may make a full comparison between each method and which is faster, but for now trust that the dedicated ones with less function overhead are infact faster. Not by much but still faster. :D
 
-Updated from 1.8.1 to 1.8.2
----------------------------
+Update: 1.8.2
+-------------
 Added:</br>
 - multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() that you see does this. Take a look in the multi/integration/shared/shared.lua files to see how I did it!
 - Modified the GLOBAL metatable to sync before doing its tests
@@ -945,8 +989,8 @@ t:centerX()
 t:centerY()
 ```
 
-Updated from 1.8.0 to 1.8.1
----------------------------
+Update: 1.8.1
+-------------
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
 Only compat and integrations are not part of the core and never will be by nature.</br>
@@ -1073,8 +1117,8 @@ multi:newThread("test!",function() -- this is a lua thread
 end)
 multi:mainloop()
 ```
-Updated from 1.7.5 to 1.7.6
----------------------------
+Update: 1.7.6
+-------------
 Fixed:
 Typos like always
 Added:</br>
@@ -1086,8 +1130,9 @@ The old way still works and is more convient to be honest, but I felt a method t
 Updated:
 some example files to reflect changes to the core. Changes allow for less typing</br>
 loveManager to require the compat if used so you don't need 2 require line to retrieve the library</br>
-Updated from 1.7.4 to 1.7.5
----------------------------
+
+Update: 1.7.5
+-------------
 Fixed some typos in the readme... (I am sure there are more there are always more)</br>
 Added more features for module support</br>
 TODO:</br>
@@ -1095,8 +1140,8 @@ Work on performance of the library... I see 3 places where I can make this thing
 
 I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!</br>
 
-Updated from 1.7.3 to 1.7.4
----------------------------
+Update: 1.7.4
+-------------
 Added: the example folder which will be populated with more examples in the near future!</br>
 The loveManager integration that mimics the lanesManager integration almost exactly to keep coding in both enviroments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
@@ -1173,8 +1218,8 @@ t=gui:newTextLabel("no done yet!",0,0,300,100)
 t:centerX()
 t:centerY()
 ```
-Updated from 1.7.2 to 1.7.3
----------------------------
+Update: 1.7.3
+-------------
 Changed how requiring the library works!
 `require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and integrations everything else has been moved into the core of the library.
 ```lua
@@ -1190,15 +1235,15 @@ require("multi.task")
 -- ^ they are all part of the core now
 ```
 
-Updated from 1.7.1 to 1.7.2
----------------------------
+Update: 1.7.2
+-------------
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
-Updated from 1.7.0 to 1.7.1 Bug fixes only
----------------------------
+Update: 1.7.1 Bug Fixes Only
+-------------
 
-Updated from 1.6.0 to 1.7.0
----------------------------
+Update: 1.7.0
+-------------
 Modified: multi.integration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with eariler versions. Future versions are good though.</br>
 Example Usage:</br>
@@ -1251,8 +1296,8 @@ end)
 multi:mainloop()
 ```
 
-Updated from 1.5.0 to 1.6.0
----------------------------
+Update: 1.6.0
+-------------
 Changed: steps and loops
 ```lua
 -- Was
@@ -1275,21 +1320,31 @@ Reasoning I wanted to keep objects consistant, but a lot of my older libraries u
 require("multi.all")
 require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
 ```
-Updated from 1.4.1 to 1.5.0
----------------------------
+Update: 1.5.0
+-------------
 Added:
 - An easy way to manage timeouts
 - Small bug fixes
 
-1.4.1 - First Public release of the library
----------------------------
+Update: 1.4.1 - First Public release of the library
+-------------
 
 IMPORTANT:</br>
 Every update I make aims to make things simpler more efficent and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and eaiser, but the old features/methods will be supported.</br>
 Rambling
 --------
-Love2d: Sleeping reduces the cpu time making my load detection think the system is under more load, thus preventing it from sleeping... I will look into other means. As of right now it will not eat all of your cpu if threads are active. For now I suggest killing threads that aren't needed anymore. On lanes threads at idle use 0% cpu and it is amazing. A state machine may solve what I need though. One state being idle state that sleeps and only goes into the active state if a job request or data is sent to it... after some time of not being under load it wil switch back into the idle state... We'll see what happens.
+Love2d Sleeping reduces the cpu time making my load detection think the system is under more load, thus preventing it from sleeping... I will look into other means. As of right now it will not eat all of your cpu if threads are active. For now I suggest killing threads that aren't needed anymore. On lanes threads at idle use 0% cpu and it is amazing. A state machine may solve what I need though. One state being idle state that sleeps and only goes into the active state if a job request or data is sent to it... after some time of not being under load it wil switch back into the idle state... We'll see what happens.
 
 Love2d doesn't like to send functions through channels. By defualt it does not support this. I achieve this by dumping the function and loadstring it on the thread. This however is slow. For the System Threaded Job Queue I had to change my original idea of sending functions as jobs. The current way you do it now is register a job functions once and then call that job across the thread through a queue. Each worker thread pops from the queue and returns the job. The Job ID is automatically updated and allows you to keep track of the order that the data comes in. A table with # indexes can be used to originze the data...
 
 In regards to benchmarking. If you see my bench marks and are wondering they are 10x better its because I am using luajit for my tests. I highly recommend using luajit for my library, but lua 5.1 will work just as well, but not as fast.
+
+So while working on the jobQueue:doToAll() method I figured out why love2d's threaded tables were acting up when more than 1 thread was sharing the table. It turns out 1 thread was eating all of the pops from the queue and starved all of the other queues... Ill need to use the same trick I did with GLOBAL to fix the problem... However at the rate I am going threading in love will become way slower. I might use the regualr GLOBAL to manage data internally for threadedtables...
+
+It has been awhile since I had to bring out the Multi Functions... Syncing within threads are a pain! I had no idea what a task it would be to get something as simple as syncing data was going to be... I will probably add a SystemThreadedSyncer in the future because it will make life eaiser for you guys as well. SystemThreadedTables are still not going to work on love2d, but will work fine on lanes... I have a solution and it is being worked on... Depending on when I pust the next update to this library the second half of this ramble won't apply anymore
+
+I have been using this (EventManager --> MultiManager --> now multi) for my own purposes and started making this when I first started learning lua. You are able to see how the code changed and evolved throughout the years. I tried to include all the versions that still existed on my HDD.
+
+I added my old versions to this library... It started out as the EventManager and was kinda crappy but it was the start to this library. It kept getting better and better until it became what it is today. There are some features that nolonger exist in the latest version, but they were remove because they were useless... I added these files to the github so for those interested can see into my mind in a sense and see how I developed the library before I used github.
+
+The first version of the EventManager was function based not object based and benched at about 2000 steps per second... Yeah that was bad... I used loadstring and it was a mess... Take a look and see how it grew throughout the years I think it may intrest some of you guys!

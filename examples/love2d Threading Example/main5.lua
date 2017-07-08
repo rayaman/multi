@@ -13,6 +13,7 @@ end)
 jQueue:registerJob("TEST_JOB2",function(a,s)
 	print("Test Works!")
 end)
+jQueue:start()
 tableOfOrder={}
 jQueue.OnJobCompleted(function(JOBID,n)
 	-- JOBID is the completed job, starts at 1 and counts up by 1.

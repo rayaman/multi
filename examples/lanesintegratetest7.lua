@@ -11,6 +11,7 @@ end)
 jQueue:registerJob("TEST_JOB2",function()
 	print("Test Works!") -- this is called from the job since it is registered on the same queue
 end)
+jQueue:start()
 tableOfOrder={} -- This is how we will keep order of our completed jobs. There is no guarantee that the order will be correct
 jQueue.OnJobCompleted(function(JOBID,n) -- whenever a job is completed you hook to the event that is called. This passes the JOBID folled by the returns of the job
 	-- JOBID is the completed job, starts at 1 and counts up by 1.
