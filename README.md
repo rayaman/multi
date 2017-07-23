@@ -1,7 +1,4 @@
-# multi Version: 1.8.6 (System Threaded Job Queues gets an update!) Also On the github you can check out the old versions of this library! It stems back from 2012 see rambling for more info...
-**Note: The changes section has information on how to use the new features as they come out. Why put the infomation twice on the readme?** Also I added a Testing Branch. That Branch will have the latest updates, but those updates may be unstable. I like to keep the master as bug free as possible</br>
-
-# Note SystemThreadedTable's behavior is not stable! I have found the cause of the problem and am currently figuring out a solution... The next update will probably include the fix!
+# multi Version: 1.8.6 (System Threaded Job Queues gets an update!) 
 
 In Changes you'll find documentation for(In Order):
 - System Threaded Job Queues
@@ -12,19 +9,16 @@ In Changes you'll find documentation for(In Order):
 - Threading related features
 - And backwards compat stuff
 
-My multitasking library for lua</br>
-To install copy the multi folder into your enviroment and you are good to go</br>
-
-It is a pure lua binding if you ingore the integrations and the love2d compat</br>
-
-If you find any bugs or have any issues please let me know :)
-
-If you don't see a table of contents try using the ReadMe.html file. It is eaiser to navigate the readme</br>
+My multitasking library for lua. It is a pure lua binding if you ingore the integrations and the love2d compat. If you find any bugs or have any issues please let me know :). **If you don't see a table of contents try using the ReadMe.html file. It is eaiser to navigate the readme**</br>
 
 [TOC]
 
 INSTALLING
 ----------
+To install copy the multi folder into your enviroment and you are good to go</br>
+
+**or** use luarocks
+
 ```
 luarocks install multi
 ```
@@ -54,7 +48,13 @@ Known Bugs/Issues
 -----------------
 In regards to integrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P
 
-Another bug concerns the SystemThreadedJobQueue, Only 1 can be used for now... Vreating more may not be a good idea.
+Another bug concerns the SystemThreadedJobQueue, Only 1 can be used for now... Creating more may not be a good idea.
+
+And systemThreadedTables only supports 1 table between the main and worker thread! They do not work when shared between 2 or more threads. If you need that much flexiblity ust the GLOBAL table that all threads have.
+
+For module creators using this library. I suggest using SystemThreadedQueues for data transfer instead of SystemThreadedTables for rapid data transfer, If you plan on having Constants that will always be the same then a table is a good idea! They support up to **n** threads and can be messed with and abused as much as you want :D
+
+Love2D SystemThreadedTAbles do not send love2d userdata, use queues instead for that!
 
 Usage:</br>
 -----
@@ -808,6 +808,7 @@ Added:
 - jobQueue:start() is now required Call this after all calls to registerJob()'s. Calling it afterwards will not guarantee your next push job with that job will work. Not calling this will make pushing jobs impossible!
 - Fixed a bug with love2d Threaded Queue
 - Fixed some bugs
+- Old versions of this library! It stems back from 2012 see rambling for more info...
 
 This will run said function in every thread.
 ```lua
