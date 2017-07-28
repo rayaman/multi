@@ -1,5 +1,7 @@
 # multi Version: 1.8.6 (System Threaded Job Queues gets an update!) 
 
+**NOTE: I have been studying a lot about threading in the past few weeks and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
+
 In Changes you'll find documentation for(In Order):
 - System Threaded Job Queues
 - New mainloop functions
@@ -33,6 +35,10 @@ Planned features/TODO
 - [x] ~~Improve performance of the library~~
 - [x] ~~Improve coroutine based threading scheduling~~
 - [ ] Improve love2d Idle thread cpu usage... Tricky Look at the rambling section for insight.
+- [ ] Add more control to coroutine based threading
+- [ ] Add more control to system based threading
+- [ ] Fix the performance when using system threads in love2d
+- [ ] Make practical examples that show how you can solve real problems
 - [x] ~~Add more features to support module creators~~
 - [x] ~~Make a framework for eaiser thread task distributing~~
 - [x] ~~Fix Error handling on threaded multi objects~~ Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!
