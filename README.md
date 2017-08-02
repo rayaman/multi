@@ -17,6 +17,8 @@ My multitasking library for lua. It is a pure lua binding if you ingore the inte
 
 INSTALLING
 ----------
+Note: The latest version of lualanes is required if you want to make use of system threads on lua 5.2+. I will update the dependencies for luarocks since this library should work fine on lua 5.2+
+I still need to test though
 To install copy the multi folder into your enviroment and you are good to go</br>
 
 **or** use luarocks
