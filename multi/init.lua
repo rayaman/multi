@@ -45,8 +45,8 @@ function print(...)
 	end
 end
 multi = {}
-multi.Version="1.8.6"
-multi._VERSION="1.8.6"
+multi.Version="1.8.7"
+multi._VERSION="1.8.7"
 multi.stage='mostly-stable'
 multi.__index = multi
 multi.Mainloop={}
@@ -407,6 +407,12 @@ function multi.doFPS(s)
 	end
 end
 --Helpers
+function multi.timer(func,...)
+	local timer=multi:newTimer()
+	timer:Start()
+	args={func(...)}
+	return timer:Get(),unpack(args)
+end
 function multi:IsAnActor()
 	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
 end

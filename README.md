@@ -1,6 +1,8 @@
-# multi Version: 1.8.6 (System Threaded Job Queues gets an update!) 
+# multi Version: 1.8.7 (A wrapper for timers! Small update) 
 
 **NOTE: I have been studying a lot about threading in the past few weeks and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
+
+**Upcoming Plans:** Adding network support for threading. Kinda like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a stand alone and joined versions of the libraries.
 
 In Changes you'll find documentation for(In Order):
 - System Threaded Job Queues
@@ -36,6 +38,7 @@ Planned features/TODO
 - [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
 - [x] ~~Improve performance of the library~~
 - [x] ~~Improve coroutine based threading scheduling~~
+- [ ] Add Sharable memory (Perhaps this may be impossible due to how love2d and lanes work)
 - [ ] Improve love2d Idle thread cpu usage... Tricky Look at the rambling section for insight.
 - [ ] Add more control to coroutine based threading
 - [ ] Add more control to system based threading
@@ -809,6 +812,24 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Update: 1.8.7
+-------------
+Added:
+- multi.timer(func,...)
+
+```lua
+function test(a,b,c)
+	print("Running...")
+    a=0
+    for i=1,1000000000 do
+    	a=a+1
+    end
+    return a,b+c
+end
+print(multi.timer(test,1,2,3))
+print(multi.timer(test,1,2,3))
+-- multi.time returns the time taken then the arguments from the function... Uses unpack so careful of nil values!
+```
 Update: 1.8.6
 -------------
 Added:
