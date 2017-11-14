@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+package.path="?/init.lua;?.lua;"..package.path
 function os.getOS()
 	if package.config:sub(1,1)=='\\' then
 		return 'windows'

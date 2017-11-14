@@ -1,10 +1,11 @@
-# multi Version: 1.8.7 (A wrapper for timers! Small update) 
+# multi Version: 1.9.0 (Sterilizing is here!) 
 
 **NOTE: I have been studying a lot about threading in the past few weeks and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
 
 **Upcoming Plans:** Adding network support for threading. Kinda like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a stand alone and joined versions of the libraries.
 
 In Changes you'll find documentation for(In Order):
+- Sterilizing Objects
 - System Threaded Job Queues
 - New mainloop functions
 - System Threaded Tables
@@ -26,6 +27,7 @@ To install copy the multi folder into your enviroment and you are good to go</br
 **or** use luarocks
 
 ```
+luarocks install bin -- Inorder to use the new save state stuff
 luarocks install multi
 ```
 Discord
@@ -38,11 +40,9 @@ Planned features/TODO
 - [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
 - [x] ~~Improve performance of the library~~
 - [x] ~~Improve coroutine based threading scheduling~~
-- [ ] Add Sharable memory (Perhaps this may be impossible due to how love2d and lanes work)
-- [ ] Improve love2d Idle thread cpu usage... Tricky Look at the rambling section for insight.
-- [ ] Add more control to coroutine based threading
+- [ ] Improve love2d Idle thread cpu usage/Fix the performance when using system threads in love2d... Tricky Look at the rambling section for insight.
+- [x] ~~Add more control to coroutine based threading~~
 - [ ] Add more control to system based threading
-- [ ] Fix the performance when using system threads in love2d
 - [ ] Make practical examples that show how you can solve real problems
 - [x] ~~Add more features to support module creators~~
 - [x] ~~Make a framework for eaiser thread task distributing~~
@@ -52,6 +52,7 @@ Planned features/TODO
 - [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
 - [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
 - [ ] Add more integrations
+- [ ] Fix SystemThreadedTables
 - [ ] Finish the wiki stuff. (11% done)
 - [ ] Test for unknown bugs
 
@@ -812,6 +813,24 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Update: 1.9.0
+-------------
+Added:
+- multiobj:ToString() -- returns a string repersenting the object
+- multi:newFromString(str) -- creates an object from a string
+
+Works on threads and regular objects. Requires the latest bin library to work!
+```lua
+talarm=multi:newThreadedAlarm("AlarmTest",5)
+talarm:OnRing(function()
+ 	print("Ring!")
+end)
+bin.new(talarm:ToString()):tofile("test.dat")
+-- multi:newFromString(bin.load("test.dat"))
+```
+-- A more seamless way to use this will be made in the form of state saving.
+This is still a WIP
+processes, timers, timemasters, watchers, and queuers have not been worked on yet
 Update: 1.8.7
 -------------
 Added:
