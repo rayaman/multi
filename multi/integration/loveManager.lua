@@ -2,12 +2,15 @@ require("multi.compat.love2d")
 function multi:canSystemThread()
 	return true
 end
+function multi:getPlatform()
+	return "love2d"
+end
 multi.integration={}
 multi.integration.love2d={}
 multi.integration.love2d.ThreadBase=[[
 tab={...}
-__THREADNAME__=tab[2]
-__THREADID__=tab[1]
+__THREADID__=table.remove(1,tab)
+__THREADNAME__=table.remove(1,tab)
 require("love.filesystem")
 require("love.system")
 require("love.timer")
@@ -165,7 +168,7 @@ multi:newLoop(function(self)
 end)
 updater=multi:newUpdater()
 updater:OnUpdate(__sync__)
-func=loadDump([=[INSERT_USER_CODE]=])()
+func=loadDump([=[INSERT_USER_CODE]=])(unpack(tab))
 multi:mainloop()
 ]]
 GLOBAL={} -- Allow main thread to interact with these objects as well
@@ -265,12 +268,12 @@ local function randomString(n)
 	end
 	return str
 end
-function multi:newSystemThread(name,func) -- the main method
+function multi:newSystemThread(name,func,...) -- the main method
     local c={}
     c.name=name
 	c.ID=c.name.."<ID|"..randomString(8)..">"
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
-	c.thread:start(c.ID,c.name)
+	c.thread:start(c.ID,c.name,...)
 	function c:kill()
 		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
 	end

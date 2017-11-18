@@ -1,4 +1,4 @@
-# multi Version: 1.9.0 (Sterilizing is here!) 
+# multi Version: 1.9.1 (New Integration! luvit) 
 
 **NOTE: I have been studying a lot about threading in the past few weeks and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
 
@@ -51,7 +51,7 @@ Planned features/TODO
 - [ ] sThread.wrap(obj) **May or may not be completed** Theory: Allows interaction in one thread to affect it in another. The addition to threaded tables may make this possible!
 - [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
 - [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
-- [ ] Add more integrations
+- [x] ~~Add more integrations~~
 - [ ] Fix SystemThreadedTables
 - [ ] Finish the wiki stuff. (11% done)
 - [ ] Test for unknown bugs
@@ -813,6 +813,20 @@ We did it!	1	2	3</br>
 
 Changes
 -------
+Update: 1.9.1
+Added:
+Integration "multi.integration.luvitManager"
+Limited... Only the basic multi:newSystemThread(...) will work
+Not even data passing will work other than arguments... If using the bin library you can pass tables and function... Even full objects as long as inner recursion is not preasent.
+
+Updated:
+multi:newSystemThread(name,func,...)
+
+It will not pass the ... to the func()
+
+Do not know why this wasn't done in the first place :P
+
+Also multi:getPlatform(will now return "luvit" if using luvit... Though Idk if module creators would use the multi library when inside the luvit enviroment
 Update: 1.9.0
 -------------
 Added:

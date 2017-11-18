@@ -36,6 +36,9 @@ require("multi") -- get it all and have it on all lanes
 function multi:canSystemThread()
 	return true
 end
+function multi:getPlatform()
+	return "lanes"
+end
 local multi=multi
 -- Step 2 set up the linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff
@@ -103,12 +106,12 @@ function THREAD.hold(n)
 	repeat wait() until n()
 end
 -- Step 5 Basic Threads!
-function multi:newSystemThread(name,func)
+function multi:newSystemThread(name,func,...)
     local c={}
     local __self=c
     c.name=name
 	c.Type="sthread"
-    c.thread=lanes.gen("*", func)()
+    c.thread=lanes.gen("*", func)(...)
 	function c:kill()
 		--self.status:Destroy()
 		self.thread:cancel()
