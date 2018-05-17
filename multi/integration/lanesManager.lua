@@ -89,7 +89,10 @@ else
 	THREAD.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
 end
 function THREAD.kill() -- trigger the lane destruction
-	-- coroutine.yield({"_kill_",":)"})
+	error("Thread was killed!")
+end
+function THREAD.getName()
+	return THREAD_NAME
 end
 --[[ Step 4 We need to get sleeping working to handle timing... We want idle wait, not busy wait
 Idle wait keeps the CPU running better where busy wait wastes CPU cycles... Lanes does not have a sleep method
@@ -111,7 +114,12 @@ function multi:newSystemThread(name,func,...)
     local __self=c
     c.name=name
 	c.Type="sthread"
-    c.thread=lanes.gen("*", func)(...)
+	local THREAD_NAME=name
+	local function func2(...)
+		_G["THREAD_NAME"]=THREAD_NAME
+		func()
+	end
+    c.thread=lanes.gen("*", func2)(...)
 	function c:kill()
 		--self.status:Destroy()
 		self.thread:cancel()

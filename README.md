@@ -1,8 +1,6 @@
-# multi Version: 1.9.1 (New Integration! luvit) 
+# multi Version: 1.9.2 (Yes I am alive, and some tweaks and additions have been made) 
 
 **NOTE: I have been studying a lot about threading in the past few weeks and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
-
-**Upcoming Plans:** Adding network support for threading. Kinda like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a stand alone and joined versions of the libraries.
 
 In Changes you'll find documentation for(In Order):
 - Sterilizing Objects
@@ -34,6 +32,8 @@ Discord
 -------
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.</br>
 https://discord.gg/U8UspuA</br>
+
+**Upcoming Plans:** Adding network support for threading. Kinda like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a stand alone and joined versions of the libraries.
 
 Planned features/TODO
 ---------------------
@@ -813,20 +813,48 @@ We did it!	1	2	3</br>
 
 Changes
 -------
-Update: 1.9.1
+Update: 1.9.2
+-------------
 Added:
-Integration "multi.integration.luvitManager"
-Limited... Only the basic multi:newSystemThread(...) will work
-Not even data passing will work other than arguments... If using the bin library you can pass tables and function... Even full objects as long as inner recursion is not preasent.
+- (THREAD).kill() kills a thread. Note: THREAD is based on what you name it
+- newTimeStamper() Part of the persistant systems... Useful for when you are running this library for a massive amount of time... like years stright!
+Allows one to hook to timed events such as whenever the clock strikes midnight or when the day turns to monday. The event is only done once though. so as soon as monday is set it would trigger then not trigger again until next monday
+works for seconds, minutes, days, months, year.
+```lua
+stamper = multi:newTimeStamper()
+stamper:OnTime(int hour,int minute,int second,func) or stamper:OnTime(string time,func) time as 00:00:00
+stamper:OnHour(int hour,func)
+stamper:OnMinute(int minute,func)
+stamper:OnSecond(int second,func)
+stamper:OnDay(int day,func) or stamper:OnDay(string day,func) Mon, Tues, Wed, etc...
+stamper:OnMonth(int month,func)
+stamper:OnYear(int year,func)
+```
+Updated:
+- LoadBalancing, well bettwr load balancing than existed before. This one allowd for multiple processes to have their own load reading. Calling this on the multi object will return the total load for the entire multi enviroment... loads of other processes are indeed affected by what other processes are doing. However if you combine prorioty to the mix of things then you will get differing results... these results however will most likely be higher than normal... different pirorities will have different default thresholds of performence.
+
+Fixed:
+- Thread.getName() should now work on lanes and love2d, haven't tested ut nuch with the luvit side of things...
+- A bug with the lovemanager table.remove arguments were backwards haha
+- The queue object in the love2d threading has been fixed! It now supports sending all objects (even functions as long as no upvalues are present!)
+
+Changed:
+- SystemThreadedJobQueues now have built in load management so they are not constantly at 100% cpu usage.
+- SystemThreadedJobQueues pushJob now retunts an id of that job which will match the same one that OnJobCompleted returns
+
+
+Update: 1.9.1
+-------------
+Added:
+- Integration "multi.integration.luvitManager"
+- Limited... Only the basic multi:newSystemThread(...) will work
+- Not even data passing will work other than arguments... If using the bin library you can pass tables and function... Even full objects as long as inner recursion is not preasent.
 
 Updated:
-multi:newSystemThread(name,func,...)
+- multi:newSystemThread(name,func,...)
+- It will not pass the ... to the func(). Do not know why this wasn't done in the first place :P
+- Also multi:getPlatform(will now return "luvit" if using luvit... Though Idk if module creators would use the multi library when inside the luvit enviroment
 
-It will not pass the ... to the func()
-
-Do not know why this wasn't done in the first place :P
-
-Also multi:getPlatform(will now return "luvit" if using luvit... Though Idk if module creators would use the multi library when inside the luvit enviroment
 Update: 1.9.0
 -------------
 Added:

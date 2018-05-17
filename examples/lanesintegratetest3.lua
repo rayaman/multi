@@ -32,7 +32,7 @@ multi:newThread("test0",function()
 		end
 	end
 end)
-GLOBAL["BENCH"]=10
+GLOBAL["BENCH"]=1
 print("Platform is: ",multi:getPlatform()) -- returns love2d or lanes depending on which platform you are using... If I add more intergrations then this method will be updated! corona sdk may see this library in the future...
 multi:mainloop()
 --[[ Output on my machine! I am using luajit and have 6 cores on my computer. Your numbers will vary, but it should look something like this

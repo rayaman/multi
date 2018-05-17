@@ -1,4 +1,4 @@
-package.path="?/init.lua;"..package.path
+--~ package.path="?/init.lua;"..package.path
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 jQueue=multi:newSystemThreadedJobQueue(n)
 jQueue:registerJob("TEST_JOB",function(a,s)
@@ -11,7 +11,7 @@ jQueue:registerJob("TEST_JOB2",function()
 end)
 jQueue:start()
 jQueue:doToAll(function()
-	print("Doing this 6? times!")
+	print("Doing this 16? times!")
 end)
 for i=1,10 do -- Job Name of registered function, ... varargs
 	jQueue:pushJob("TEST_JOB","This is a test!",math.random(1,1000000))
