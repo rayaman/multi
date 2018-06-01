@@ -21,20 +21,12 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-function multi.randomString(n)
-	local str = ''
-	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-	for i=1,n do
-		str = str..''..strings[math.random(1,#strings)]
-	end
-	return str
-end
 function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
 	local c={} -- where we will store our object
 	c.name=name -- set the name this is important for the love2d side
 	if love then -- check love
 		if love.thread then -- make sure we can use the threading module
-			function c:init() -- create an init function so we can mimic on bith love2d and lanes
+			function c:init() -- create an init function so we can mimic on both love2d and lanes
 				self.chan=love.thread.getChannel(self.name) -- create channel by the name self.name
 				function self:push(v) -- push to the channel
 					local tab
@@ -102,7 +94,7 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 			error("Make sure you required the love.thread module!") -- tell the user if he/she didn't require said module
 		end
 	else
-		c.linda=lanes.linda() -- lanes is a bit eaiser, create the linda on the main thread
+		c.linda=lanes.linda() -- lanes is a bit easier, create the linda on the main thread
 		function c:push(v) -- push to the queue
 			self.linda:send("Q",v)
 		end
@@ -117,6 +109,100 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 		end
 		multi.integration.GLOBAL[name]=c -- send the object to the thread through the global interface
 	end
+	return c
+end
+function multi:newSystemThreadedConnection(name,protect)
+	local c={}
+	c.name = name
+	c.protect=protect
+	local sThread=multi.integration.THREAD
+	local GLOBAL=multi.integration.GLOBAL
+	function c:init()
+		require("multi")
+		if multi:getPlatform()=="love2d" then
+			GLOBAL=_G.GLOBAL
+			sThread=_G.sThread
+		end
+		local conn = {}
+		conn.name = self.name
+		conn.count = 0
+		if isMainThread then
+			if GLOBAL[self.name.."THREADED_CONNQ"] then -- if this thing exists then lets grab it, we are doing something different here. instead of cleaning things up, we will gave a dedicated queue to manage things
+				conn.queueCall = sThread.waitFor(self.name.."THREADED_CALLQ"):init()
+			else
+				conn.queueCall = multi:newSystemThreadedQueue(self.name.."THREADED_CALLQ"):init()
+			end
+		else
+			require("multi") -- so things don't break, but also allows bi-directional connections to work
+			conn.queueCall = sThread.waitFor(self.name.."THREADED_CALLQ"):init()
+		end
+		setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
+		conn.obj=multi:newConnection(self.protect)
+		function conn:connect(func)
+			return self.obj(func)
+		end
+		function conn:fConnect(func)
+			return self.obj:fConnect(func)
+		end
+		function conn:holdUT(n)
+			self.obj:holdUT(n)
+		end
+		function conn:Bind(t)
+			self.obj:Bind(t)
+		end
+		function conn:Remove()
+			self.obj:Remove()
+		end
+		function conn:getConnection(name,ingore)
+			return self.obj:getConnection(name,ingore)
+		end
+		function conn:Fire(...)
+			local args = {...}
+			table.insert(args,1,multi.randomString(8))
+			table.insert(args,1,self.name)
+			table.insert(args,1,"F")
+			self.queueCall:push(args)
+			if self.trigger_self then
+				self.obj:Fire(...)
+			end
+		end
+		self.cleanup = .01
+		function conn:SetCleanUpRate(n)
+			self.cleanup=n or .01
+		end
+		conn.lastid=""
+		conn.looper = multi:newLoop(function(self)
+			local con = self.link
+			local data = con.queueCall:peek()
+			if not data then return end
+			local id = data[3]
+			if data[1]=="F" and data[2]==con.name and con.lastid~=id then
+				con.lastid=id
+				table.remove(data,1)-- Remove the first 3 elements
+				table.remove(data,1)-- Remove the first 3 elements
+				table.remove(data,1)-- Remove the first 3 elements
+				con.obj:Fire(unpack(data))
+				multi:newThread("Clean_UP",function()
+					thread.sleep(con.cleanup)
+					local dat = con.queueCall:peek()
+					if not dat then return end
+					table.remove(data,1)-- Remove the first 3 elements
+					table.remove(data,1)-- Remove the first 3 elements
+					table.remove(data,1)-- Remove the first 3 elements
+					if dat[3]==id then
+						con.queueCall:pop()
+					end
+				end)
+			end
+		end)
+		conn.HoldUT=conn.holdUT
+		conn.looper.link=conn
+		conn.Connect=conn.connect
+		conn.FConnect=conn.fConnect
+		conn.GetConnection=conn.getConnection
+		return conn
+	end
+	GLOBAL[name]=c
 	return c
 end
 function multi:systemThreadedBenchmark(n,p)
@@ -163,88 +249,43 @@ function multi:systemThreadedBenchmark(n,p)
 	end)
 	return c
 end
-function multi:newSystemThreadedTable(name,n) -- NEDS FIXING SING SO MUCH WORK!!!
-	local c={} -- where we will store our object
-	c.name=name -- set the name this is important for the love2d side
-	c.cores=n
-	c.hasT={}
-	if love then -- check love
-		if love.thread then -- make sure we can use the threading module
-			function c:init() -- create an init function so we can mimic on bith love2d and lanes
-				self.tab={}
-				self.chan=love.thread.getChannel(self.name) -- create channel by the name self.name
-				function self:waitFor(name) -- pop from the channel
-					repeat self:sync() until self[name]
-					return self[name]
-				end
-				function self:sync()
-					local data=self.chan:peek()
-					if data then
-						local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
-						if not self.hasT[name] then
-							if type(data)=="string" then
-								if cmd=="SYNC" then
-									self.tab[name]=resolveType(tp,d) -- this is defined in the loveManager.lua file
-									self.hasT[name]=true
-								end
-							else
-								self.tab[name]=data
-							end
-							self.chan:pop()
-						end
-					end
-				end
-				function self:reset(name)
-					self.hasT[core]=nil
-				end
-				setmetatable(self,{
-					__index=function(t,k)
-						self:sync()
-						return self.tab[k]
-					end,
-					__newindex=function(t,k,v)
-						self:sync()
-						self.tab[k]=v
-						if type(v)=="userdata" then
-							self.chan:push(v)
-						else
-							for i=1,self.cores do
-								self.chan:push("SYNC "..type(v).." "..k.." "..resolveData(v)) -- this is defined in the loveManager.lua file
-							end
-						end
-					end,
-				})
-				GLOBAL[self.name]=self -- send the object to the thread through the global interface
-				return self -- return the object
-			end
-			return c
+function multi:newSystemThreadedTable(name)
+	local c={}
+	c.name=name -- set the name this is important for identifying what is what
+	local sThread=multi.integration.THREAD
+	local GLOBAL=multi.integration.GLOBAL
+	function c:init() -- create an init function so we can mimic on both love2d and lanes
+		if multi:getPlatform()=="love2d" then
+			GLOBAL=_G.GLOBAL
+			sThread=_G.sThread
+		end
+		local cc={}
+		cc.tab={}
+		if isMainThread then
+			cc.conn = multi:newSystemThreadedConnection(self.name.."_Tabled_Connection"):init()
 		else
-			error("Make sure you required the love.thread module!") -- tell the user if he/she didn't require said module
+			cc.conn = sThread.waitFor(self.name.."_Tabled_Connection"):init()
 		end
-	else
-		c.linda=lanes.linda() -- lanes is a bit eaiser, create the linda on the main thread
-		function c:waitFor(name)
-			while self[name]==nil do
-				-- Waiting
-			end
-			return self[name]
+		function cc:waitFor(name)
+			repeat multi:uManager() until tab[name]~=nil
+			return tab[name]
 		end
-		function c:sync()
-			return -- just so we match the love2d side
-		end
-		function c:init() -- set the metatable
-			setmetatable(self,{
-				__index=function(t,k)
-					return self.linda:get(k)
-				end,
-				__newindex=function(t,k,v)
-					self.linda:set(k,v)
-				end,
-			})
-			return self
-		end
-		multi.integration.GLOBAL[name]=c -- send the object to the thread through the global interface
+		local link = cc
+		cc.conn(function(k,v)
+			link.tab[k]=v
+		end)
+		setmetatable(cc,{
+			__index=function(t,k)
+				return t.tab[k]
+			end,
+			__newindex=function(t,k,v)
+				t.tab[k]=v
+				t.conn:Fire(k,v)
+			end,
+		})
+		return cc
 	end
+	GLOBAL[c.name]=c
 	return c
 end
 function multi:newSystemThreadedJobQueue(numOfCores)
@@ -266,8 +307,8 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 		self.jobnum=self.jobnum+1
 		return self.jobnum-1
 	end
-	local GLOBAL=multi.integration.GLOBAL -- set up locals incase we are using lanes
-	local sThread=multi.integration.THREAD -- set up locals incase we are using lanes
+	local GLOBAL=multi.integration.GLOBAL -- set up locals in case we are using lanes
+	local sThread=multi.integration.THREAD -- set up locals in case we are using lanes
 	function c:doToAll(func)
 		local TaskName=multi.randomString(16)
 		for i=1,self.cores do
@@ -294,7 +335,7 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 			require("multi")
 			ThreadName=name
 			__sleep__=.001
-			if love then -- lets make sure we don't reference upvalues if using love2d
+			if love then -- lets make sure we don't reference up-values if using love2d
 				GLOBAL=_G.GLOBAL
 				sThread=_G.sThread
 				__sleep__=.1
@@ -369,20 +410,22 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 					thread.sleep(.001)
 				end
 			end)
-			JQO:push({"_THREADINIT_",ind})
+			JQO:push({"_THREADINIT_"})
 			if not love then
 				multi:mainloop()
 			end
 		end,"Thread<"..i..">",i)
 	end
 	c.OnJobCompleted=multi:newConnection()
+	c.threadsResponded = 0
 	c.updater=multi:newLoop(function(self)
 		local data=self.link.queueIN:pop()
 		while data do
 			if data then
-				local a,b=unpack(data)
+				local a=unpack(data)
 				if a=="_THREADINIT_" then
-					if b==self.link.cores then
+					self.link.threadsResponded=self.link.threadsResponded+1
+					if self.link.threadsResponded==self.link.cores then
 						self.link.ThreadsLoaded=true
 						self.link.OnReady:Fire()
 					end

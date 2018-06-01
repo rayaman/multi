@@ -21,6 +21,63 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+require("bin")
+multi 				= {}
+multi.Version		= "1.9.2"
+multi._VERSION		= "1.9.2"
+multi.stage			= "mostly-stable"
+multi.__index		= multi
+multi.Mainloop		= {}
+multi.Tasks			= {}
+multi.Tasks2		= {}
+multi.Garbage		= {}
+multi.ender			= {}
+multi.Children		= {}
+multi.Paused		= {}
+multi.Active		= true
+multi.fps			= 60
+multi.Id			= -1
+multi.Type			= "mainprocess"
+multi.Rest			= 0
+multi._type			= type
+multi.Jobs			= {}
+multi.queue			= {}
+multi.jobUS			= 2
+multi.clock			= os.clock
+multi.time			= os.time
+multi.LinkedPath	= multi
+multi.isRunning		= false
+--Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
+multi.Priority_Core			= 1
+multi.Priority_High			= 4
+multi.Priority_Above_Normal	= 16
+multi.Priority_Normal		= 64
+multi.Priority_Below_Normal	= 256
+multi.Priority_Low			= 1024
+multi.Priority_Idle			= 4096
+multi.PStep					= 1
+multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
+--^^^^
+multi.PriorityTick=1 -- Between 1, 2 and 4
+multi.Priority=multi.Priority_Core
+multi.threshold=256
+multi.threstimed=.001
+function multi.queuefinal(self)
+	self:Destroy()
+	if self.Parent.Mainloop[#self.Parent.Mainloop] then
+		if self.Parent.Mainloop[#self.Parent.Mainloop].Type=="alarm" then
+			self.Parent.Mainloop[#self.Parent.Mainloop]:Reset()
+			self.Parent.Mainloop[#self.Parent.Mainloop].Active=true
+		else
+			self.Parent.Mainloop[#self.Parent.Mainloop]:Resume()
+		end
+	else
+		for i=1,#self.Parent.funcE do
+			self.Parent.funcE[i](self)
+		end
+		self.Parent:Remove()
+	end
+end
 if table.unpack then
 	unpack=table.unpack
 end
@@ -44,83 +101,19 @@ function print(...)
 		_print(...)
 	end
 end
-multi = {}
-multi.Version="1.8.6"
-multi._VERSION="1.8.6"
-multi.stage='mostly-stable'
-multi.__index = multi
-multi.Mainloop={}
-multi.Tasks={}
-multi.Tasks2={}
-multi.Garbage={}
-multi.ender={}
-multi.Children={}
-multi.Paused={}
-multi.Active=true
-multi.fps=60
-multi.Id=-1
-multi.Type='mainprocess'
-multi.Rest=0
-multi._type=type
-multi.Jobs={}
-multi.queue={}
-multi.jobUS=2
-multi.clock=os.clock
-multi.time=os.time
-multi.LinkedPath=multi
-multi.isRunning=false
-multi.queuefinal=function(self)
-	self:Destroy()
-	if self.Parent.Mainloop[#self.Parent.Mainloop] then
-		if self.Parent.Mainloop[#self.Parent.Mainloop].Type=="alarm" then
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Reset()
-			self.Parent.Mainloop[#self.Parent.Mainloop].Active=true
-		else
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Resume()
-		end
-	else
-		for i=1,#self.Parent.funcE do
-			self.Parent.funcE[i](self)
-		end
-		self.Parent:Remove()
+_write=io.write
+function io.write(...)
+	if not __SUPPRESSWRITES then
+		_write(...)
 	end
 end
---Do not change these ever...Any other number will not work (Unless you are using enablePriority2() then change can be made. Just ensure that Priority_Idle is the greatest and Priority_Core is 1!)
-multi.Priority_Core=1
-multi.Priority_High=4
-multi.Priority_Above_Normal=16
-multi.Priority_Normal=64
-multi.Priority_Below_Normal=256
-multi.Priority_Low=1024
-multi.Priority_Idle=4096
-multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
-multi.PStep=1
---^^^^
-multi.PriorityTick=1 -- Between 1 and 4 any greater and problems arise
-multi.Priority=multi.Priority_Core
-multi.threshold=256
-multi.threstimed=.001
-function multi:setThreshold(n)
-	self.threshold=n or 120
-end
 function multi:setThrestimed(n)
-	self.threstimed=n or .001
+	self.deltaTarget=n or .1
 end
 function multi:getLoad()
-	return multi:newFunction(function(self)
-		multi.scheduler:Pause()
-		local sample=#multi.Mainloop
-		local FFloadtest=0
-		multi:benchMark(multi.threstimed):OnBench(function(_,l3) FFloadtest=l3*(1/multi.threstimed) end)
-		self:hold(function() return FFloadtest~=0 end)
-		local val=FFloadtest/sample
-		multi.scheduler:Resume()
-		if val>multi.threshold then
-			return 0
-		else
-			return 100-((val/multi.threshold)*100)
-		end
-	end)()
+	if multi.load_updater:isPaused() then multi.load_updater:Resume() return 0 end
+	local val = math.abs(self.dStepA-self.dStepB)/multi.deltaTarget*100
+	if val > 100 then return 100 else return val end
 end
 function multi:setDomainName(name)
 	self[name]={}
@@ -169,6 +162,14 @@ else
 		os.execute('sleep ' .. tonumber(n))
 	end
 end
+function multi.randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
+end
 function multi:getParentProcess()
 	return self.Mainloop[self.CID]
 end
@@ -194,6 +195,7 @@ multi.Condition=multi.condition
 function multi:isHeld()
 	return self.held
 end
+multi.important={}
 multi.IsHeld=multi.isHeld
 function multi.executeFunction(name,...)
 	if type(_G[name])=='function' then
@@ -213,19 +215,44 @@ end
 multi.WaitFor=multi.waitFor
 function multi:reboot(r)
 	local before=collectgarbage('count')
-	self.Mainloop={}
-	self.Tasks={}
-	self.Tasks2={}
-	self.Garbage={}
-	self.Children={}
-	self.Paused={}
-	self.Active=true
-	self.Id=-1
+	multi.Mainloop={}
+	multi.Tasks={}
+	multi.Tasks2={}
+	multi.Garbage={}
+	multi.ender={}
+	multi.Children={}
+	multi.Paused={}
+	multi.Active=true
+	multi.fps=60
+	multi.Id=-1
+	multi.Type='mainprocess'
+	multi.Rest=0
+	multi._type=type
+	multi.Jobs={}
+	multi.queue={}
+	multi.jobUS=2
+	multi.clock=os.clock
+	multi.time=os.time
+	multi.LinkedPath=multi
+	multi.isRunning=false
+	multi.Priority_Core=1
+	multi.Priority_High=4
+	multi.Priority_Above_Normal=16
+	multi.Priority_Normal=64
+	multi.Priority_Below_Normal=256
+	multi.Priority_Low=1024
+	multi.Priority_Idle=4096
+	multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
+	multi.PStep=1
+	multi.PriorityTick=1
+	multi.Priority=multi.Priority_Core
+	multi.threshold=256
+	multi.threstimed=.001
 	if r then
 		for i,v in pairs(_G) do
 			if type(i)=='table' then
 				if i.Parent and i.Id and i.Act then
-					i={}
+					_G[i]={}
 				end
 			end
 		end
@@ -279,19 +306,17 @@ function multi:enablePriority()
 		_G.ID=0
 		local PS=self
 		for _D=#Loop,1,-1 do
-			if Loop[_D] then
-				if (PS.PList[PS.PStep])%Loop[_D].Priority==0 then
-					if Loop[_D].Active then
-						Loop[_D].Id=_D
-						self.CID=_D
-						Loop[_D]:Act()
+			for P=1,7 do
+				if Loop[_D] then
+					if (PS.PList[P])%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							Loop[_D].Id=_D
+							self.CID=_D
+							Loop[_D]:Act()
+						end
 					end
 				end
 			end
-		end
-		PS.PStep=PS.PStep+1
-		if PS.PStep>7 then
-			PS.PStep=1
 		end
 	end
 end
@@ -318,45 +343,6 @@ function multi:enablePriority2()
 	end
 end
 multi.disablePriority=multi.unProtect
-function multi:fromfile(path,int)
-	int=int or self
-	local test2={}
-	local test=bin.load(path)
-	local tp=test:getBlock('s')
-	if tp=='event' then
-		test2=int:newEvent(test:getBlock('f'))
-		local t=test:getBlock('t')
-		for i=1,#t do
-			test2:OnEvent(t[i])
-		end
-	elseif tp=='alarm' then
-		test2=int:newAlarm(test:getBlock('n'))
-	elseif tp=='loop' then
-		test2=int:newLoop(test:getBlock('t')[1])
-	elseif tp=='step' or tp=='tstep' then
-		local func=test:getBlock('t')
-		local funcE=test:getBlock('t')
-		local funcS=test:getBlock('t')
-		local tab=test:getBlock('t')
-		test2=int:newStep()
-		table.merge(test2,tab)
-		test2.funcE=funcE
-		test2.funcS=funcS
-		test2.func=func
-	elseif tp=='trigger' then
-		test2=int:newTrigger(test:getBlock('f'))
-	elseif tp=='connector' then
-		test2=int:newConnection()
-		test2.func=test:getBlock('t')
-	elseif tp=='timer' then
-		test2=int:newTimer()
-		test2.count=tonumber(test:getBlock('n'))
-	else
-		print('Error: The file you selected is not a valid multi file object!')
-		return false
-	end
-	return test2
-end
 function multi:benchMark(sec,p,pt)
 	local temp=self:newLoop(function(self,t)
 		if self.clock()-self.init>self.sec then
@@ -379,21 +365,6 @@ function multi:benchMark(sec,p,pt)
 	temp.c=0
 	return temp
 end
-function multi:tofile(path)
-	local items=self:getChildren()
-	io.mkDir(io.getName(path))
-	for i=1,#items do
-		items[i]:tofile(io.getName(path)..'\\item'..item[i]..'.dat')
-	end
-	local int=bin.new()
-	int:addBlock('process')
-	int:addBlock(io.getName(path))
-	int:addBlock(#self.Mainloop)
-	int:addBlock(self.Active)
-	int:addBlock(self.Rest)
-	int:addBlock(self.Jobs)
-	int:tofile()
-end
 function multi.startFPSMonitior()
 	if not multi.runFPS then
 		multi.doFPS(s)
@@ -407,6 +378,12 @@ function multi.doFPS(s)
 	end
 end
 --Helpers
+function multi.timer(func,...)
+	local timer=multi:newTimer()
+	timer:Start()
+	args={func(...)}
+	return timer:Get(),unpack(args)
+end
 function multi:IsAnActor()
 	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
 end
@@ -685,6 +662,7 @@ function multi:newBase(ins)
 	c.funcTM={}
 	c.funcTMR={}
 	c.ender={}
+	c.important={}
 	c.Id=0
 	c.PId=0
 	c.Act=function() end
@@ -747,6 +725,7 @@ function multi:newProcess(file)
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
 	self:create(c)
+--~ 	c:IngoreObject()
 	return c
 end
 function multi:newQueuer(file)
@@ -795,7 +774,7 @@ function multi:newTimer()
 		return (os.clock()-self.time)+self.count
 	end
 	function c:isPaused()
-		return c.paused
+		return self.paused
 	end
 	c.Reset=c.Start
 	function c:Pause()
@@ -818,7 +797,8 @@ function multi:newTimer()
 end
 function multi:newConnection(protect)
 	local c={}
-	setmetatable(c,{__call=function(self,...) self:connect(...) end})
+	c.Parent=self
+	setmetatable(c,{__call=function(self,...) return self:connect(...) end})
 	c.Type='connector'
 	c.func={}
 	c.ID=0
@@ -826,15 +806,32 @@ function multi:newConnection(protect)
 	c.connections={}
 	c.fconnections={}
 	c.FC=0
+	function c:holdUT(n)
+		local n=n or 0
+		self.waiting=true
+		local count=0
+		local id=self:connect(function()
+			count = count + 1
+			if n<=count then
+				self.waiting=false
+			end
+		end)
+		repeat
+			self.Parent:uManager()
+		until self.waiting==false
+		id:Destroy()
+	end
+	c.HoldUT=c.holdUT
 	function c:fConnect(func)
 		local temp=self:connect(func)
 		table.insert(self.fconnections,temp)
 		self.FC=self.FC+1
 	end
+	c.FConnect=c.fConnect
 	function c:getConnection(name,ingore)
 		if ingore then
 			return self.connections[name] or {
-				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ingore
+				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ignore
 			}
 		else
 			return self.connections[name] or self
@@ -898,14 +895,16 @@ function multi:newConnection(protect)
 						end
 					end
 				end
-			end
+			end,
 		}
+		temp.Destroy=temp.Remove
 		if name then
 			self.connections[name]=temp
 		end
 		return temp
 	end
 	c.Connect=c.connect
+	c.GetConnection=c.getConnection
 	function c:tofile(path)
 		local m=bin.new()
 		m:addBlock(self.Type)
@@ -1152,14 +1151,6 @@ function multi:newEvent(task)
 	function c:OnEvent(func)
 		table.insert(self.func,func)
 	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.Task)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
-	end
 	self:create(c)
 	return c
 end
@@ -1177,7 +1168,7 @@ function multi:newUpdater(skip)
 		end
 		self.pos=self.pos+1
 	end
-	function c:setSkip(n)
+	function c:SetSkip(n)
 		self.skip=n
 	end
 	c.OnUpdate=self.OnMainConnect
@@ -1190,13 +1181,6 @@ function multi:newAlarm(set)
 	c.Priority=self.Priority_Low
 	c.timer=self:newTimer()
 	c.set=set or 0
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.set)
-		m:addBlock(self.Active)
-		m:tofile(path)
-	end
 	function c:Act()
 		if self.timer:Get()>=self.set then
 			self:Pause()
@@ -1231,13 +1215,6 @@ function multi:newLoop(func)
 	c.Start=self.clock()
 	if func then
 		c.func={func}
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Act()
 		for i=1,#self.func do
@@ -1284,16 +1261,6 @@ function multi:newStep(start,reset,count,skip)
 		if start>reset then
 			think=-1
 		end
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.funcE)
-		m:addBlock(self.funcS)
-		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,spos=self.spos,count=self.count,start=self.start})
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Act()
 		if self~=nil then
@@ -1356,13 +1323,6 @@ function multi:newTLoop(func,set)
 	if func then
 		c.func={func}
 	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
-	end
 	function c:Act()
 		if self.timer:Get()>=self.set then
 			self.life=self.life+1
@@ -1393,12 +1353,6 @@ function multi:newTrigger(func)
 	function c:Fire(...)
 		self:trigfunc(...)
 	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.trigfunc)
-		m:tofile(path)
-	end
 	self:create(c)
 	return c
 end
@@ -1425,16 +1379,6 @@ function multi:newTStep(start,reset,count,set)
 		self.count=count or self.count or 1
 		self.timer=self.clock()
 		self:Resume()
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.funcE)
-		m:addBlock(self.funcS)
-		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,timer=self.timer,count=self.count,start=self.start,set=self.set})
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Act()
 		if self.clock()-self.timer>=self.set then
@@ -1473,6 +1417,112 @@ function multi:newTStep(start,reset,count,set)
 		if n then self.set=n end
 		self.timer=self.clock()
 		self:Resume()
+	end
+	self:create(c)
+	return c
+end
+function multi:newTimeStamper()
+	local c=self:newBase()
+	c.Type='timestamper'
+	c.Priority=self.Priority_Idle
+	c.hour = {}
+	c.minute = {}
+	c.second = {}
+	c.time = {}
+	c.day = {}
+	c.month = {}
+	c.year = {}
+	function c:Act()
+		for i=1,#self.hour do
+			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
+				self.hour[i][2](self)
+				self.hour[i][3]=false
+			elseif self.hour[i][1]~=os.date("%H") and not self.hour[i][3] then
+				self.hour[i][3]=true
+			end
+		end
+		for i=1,#self.minute do
+			if self.minute[i][1]==os.date("%M") and self.minute[i][3] then
+				self.minute[i][2](self)
+				self.minute[i][3]=false
+			elseif self.minute[i][1]~=os.date("%M") and not self.minute[i][3] then
+				self.minute[i][3]=true
+			end
+		end
+		for i=1,#self.second do
+			if self.second[i][1]==os.date("%S") and self.second[i][3] then
+				self.second[i][2](self)
+				self.second[i][3]=false
+			elseif self.second[i][1]~=os.date("%S") and not self.second[i][3] then
+				self.second[i][3]=true
+			end
+		end
+		for i=1,#self.day do
+			if type(self.day[i][1])=="string" then
+				if self.day[i][1]==os.date("%a") and self.day[i][3] then
+					self.day[i][2](self)
+					self.day[i][3]=false
+				elseif self.day[i][1]~=os.date("%a") and not self.day[i][3] then
+					self.day[i][3]=true
+				end
+			else
+				if string.format("%02d",self.day[i][1])==os.date("%d") and self.day[i][3] then
+					self.day[i][2](self)
+					self.day[i][3]=false
+				elseif string.format("%02d",self.day[i][1])~=os.date("%d") and not self.day[i][3] then
+					self.day[i][3]=true
+				end
+			end
+		end
+		for i=1,#self.month do
+			if self.month[i][1]==os.date("%m") and self.month[i][3] then
+				self.month[i][2](self)
+				self.month[i][3]=false
+			elseif self.month[i][1]~=os.date("%m") and not self.month[i][3] then
+				self.month[i][3]=true
+			end
+		end
+		for i=1,#self.time do
+			if self.time[i][1]==os.date("%X") and self.time[i][3] then
+				self.time[i][2](self)
+				self.time[i][3]=false
+			elseif self.time[i][1]~=os.date("%X") and not self.time[i][3] then
+				self.time[i][3]=true
+			end
+		end
+		for i=1,#self.year do
+			if self.year[i][1]==os.date("%y") and self.year[i][3] then
+				self.year[i][2](self)
+				self.year[i][3]=false
+			elseif self.year[i][1]~=os.date("%y") and not self.year[i][3] then
+				self.year[i][3]=true
+			end
+		end
+	end
+	function c:OnTime(hour,minute,second,func)
+		if type(hour)=="number" then
+			self.time[#self.time+1]={string.format("%02d:%02d:%02d",hour,minute,second),func,true}
+		else
+			self.time[#self.time+1]={hour,minute,true}
+		end
+	end
+	function c:OnHour(hour,func)
+		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
+	end
+	function c:OnMinute(minute,func)
+		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
+	end
+	function c:OnSecond(second,func)
+		self.second[#self.second+1]={string.format("%02d",second),func,true}
+	end
+	function c:OnDay(day,func)
+		self.day[#self.day+1]={day,func,true}
+	end
+	function c:OnMonth(month,func)
+		self.month[#self.month+1]={string.format("%02d",month),func,true}
+	end
+	function c:OnYear(year,func)
+		self.year[#self.year+1]={string.format("%02d",year),func,true}
 	end
 	self:create(c)
 	return c
@@ -1551,15 +1601,19 @@ function thread.testFor(name,val,sym)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
-function multi:newTBase(ins)
+function multi:newTBase(name)
 	local c = {}
+	c.name=name
 	c.Active=true
 	c.func={}
 	c.ender={}
 	c.Id=0
 	c.PId=0
 	c.Parent=self
+	c.important={}
 	c.held=false
+	c.ToString=multi.ToString
+	c.ToFile=multi.ToFile
 	return c
 end
 function multi:newThread(name,func)
@@ -1673,17 +1727,10 @@ end)
 multi.scheduler:Pause()
 multi.OnError=multi:newConnection()
 function multi:newThreadedAlarm(name,set)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	c.Type='alarmThread'
 	c.timer=self:newTimer()
 	c.set=set or 0
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.set)
-		m:addBlock(self.Active)
-		m:tofile(path)
-	end
 	function c:Resume()
 		self.rest=false
 		self.timer:Resume()
@@ -1722,7 +1769,7 @@ function multi:newThreadedAlarm(name,set)
 	return c
 end
 function multi:newThreadedUpdater(name,skip)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	c.Type='updaterThread'
 	c.pos=1
 	c.skip=skip or 1
@@ -1753,10 +1800,9 @@ function multi:newThreadedUpdater(name,skip)
 	return c
 end
 function multi:newThreadedTStep(name,start,reset,count,set)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	local think=1
 	c.Type='tstepThread'
-	c.Priority=self.Priority_Low
 	c.start=start or 1
 	local reset = reset or math.huge
 	c.endAt=reset
@@ -1775,16 +1821,6 @@ function multi:newThreadedTStep(name,start,reset,count,set)
 		self.count=count or self.count or 1
 		self.timer=os.clock()
 		self:Resume()
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.funcE)
-		m:addBlock(self.funcS)
-		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,timer=self.timer,count=self.count,start=self.start,set=self.set})
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Resume()
 		self.rest=false
@@ -1824,7 +1860,7 @@ function multi:newThreadedTStep(name,start,reset,count,set)
 						end
 					end
 					for i=1,#c.func do
-						c.func[i](c.pos,c)
+						c.func[i](c,c.pos)
 					end
 					c.pos=c.pos+c.count
 					if c.pos-c.count==c.endAt then
@@ -1843,18 +1879,11 @@ function multi:newThreadedTStep(name,start,reset,count,set)
 	return c
 end
 function multi:newThreadedTLoop(name,func,n)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	c.Type='tloopThread'
 	c.restN=n or 1
 	if func then
 		c.func={func}
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Resume()
 		self.rest=false
@@ -1884,7 +1913,7 @@ function multi:newThreadedTLoop(name,func,n)
 	return c
 end
 function multi:newThreadedStep(name,start,reset,count,skip)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	local think=1
 	c.Type='stepThread'
 	c.pos=start or 1
@@ -1899,16 +1928,6 @@ function multi:newThreadedStep(name,start,reset,count,skip)
 		if start>reset then
 			think=-1
 		end
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.funcE)
-		m:addBlock(self.funcS)
-		m:addBlock({pos=self.pos,endAt=self.endAt,skip=self.skip,spos=self.spos,count=self.count,start=self.start})
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Resume()
 		self.rest=false
@@ -1951,7 +1970,7 @@ function multi:newThreadedStep(name,start,reset,count,skip)
 							end
 						end
 						for i=1,#c.func do
-							c.func[i](c.pos,c)
+							c.func[i](c,c.pos)
 						end
 						c.pos=c.pos+c.count
 						if c.pos-c.count==c.endAt then
@@ -2057,18 +2076,11 @@ function multi:newThreadedProcess(name)
 	return c
 end
 function multi:newThreadedLoop(name,func)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	c.Type='loopThread'
 	c.Start=os.clock()
 	if func then
 		c.func={func}
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Resume()
 		self.rest=false
@@ -2098,19 +2110,11 @@ function multi:newThreadedLoop(name,func)
 	return c
 end
 function multi:newThreadedEvent(name,task)
-	local c=self:newTBase()
+	local c=self:newTBase(name)
 	c.Type='eventThread'
 	c.Task=task or function() end
 	function c:OnEvent(func)
 		table.insert(self.func,func)
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.Task)
-		m:addBlock(self.func)
-		m:addBlock(self.Active)
-		m:tofile(path)
 	end
 	function c:Resume()
 		self.rest=false
@@ -2139,3 +2143,259 @@ function multi:newThreadedEvent(name,task)
 	self:create(c)
 	return c
 end
+-- State Saving Stuff
+function multi:IngoreObject()
+	self.Ingore=true
+end
+multi.scheduler:IngoreObject()
+function multi:ToString()
+	if self.Ingore then return end
+	local t=self.Type
+	local data;
+	print(t)
+	if t:sub(-6)=="Thread" then
+		data={
+			Type=t,
+			rest=self.rest,
+			updaterate=self.updaterest,
+			restrate=self.restrate,
+			name=self.name,
+			func=self.func,
+			important=self.important,
+			Active=self.Active,
+			ender=self.ender,
+			-- IDK if these need to be present...
+			-- Id=self.Id,
+			-- PId=self.PId,
+			held=self.held,
+		}
+	else
+		data={
+			Type=t,
+			func=self.func,
+			funcTM=self.funcTM,
+			funcTMR=self.funcTMR,
+			important=self.important,
+			ender=self.ender,
+			-- IDK if these need to be present...
+			-- Id=self.Id,
+			-- PId=self.PId,
+			held=self.held,
+		}
+	end
+	if t=="eventThread" or t=="event" then
+		table.merge(data,{
+			Task=self.Task,
+		})
+	elseif t=="loopThread" or t=="loop" then
+		table.merge(data,{
+			Start=self.Start,
+		})
+	elseif t=="stepThread" or t=="step" then
+		table.merge(data,{
+			funcE=self.funcE,
+			funcS=self.funcS,
+			pos=self.pos,
+			endAt=self.endAt,
+			start=self.start,
+			spos=self.spos,
+			skip=self.skip,
+			count=self.count,
+		})
+	elseif t=="tloopThread" then
+		table.merge(data,{
+			restN=self.restN,
+		})
+	elseif t=="tloop" then
+		table.merge(data,{
+			set=self.set,
+			life=self.life,
+		})
+	elseif t=="tstepThread" or t=="tstep" then
+		table.merge(data,{
+			funcE=self.funcE,
+			funcS=self.funcS,
+			pos=self.pos,
+			endAt=self.endAt,
+			start=self.start,
+			spos=self.spos,
+			skip=self.skip,
+			count=self.count,
+			timer=self.timer,
+			set=self.set,
+			reset=self.reset,
+		})
+	elseif t=="updaterThread" or t=="updater" then
+		table.merge(data,{
+			pos=self.pos,
+			skip=self.skip,
+		})
+	elseif t=="alarmThread" or t=="alarm" then
+		table.merge(data,{
+			set=self.set,
+		})
+	elseif t=="watcher" then
+		print("Currently cannot sterilize a watcher object!")
+		-- needs testing
+		-- table.merge(data,{
+			-- ns=self.ns,
+			-- n=self.n,
+			-- cv=self.cv,
+		-- })
+	elseif t=="timemaster" then
+		-- Weird stuff is going on here!
+		-- Need to do some testing
+		table.merge(data,{
+			timer=self.timer,
+			_timer=self._timer,
+			set=self.set,
+			link=self.link,
+		})
+	elseif t=="process" or t=="mainprocess" then
+		local loop=self.Mainloop
+		local dat={}
+		for i=1,#loop do
+			local ins=loop[i]:ToString()
+			if ins~=nil then
+				table.insert(dat,ins)
+			end
+		end
+		local str=bin.new()
+		str:addBlock({Type=t})
+		str:addBlock(#dat,4,"n")
+		for i=1,#dat do
+			str:addBlock(#dat[i],4,"n")
+			str:addBlock(dat[i])
+		end
+		return str.data
+	end
+	for i,v in pairs(self.important) do
+		data[v]=self[v]
+	end
+	local str=bin.new()
+	str:addBlock(data)
+	return str.data
+end
+function multi:newFromString(str)
+	if type(str)=="table" then
+		if str.Type=="bin" then
+			str=str.data
+		end
+	end
+	local handle=bin.new(str)
+	local data=handle:getBlock("t")
+	local t=data.Type
+	if t=="mainprocess" then
+		local objs=handle:getBlock("n",4)
+		for i=1,objs do
+			self:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
+		end
+		return self
+	elseif  t=="process" then
+		local temp=multi:newProcess()
+		local objs=handle:getBlock("n",4)
+		for i=1,objs do
+			temp:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
+		end
+		return temp
+	elseif t=="step" then -- GOOD
+		local item=self:newStep()
+		table.merge(item,data)
+		return item
+	elseif t=="tstep" then -- GOOD
+		local item=self:newTStep()
+		table.merge(item,data)
+		return item
+	elseif t=="tloop" then -- GOOD
+		local item=self:newTLoop()
+		table.merge(item,data)
+		return item
+	elseif t=="event" then -- GOOD
+		local item=self:newEvent(data.task)
+		table.merge(item,data)
+		return item
+	elseif t=="alarm" then -- GOOD
+		local item=self:newAlarm()
+		table.merge(item,data)
+		return item
+	elseif t=="watcher" then -- NEEDS TESTING
+		local item=self:newWatcher()
+		table.merge(item,data)
+		return item
+	elseif t=="updater" then -- GOOD
+		local item=self:newUpdater()
+		table.merge(item,data)
+		return item
+	elseif t=="loop" then -- GOOD
+		local item=self:newLoop()
+		table.merge(item,data)
+		return item
+	elseif t=="eventThread" then -- GOOD
+		local item=self:newThreadedEvent(data.name)
+		table.merge(item,data)
+		return item
+	elseif t=="loopThread" then -- GOOD
+		local item=self:newThreadedLoop(data.name)
+		table.merge(item,data)
+		return item
+	elseif t=="stepThread" then -- GOOD
+		local item=self:newThreadedStep(data.name)
+		table.merge(item,data)
+		return item
+	elseif t=="tloopThread" then -- GOOD
+		local item=self:newThreadedTLoop(data.name,nil,data.restN)
+		table.merge(item,data)
+		return item
+	elseif t=="tstepThread" then -- GOOD
+		local item=self:newThreadedTStep(data.name)
+		table.merge(item,data)
+		return item
+	elseif t=="updaterThread" then -- GOOD
+		local item=self:newThreadedUpdater(data.name)
+		table.merge(item,data)
+		return item
+	elseif t=="alarmThread" then -- GOOD
+		local item=self:newThreadedAlarm(data.name)
+		table.merge(item,data)
+		return item
+	end
+end
+function multi:Important(varname)
+	table.insert(important,varname)
+end
+function multi:ToFile(path)
+	bin.new(self:ToString()):tofile(path)
+end
+function multi:fromFile(path)
+	self:newFromString(bin.load(path))
+end
+function multi:SetStateFlag(opt)
+	--
+end
+function multi:quickStateSave(b)
+	--
+end
+function multi:saveState(path,opt)
+	--
+end
+function multi:loadState(path)
+	--
+end
+function multi:setDefualtStateFlag(opt)
+	--
+end
+multi.dStepA = 0
+multi.dStepB = 0
+multi.dSwap = 0
+multi.deltaTarget = .05
+multi.load_updater = multi:newUpdater(2)
+multi.load_updater:Pause()
+multi.load_updater:OnUpdate(function(self)
+	if self.Parent.dSwap == 0 then
+		self.Parent.dStepA = os.clock()
+		self.Parent.dSwap = 1
+	else
+		self.Parent.dSwap = 0
+		self.Parent.dStepB = os.clock()
+	end
+end)

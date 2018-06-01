@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+package.path="?/init.lua;?.lua;"..package.path
 function os.getOS()
 	if package.config:sub(1,1)=='\\' then
 		return 'windows'
@@ -32,8 +33,12 @@ end
 lanes=require("lanes").configure()
 --~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
 require("multi") -- get it all and have it on all lanes
+isMainThread=true
 function multi:canSystemThread()
 	return true
+end
+function multi:getPlatform()
+	return "lanes"
 end
 local multi=multi
 -- Step 2 set up the linda objects
@@ -85,7 +90,10 @@ else
 	THREAD.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
 end
 function THREAD.kill() -- trigger the lane destruction
-	-- coroutine.yield({"_kill_",":)"})
+	error("Thread was killed!")
+end
+function THREAD.getName()
+	return THREAD_NAME
 end
 --[[ Step 4 We need to get sleeping working to handle timing... We want idle wait, not busy wait
 Idle wait keeps the CPU running better where busy wait wastes CPU cycles... Lanes does not have a sleep method
@@ -102,12 +110,17 @@ function THREAD.hold(n)
 	repeat wait() until n()
 end
 -- Step 5 Basic Threads!
-function multi:newSystemThread(name,func)
+function multi:newSystemThread(name,func,...)
     local c={}
     local __self=c
     c.name=name
 	c.Type="sthread"
-    c.thread=lanes.gen("*", func)()
+	local THREAD_NAME=name
+	local function func2(...)
+		_G["THREAD_NAME"]=THREAD_NAME
+		func()
+	end
+    c.thread=lanes.gen("*", func2)(...)
 	function c:kill()
 		--self.status:Destroy()
 		self.thread:cancel()

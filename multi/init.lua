@@ -23,9 +23,9 @@ SOFTWARE.
 ]]
 require("bin")
 multi 				= {}
-multi.Version		= "1.9.2"
-multi._VERSION		= "1.9.2"
-multi.stage			= "mostly-stable"
+multi.Version		= "1.10.0"
+multi._VERSION		= "1.10.0"
+multi.stage			= "stable"
 multi.__index		= multi
 multi.Mainloop		= {}
 multi.Tasks			= {}
@@ -161,6 +161,14 @@ else
 	function os.sleep(n)
 		os.execute('sleep ' .. tonumber(n))
 	end
+end
+function multi.randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
 end
 function multi:getParentProcess()
 	return self.Mainloop[self.CID]
@@ -798,25 +806,32 @@ function multi:newConnection(protect)
 	c.connections={}
 	c.fconnections={}
 	c.FC=0
-	function c:holdUT()
+	function c:holdUT(n)
+		local n=n or 0
 		self.waiting=true
+		local count=0
 		local id=self:connect(function()
-			self.waiting=false
+			count = count + 1
+			if n<=count then
+				self.waiting=false
+			end
 		end)
 		repeat
 			self.Parent:uManager()
 		until self.waiting==false
 		id:Destroy()
 	end
+	c.HoldUT=c.holdUT
 	function c:fConnect(func)
 		local temp=self:connect(func)
 		table.insert(self.fconnections,temp)
 		self.FC=self.FC+1
 	end
+	c.FConnect=c.fConnect
 	function c:getConnection(name,ingore)
 		if ingore then
 			return self.connections[name] or {
-				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ingore
+				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ignore
 			}
 		else
 			return self.connections[name] or self
@@ -889,6 +904,7 @@ function multi:newConnection(protect)
 		return temp
 	end
 	c.Connect=c.connect
+	c.GetConnection=c.getConnection
 	function c:tofile(path)
 		local m=bin.new()
 		m:addBlock(self.Type)

@@ -33,6 +33,7 @@ end
 lanes=require("lanes").configure()
 --~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
 require("multi") -- get it all and have it on all lanes
+isMainThread=true
 function multi:canSystemThread()
 	return true
 end

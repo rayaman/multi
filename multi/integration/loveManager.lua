@@ -17,6 +17,7 @@ require("love.timer")
 require("love.image")
 require("multi")
 GLOBAL={}
+isMainThread=false
 setmetatable(GLOBAL,{
 	__index=function(t,k)
 		__sync__()
@@ -189,6 +190,7 @@ setmetatable(GLOBAL,{
 })
 THREAD={} -- Allow main thread to interact with these objects as well
 multi.integration.love2d.mainChannel=love.thread.getChannel("__MainChan__")
+isMainThread=true
 function THREAD.getName()
 	return __THREADNAME__
 end
@@ -293,9 +295,7 @@ function THREAD.get(name)
 	return GLOBAL[name]
 end
 function THREAD.waitFor(name)
-	multi.OBJ_REF:Pause()
-	repeat multi:lManager() until GLOBAL[name]
-	multi.OBJ_REF:Resume()
+	repeat multi:uManager() until GLOBAL[name]
 	return GLOBAL[name]
 end
 function THREAD.getCores()
@@ -305,9 +305,7 @@ function THREAD.sleep(n)
 	love.timer.sleep(n)
 end
 function THREAD.hold(n)
-	multi.OBJ_REF:Pause()
-	repeat multi:lManager() until n()
-	multi.OBJ_REF:Resume()
+	repeat multi:uManager() until n()
 end
 __channels__={}
 multi.integration.GLOBAL=GLOBAL
@@ -316,7 +314,6 @@ updater=multi:newUpdater()
 updater:OnUpdate(function(self)
 	local data=multi.integration.love2d.mainChannel:pop()
 	while data do
-		--print("MAIN:",data)
 		if type(data)=="string" then
 			local cmd,tp,name,d=data:match("(%S-) (%S-) (%S-) (.+)")
 			if cmd=="SYNC" then
