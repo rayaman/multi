@@ -1,7 +1,7 @@
 function gui:newImageButton(i,name, x, y, w, h, sx ,sy ,sw ,sh)
 	x,y,w,h,sx,sy,sw,sh=filter(name, x, y, w, h, sx ,sy ,sw ,sh)
 	local c=self:newBase("ImageButton",name, x, y, w, h, sx ,sy ,sw ,sh)
-	if type(i)=="string" then
+	if type(i)=="string" or type(i):find("ImageData") then
 		c.Image=love.graphics.newImage(i)
 	else
 		c.Image=i

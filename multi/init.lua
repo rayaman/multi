@@ -23,8 +23,8 @@ SOFTWARE.
 ]]
 require("bin")
 multi 				= {}
-multi.Version		= "1.10.0"
-multi._VERSION		= "1.10.0"
+multi.Version		= "1.11.0"
+multi._VERSION		= "1.11.0"
 multi.stage			= "stable"
 multi.__index		= multi
 multi.Mainloop		= {}

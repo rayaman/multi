@@ -1,7 +1,36 @@
 Changes
 -------
+Update: 1.11.0
+--------------
+Added:
+- SystemThreadedConsole(name) -- Allsow each thread to print without the sync issues that make prints merge and hard to read.
+
+```lua
+-- MainThread:
+console = multi:newSystemThreadedConsole("console"):init()
+-- Thread:
+console = THREAD.waitFor("console"):init()
+
+-- using the console
+console:print(...)
+console:write(...) -- kinda useless for formatting code though. other threads can eaisly mess this up.
+```
+
+Fixed/Updated:
+- Love2d 11.1 support is now here! Will now require these lines in your main.lua file
+
+```lua
+function love.update(dt)
+	multi:uManager(dt) -- runs the main loop of the multitasking library
+end
+function love.draw()
+    multi.dManager() -- If using my guimanager, if not omit this
+end
+```
+
+
 Update: 1.10.0
--------------
+--------------
 **Note:** The library is now considered to be stable!
 **Upcoming:** Network parallelism is on the way. It is in the works and should be released soon
 

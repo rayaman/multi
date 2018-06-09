@@ -1,4 +1,4 @@
-# multi Version: 1.10.0 (Changelog has its own dedicated file now, also bug fixes and a new object) 
+# multi Version: 1.11.0 (Show me the love, love2d 11.1 support is here see changelog for details. Plus a new threaded object for testing!)
 
 **NOTE: I have been studying a lot about threading for the past few months and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
 

@@ -24,15 +24,15 @@ function gui:newBase(tp,name, x, y, w, h, sx ,sy ,sw ,sh)
 	else
 		c.Parent=self
 	end
-  c.segments=nil
-  c.ry=nil
-  c.rx=nil
-  c.DPI=1
-  if _GuiPro.DPI_ENABLED then
-    c.DPI=love.window.getPixelScale()
-    x, y, w, h=c.DPI*x,c.DPI*y,c.DPI*w,c.DPI*h
-  end
-  c.centerFontY=true
+	c.segments=nil
+	c.ry=nil
+	c.rx=nil
+	c.DPI=1
+	if _GuiPro.DPI_ENABLED then
+		c.DPI=love.window.getPixelScale()
+		x, y, w, h=c.DPI*x,c.DPI*y,c.DPI*w,c.DPI*h
+	end
+	c.centerFontY=true
 	c.FormFactor="rectangle"
 	c.Type=tp
 	c.Active=true
@@ -42,7 +42,6 @@ function gui:newBase(tp,name, x, y, w, h, sx ,sy ,sw ,sh)
 	c:SetName(name)
 	c.BorderSize=1
 	c.BorderColor={0,0,0}
-	c.BorderVisibility=1
 	c.VIS=true
 	c.Visible=true
 	c.oV=true
@@ -178,6 +177,13 @@ function gui:newBase(tp,name, x, y, w, h, sx ,sy ,sw ,sh)
 			_GuiPro.self=self
 			if type(i)=="number" then
 				loadstring("_GuiPro.self:"..v)()
+			elseif i:match"__self__" then
+				local ind=i:match"__self__(.+)"
+				if not self[ind] then self[ind]={} end
+				loadstring("_GuiPro.self."..ind.."=_GuiPro.self:"..v)()
+			elseif i:match"__child__" then
+				local ind,child = i:match"__child__(%S-)_(.+)"
+				self[ind][child]=v
 			else
 				self[i]=v
 			end

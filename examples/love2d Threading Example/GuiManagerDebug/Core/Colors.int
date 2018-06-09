@@ -1,5 +1,19 @@
+local function HSL(h, s, l, a)
+	if s<=0 then return l,l,l,a end
+	h, s, l = h/256*6, s/255, l/255
+	local c = (1-math.abs(2*l-1))*s
+	local x = (1-math.abs(h%2-1))*c
+	local m,r,b,g = (l-.5*c), 0,0,0
+	if h < 1     then r,b,g = c,x,0
+	elseif h < 2 then r,b,g = x,c,0
+	elseif h < 3 then r,b,g = 0,c,x
+	elseif h < 4 then r,b,g = 0,x,c
+	elseif h < 5 then r,b,g = x,0,c
+	else              r,b,g = c,0,x
+	end return (r+m)*255,(g+m)*255,(b+m)*255,a
+end
 Color={
-new=function(r,g,b)
+new=function(r,b,g)
 	mt = {
 		__add = function (c1,c2)
 			return Color.new(c1[1]+c2[1],c1[2]+c2[2],c1[2]+c2[2])
@@ -29,7 +43,7 @@ new=function(r,g,b)
 		__lt = Color.LT,
 		__le = Color.LE,
 	}
-	local temp = {r,g,b,255}
+	local temp = {r/255,b/255,g/255,1}
 	setmetatable(temp, mt)
 	return temp
 end,
@@ -57,14 +71,13 @@ Darken=function(color,v)
 	currentR=color[1]
 	currentG=color[2]
 	currentB=color[3]
-	return Color.new(currentR * (1 - v),currentG * (1 - v),currentB * (1 - v))
+	return Color.new((currentR*255) * (1 - v),(currentG*255) * (1 - v),(currentB*255) * (1 - v))
 end,
 Lighten=function(color,v)
 	currentR=color[1]
 	currentG=color[2]
 	currentB=color[3]
-
-	return Color.new(currentR + (255 - currentR) * v,currentG + (255 - currentG) * v,currentB + (255 - currentB) * v)
+	return Color.new(currentR*255 + (255 - (currentR*255)) * v,currentG*255 + (255 - (currentG*255)) * v,currentB*255 + (255 - (currentB*255)) * v)
 end
 }
 Color.IndexColor("Black",20,20,20)

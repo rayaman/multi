@@ -1,10 +1,10 @@
 function gui:SetImage(i)
-	if type(i)=="string" then
+	if type(i)=="string" or tostring(i):find("ImageData") then
 		self.Image=love.graphics.newImage(i)
 	else
 		self.Image=i
 	end
-	if self.Image~=nil then
+	if self.Image then
 		self.ImageHeigth=self.Image:getHeight()
 		self.ImageWidth=self.Image:getWidth()
 		self.Quad=love.graphics.newQuad(0,0,self.width,self.height,self.ImageWidth,self.ImageHeigth)

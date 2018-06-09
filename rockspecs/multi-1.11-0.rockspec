@@ -1,13 +1,13 @@
 package = "multi"
-version = "1.9-2"
+version = "1.11.0"
 source = {
    url = "git://github.com/rayaman/multi.git",
-   tag = "v1.9.2",
+   tag = "v1.11.0",
 }
 description = {
    summary = "Lua Multi tasking library",
    detailed = [[
-      This library contains many methods for multi tasking. From simple side by side code using multiobjs, to using coroutine based Threads and System threads(When you have lua lanes installed or are using love2d. Optional) The core of the library works on lua 5.1+ however the systemthreading features are limited to 5.1 due to love2d and lua lanes and now luvit (See ReadMe on gotchas) being lua 5.1 only!
+      This library contains many methods for multi tasking. From simple side by side code using multi-objs, to using coroutine based Threads and System threads(When you have lua lanes installed or are using love2d)
    ]],
    homepage = "https://github.com/rayaman/multi",
    license = "MIT"
@@ -20,7 +20,6 @@ dependencies = {
 build = {
    type = "builtin",
    modules = {
-      -- Note the required Lua syntax when listing submodules as keys
       ["multi.init"] = "multi/init.lua",
       ["multi.all"] = "multi/all.lua",
       ["multi.compat.backwards[1,5,0]"] = "multi/compat/backwards[1,5,0].lua",

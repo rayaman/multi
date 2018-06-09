@@ -1,8 +1,8 @@
 package = "multi"
-version = "1.9-2"
+version = "1.9-3"
 source = {
    url = "git://github.com/rayaman/multi.git",
-   tag = "v1.9.2",
+   tag = "v1.9.3",
 }
 description = {
    summary = "Lua Multi tasking library",

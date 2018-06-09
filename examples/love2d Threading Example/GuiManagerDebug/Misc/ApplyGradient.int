@@ -1,7 +1,7 @@
 function _GuiPro.gradient(colors)
     local direction = colors.direction or "horizontal"
 	colors.direction=nil
-	trans = colors.trans or 255
+	trans = colors.trans or 1
 	trans=math.floor(trans)
     if direction == "horizontal" then
         direction = true
@@ -10,7 +10,7 @@ function _GuiPro.gradient(colors)
     else
         error("Invalid direction '" .. tostring(direction) "' for gradient.  Horizontal or vertical expected.")
     end
-    local result = love.image.newImageData(direction and 1 or #colors, direction and #colors or 1)
+    local result = love.image.newImageData(direction and 1 or #colors, direction and #colors or 1,"rgba32f")
     for __i, color in ipairs(colors) do
         local x, y
         if direction then

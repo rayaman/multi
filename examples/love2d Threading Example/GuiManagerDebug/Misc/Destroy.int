@@ -6,4 +6,5 @@ function gui:Destroy()
 			table.remove(self.Parent.Children,cc)
 		end
 	end
+	self.Destroyed = true
 end

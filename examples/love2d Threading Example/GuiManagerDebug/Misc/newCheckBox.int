@@ -1,4 +1,4 @@
-if love.filesystem.exists("CheckBoxes.png") then
+if love.filesystem.getInfo("CheckBoxes.png") then
 	_GuiPro.UC=gui:getTile("CheckBoxes.png",0,0,16,16)
 	_GuiPro.C=gui:getTile("CheckBoxes.png",16,0,16,16)
 	_GuiPro.UCH=gui:getTile("CheckBoxes.png",0,16,16,16)

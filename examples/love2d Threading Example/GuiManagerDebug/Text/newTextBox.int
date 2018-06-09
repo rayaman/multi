@@ -28,7 +28,7 @@ function gui:newTextBox(t,name, x, y, w, h, sx ,sy ,sw ,sh)
 	c.mark=nil
 	c.arrowkeys=false
 	c.funcF={function()
-		love.keyboard.setTextInput(true)
+		love.keyboard.setTextInput(true,0,200,400,200)
 	end}
 	c.cooldown=false
 	c.cooldown2=false
@@ -59,9 +59,12 @@ function gui:newTextBox(t,name, x, y, w, h, sx ,sy ,sw ,sh)
 		table.insert(self.funcE,func)
 	end
 	c:OnClicked(function(b,self)
+		self:focus()
+	end)
+	function c:focus()
 		for cc=1,#self.funcF do
 			self.funcF[cc](self)
-		end
+		end 
 		if self.Active==false then
 			if self.ClearOnFocus==true then
 				self.text=""
@@ -74,7 +77,7 @@ function gui:newTextBox(t,name, x, y, w, h, sx ,sy ,sw ,sh)
 			end
 			self.Active=true
 		end
-	end)
+	end
 	c:OnClicked(function(b,self,x,y)
 		local dwidth, wrappedtext = _defaultfont:getWrap(self.text:sub(1,self.cursor[1]), self.width)
 		local height = _defaultfont:getHeight()
@@ -144,7 +147,7 @@ function gui:newTextBox(t,name, x, y, w, h, sx ,sy ,sw ,sh)
 			self.ttext=self.ttext.."\n"
 			self.cooldown2=true
 			c.Alarm2:Reset()
-		elseif (love.keyboard.isDown("return") or love.keyboard.isDown("enter") or love.keyboard.isDown("kpenter")) and self.Active and self.Enter and not(love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) then
+		elseif (love.keyboard.isDown("return") or love.keyboard.isDown("kpenter")) and self.Active and self.Enter and not(love.keyboard.isDown("lshift") or love.keyboard.isDown("rshift")) then
 			if self.LoseFocusOnEnter then
 				self.Active=false
 			else

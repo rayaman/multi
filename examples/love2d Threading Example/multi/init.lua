@@ -22,62 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 require("bin")
-multi 				= {}
-multi.Version		= "1.9.2"
-multi._VERSION		= "1.9.2"
-multi.stage			= "mostly-stable"
-multi.__index		= multi
-multi.Mainloop		= {}
-multi.Tasks			= {}
-multi.Tasks2		= {}
-multi.Garbage		= {}
-multi.ender			= {}
-multi.Children		= {}
-multi.Paused		= {}
-multi.Active		= true
-multi.fps			= 60
-multi.Id			= -1
-multi.Type			= "mainprocess"
-multi.Rest			= 0
-multi._type			= type
-multi.Jobs			= {}
-multi.queue			= {}
-multi.jobUS			= 2
-multi.clock			= os.clock
-multi.time			= os.time
-multi.LinkedPath	= multi
-multi.isRunning		= false
---Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
-multi.Priority_Core			= 1
-multi.Priority_High			= 4
-multi.Priority_Above_Normal	= 16
-multi.Priority_Normal		= 64
-multi.Priority_Below_Normal	= 256
-multi.Priority_Low			= 1024
-multi.Priority_Idle			= 4096
-multi.PStep					= 1
-multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
---^^^^
-multi.PriorityTick=1 -- Between 1, 2 and 4
-multi.Priority=multi.Priority_Core
-multi.threshold=256
-multi.threstimed=.001
-function multi.queuefinal(self)
-	self:Destroy()
-	if self.Parent.Mainloop[#self.Parent.Mainloop] then
-		if self.Parent.Mainloop[#self.Parent.Mainloop].Type=="alarm" then
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Reset()
-			self.Parent.Mainloop[#self.Parent.Mainloop].Active=true
-		else
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Resume()
-		end
-	else
-		for i=1,#self.Parent.funcE do
-			self.Parent.funcE[i](self)
-		end
-		self.Parent:Remove()
-	end
-end
 if table.unpack then
 	unpack=table.unpack
 end
@@ -107,13 +51,83 @@ function io.write(...)
 		_write(...)
 	end
 end
+multi = {}
+multi.Version="1.9.2"
+multi._VERSION="1.9.2"
+multi.stage='mostly-stable'
+multi.__index = multi
+multi.Mainloop={}
+multi.Tasks={}
+multi.Tasks2={}
+multi.Garbage={}
+multi.ender={}
+multi.Children={}
+multi.Paused={}
+multi.Active=true
+multi.fps=60
+multi.Id=-1
+multi.Type='mainprocess'
+multi.Rest=0
+multi._type=type
+multi.Jobs={}
+multi.queue={}
+multi.jobUS=2
+multi.clock=os.clock
+multi.time=os.time
+multi.LinkedPath=multi
+multi.isRunning=false
+multi.queuefinal=function(self)
+	self:Destroy()
+	if self.Parent.Mainloop[#self.Parent.Mainloop] then
+		if self.Parent.Mainloop[#self.Parent.Mainloop].Type=="alarm" then
+			self.Parent.Mainloop[#self.Parent.Mainloop]:Reset()
+			self.Parent.Mainloop[#self.Parent.Mainloop].Active=true
+		else
+			self.Parent.Mainloop[#self.Parent.Mainloop]:Resume()
+		end
+	else
+		for i=1,#self.Parent.funcE do
+			self.Parent.funcE[i](self)
+		end
+		self.Parent:Remove()
+	end
+end
+--Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
+multi.Priority_Core=1
+multi.Priority_High=4
+multi.Priority_Above_Normal=16
+multi.Priority_Normal=64
+multi.Priority_Below_Normal=256
+multi.Priority_Low=1024
+multi.Priority_Idle=4096
+multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
+multi.PStep=1
+--^^^^
+multi.PriorityTick=1 -- Between 1,2 and 4
+multi.Priority=multi.Priority_Core
+multi.threshold=256
+multi.threstimed=.001
+function multi:setThreshold(n)
+	self.threshold=n or 120
+end
 function multi:setThrestimed(n)
-	self.deltaTarget=n or .1
+	self.threstimed=n or .001
 end
 function multi:getLoad()
-	if multi.load_updater:isPaused() then multi.load_updater:Resume() return 0 end
-	local val = math.abs(self.dStepA-self.dStepB)/multi.deltaTarget*100
-	if val > 100 then return 100 else return val end
+	return multi:newFunction(function(self)
+		multi.scheduler:Pause()
+		local sample=#multi.Mainloop
+		local FFloadtest=0
+		multi:benchMark(multi.threstimed):OnBench(function(_,l3) FFloadtest=l3*(1/multi.threstimed) end)
+		self:hold(function() return FFloadtest~=0 end)
+		local val=FFloadtest/sample
+		multi.scheduler:Resume()
+		if val>multi.threshold then
+			return 0
+		else
+			return 100-((val/multi.threshold)*100)
+		end
+	end)()
 end
 function multi:setDomainName(name)
 	self[name]={}
@@ -161,14 +175,6 @@ else
 	function os.sleep(n)
 		os.execute('sleep ' .. tonumber(n))
 	end
-end
-function multi.randomString(n)
-	local str = ''
-	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-	for i=1,n do
-		str = str..''..strings[math.random(1,#strings)]
-	end
-	return str
 end
 function multi:getParentProcess()
 	return self.Mainloop[self.CID]
@@ -599,15 +605,7 @@ function multi:hold(task)
 		local env=self.Parent:newEvent(task)
 		env:OnEvent(function(envt) envt:Pause() envt.Active=false end)
 		while env.Active do
-			if love then
-				if love.graphics then
-					self.Parent:lManager()
-				else
-					self.Parent:Do_Order()
-				end
-			else
-				self.Parent:Do_Order()
-			end
+			self.Parent:Do_Order()
 		end
 		env:Destroy()
 		self:Resume()
@@ -806,32 +804,25 @@ function multi:newConnection(protect)
 	c.connections={}
 	c.fconnections={}
 	c.FC=0
-	function c:holdUT(n)
-		local n=n or 0
+	function c:holdUT()
 		self.waiting=true
-		local count=0
 		local id=self:connect(function()
-			count = count + 1
-			if n<=count then
-				self.waiting=false
-			end
+			self.waiting=false
 		end)
 		repeat
 			self.Parent:uManager()
 		until self.waiting==false
 		id:Destroy()
 	end
-	c.HoldUT=c.holdUT
 	function c:fConnect(func)
 		local temp=self:connect(func)
 		table.insert(self.fconnections,temp)
 		self.FC=self.FC+1
 	end
-	c.FConnect=c.fConnect
 	function c:getConnection(name,ingore)
 		if ingore then
 			return self.connections[name] or {
-				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ignore
+				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ingore
 			}
 		else
 			return self.connections[name] or self
@@ -904,7 +895,6 @@ function multi:newConnection(protect)
 		return temp
 	end
 	c.Connect=c.connect
-	c.GetConnection=c.getConnection
 	function c:tofile(path)
 		local m=bin.new()
 		m:addBlock(self.Type)
@@ -1421,112 +1411,6 @@ function multi:newTStep(start,reset,count,set)
 	self:create(c)
 	return c
 end
-function multi:newTimeStamper()
-	local c=self:newBase()
-	c.Type='timestamper'
-	c.Priority=self.Priority_Idle
-	c.hour = {}
-	c.minute = {}
-	c.second = {}
-	c.time = {}
-	c.day = {}
-	c.month = {}
-	c.year = {}
-	function c:Act()
-		for i=1,#self.hour do
-			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
-				self.hour[i][2](self)
-				self.hour[i][3]=false
-			elseif self.hour[i][1]~=os.date("%H") and not self.hour[i][3] then
-				self.hour[i][3]=true
-			end
-		end
-		for i=1,#self.minute do
-			if self.minute[i][1]==os.date("%M") and self.minute[i][3] then
-				self.minute[i][2](self)
-				self.minute[i][3]=false
-			elseif self.minute[i][1]~=os.date("%M") and not self.minute[i][3] then
-				self.minute[i][3]=true
-			end
-		end
-		for i=1,#self.second do
-			if self.second[i][1]==os.date("%S") and self.second[i][3] then
-				self.second[i][2](self)
-				self.second[i][3]=false
-			elseif self.second[i][1]~=os.date("%S") and not self.second[i][3] then
-				self.second[i][3]=true
-			end
-		end
-		for i=1,#self.day do
-			if type(self.day[i][1])=="string" then
-				if self.day[i][1]==os.date("%a") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif self.day[i][1]~=os.date("%a") and not self.day[i][3] then
-					self.day[i][3]=true
-				end
-			else
-				if string.format("%02d",self.day[i][1])==os.date("%d") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif string.format("%02d",self.day[i][1])~=os.date("%d") and not self.day[i][3] then
-					self.day[i][3]=true
-				end
-			end
-		end
-		for i=1,#self.month do
-			if self.month[i][1]==os.date("%m") and self.month[i][3] then
-				self.month[i][2](self)
-				self.month[i][3]=false
-			elseif self.month[i][1]~=os.date("%m") and not self.month[i][3] then
-				self.month[i][3]=true
-			end
-		end
-		for i=1,#self.time do
-			if self.time[i][1]==os.date("%X") and self.time[i][3] then
-				self.time[i][2](self)
-				self.time[i][3]=false
-			elseif self.time[i][1]~=os.date("%X") and not self.time[i][3] then
-				self.time[i][3]=true
-			end
-		end
-		for i=1,#self.year do
-			if self.year[i][1]==os.date("%y") and self.year[i][3] then
-				self.year[i][2](self)
-				self.year[i][3]=false
-			elseif self.year[i][1]~=os.date("%y") and not self.year[i][3] then
-				self.year[i][3]=true
-			end
-		end
-	end
-	function c:OnTime(hour,minute,second,func)
-		if type(hour)=="number" then
-			self.time[#self.time+1]={string.format("%02d:%02d:%02d",hour,minute,second),func,true}
-		else
-			self.time[#self.time+1]={hour,minute,true}
-		end
-	end
-	function c:OnHour(hour,func)
-		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
-	end
-	function c:OnMinute(minute,func)
-		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
-	end
-	function c:OnSecond(second,func)
-		self.second[#self.second+1]={string.format("%02d",second),func,true}
-	end
-	function c:OnDay(day,func)
-		self.day[#self.day+1]={day,func,true}
-	end
-	function c:OnMonth(month,func)
-		self.month[#self.month+1]={string.format("%02d",month),func,true}
-	end
-	function c:OnYear(year,func)
-		self.year[#self.year+1]={string.format("%02d",year),func,true}
-	end
-	self:create(c)
-	return c
-end
 function multi:newWatcher(namespace,name)
 	local function WatcherObj(ns,n)
 		if self.Type=='queue' then
@@ -1572,7 +1456,9 @@ function thread.sleep(n)
 	coroutine.yield({"_sleep_",n or 0})
 end
 function thread.hold(n)
+	if n then if n() then return false end end
 	coroutine.yield({"_hold_",n or function() return true end})
+	return true
 end
 function thread.skip(n)
 	coroutine.yield({"_skip_",n or 0})
@@ -2100,7 +1986,7 @@ function multi:newThreadedLoop(name,func)
 				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
 			else
 				for i=1,#c.func do
-					c.func[i](os.clock()-self.Start,c)
+					c.func[i](c,os.clock()-self.Start)
 				end
 				thread.sleep(c.updaterate) -- lets rest a bit
 			end
@@ -2384,18 +2270,3 @@ end
 function multi:setDefualtStateFlag(opt)
 	--
 end
-multi.dStepA = 0
-multi.dStepB = 0
-multi.dSwap = 0
-multi.deltaTarget = .05
-multi.load_updater = multi:newUpdater(2)
-multi.load_updater:Pause()
-multi.load_updater:OnUpdate(function(self)
-	if self.Parent.dSwap == 0 then
-		self.Parent.dStepA = os.clock()
-		self.Parent.dSwap = 1
-	else
-		self.Parent.dSwap = 0
-		self.Parent.dStepB = os.clock()
-	end
-end)

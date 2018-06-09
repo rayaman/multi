@@ -2,9 +2,9 @@ function gui:getFullSize()
 	local maxx,maxy=-math.huge,-math.huge
 	local temp = self:GetAllChildren()
 	for i=1,#temp do
-		if temp[i].width>maxx then
+		if temp[i].width+temp[i].offset.pos.x>maxx then
 			maxx=temp[i].width+temp[i].offset.pos.x
-		elseif temp[i].height>maxy then
+		elseif temp[i].height+temp[i].offset.pos.y>maxy then
 			maxy=temp[i].height+temp[i].offset.pos.y
 		end
 	end

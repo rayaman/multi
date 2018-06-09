@@ -249,6 +249,56 @@ function multi:systemThreadedBenchmark(n,p)
 	end)
 	return c
 end
+function multi:newSystemThreadedConsole(name)
+	local c={}
+	c.name = name
+	local sThread=multi.integration.THREAD
+	local GLOBAL=multi.integration.GLOBAL
+	function c:init()
+		require("multi")
+		if multi:getPlatform()=="love2d" then
+			GLOBAL=_G.GLOBAL
+			sThread=_G.sThread
+		end
+		local cc={}
+		if isMainThread then
+			if GLOBAL["__SYSTEM_CONSLOE__"] then
+				cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+			else
+				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSLOE__"):init()
+				multi:newThread("Threaded_Console",function()
+					while true do
+						thread.sleep(.001)
+						local data = cc.stream:pop()
+						if data then
+							local dat = table.remove(data,1)
+							if dat=="w" then
+								io.write(unpack(data))
+							elseif dat=="p" then
+								print(unpack(data))
+							end
+						end
+					end
+				end)
+			end
+		else
+			cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+		end
+		function cc:write(msg)
+			self.stream:push({"w",tostring(msg)})
+		end
+		function cc:print(...)
+			local tab = {...}
+			for i=1,#tab do
+				tab[i]=tostring(tab[i])
+			end
+			self.stream:push({"p",unpack(tab)})
+		end
+		return cc
+	end
+	GLOBAL[c.name]=c
+	return c
+end
 function multi:newSystemThreadedTable(name)
 	local c={}
 	c.name=name -- set the name this is important for identifying what is what

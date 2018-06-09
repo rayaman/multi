@@ -1,0 +1,5 @@
+MAIN: Love2d support is updated to 11.1
+
+May be bugs in supporting libraries, but the multitasking library is fully updated.
+
+The GuiManager may have a bug or 2, but I haven't found any ground breaking bugs that haven't been fixed
