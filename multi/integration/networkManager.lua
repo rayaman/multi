@@ -20,6 +20,9 @@ function multi:newNode(name,settings)
 	node.server = net:newServer(port) -- hosts the node using the default port
 	node.port = multi.defaultNetworkPort
 	-- Lets tell the network we are alive!
+	node.server.OnDataRecieved(function(server,data,cid,ip,port)
+		print("Got data from the master or another node!")
+	end)
 	node.server:broadcast("NODE_"..name)
 end
 function multi:newMaster(name,settings) -- You will be able to have more than one master connecting to a node if that is what you want to do. I want you to be able to have the freedom to code any way that you want to code. 
@@ -28,6 +31,7 @@ function multi:newMaster(name,settings) -- You will be able to have more than on
 	net.OnCastedClientInfo(function(client,name,ip,port)
 		print("Found a new node!")
 		-- Do the handshake and start up stuff here
+		client:send("Hello!")
 	end)
 	net:newCastedClients("NODE_(.+)") -- Searches for nodes and connects to them, the master.clients table will contain them by name
 end
