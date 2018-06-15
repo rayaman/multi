@@ -17,7 +17,7 @@ function multi:newNode(name,settings)
 		-- When I think of more they will be added here
 	end
 	local node = {}
-	node.server = net:newServer(port) -- hosts the node using the default port
+	node.server = net:newUDPServer(port) -- hosts the node using the default port
 	node.port = multi.defaultNetworkPort
 	-- Lets tell the network we are alive!
 	node.server.OnDataRecieved(function(server,data,cid,ip,port)
