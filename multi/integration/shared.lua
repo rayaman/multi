@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+multi = require("multi")
 function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
 	local c={} -- where we will store our object
 	c.name=name -- set the name this is important for the love2d side
@@ -182,8 +183,9 @@ function multi:newSystemThreadedConnection(name,protect)
 				table.remove(data,1)-- Remove the first 3 elements
 				table.remove(data,1)-- Remove the first 3 elements
 				con.obj:Fire(unpack(data))
-				multi:newThread("Clean_UP",function()
-					thread.sleep(con.cleanup)
+				local alarm = multi:newAlarm(con.cleanup)
+				alarm:OnRing(function()
+					alarm:Destroy()
 					local dat = con.queueCall:peek()
 					if not dat then return end
 					table.remove(data,1)-- Remove the first 3 elements
@@ -218,7 +220,7 @@ function multi:systemThreadedBenchmark(n,p)
 			if multi:getPlatform()=="love2d" then
 				GLOBAL=_G.GLOBAL
 				sThread=_G.sThread
-			end -- we cannot have upvalues... in love2d globals not locals must be used
+			end -- we cannot have upvalues... in love2d globals, not locals must be used
 			queue=sThread.waitFor("QUEUE"):init() -- always wait for when looking for a variable at the start of the thread!
 			multi:benchMark(sThread.waitFor("__SYSTEMBENCHMARK__")):OnBench(function(self,count)
 				queue:push(count)
@@ -266,17 +268,14 @@ function multi:newSystemThreadedConsole(name)
 				cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
 			else
 				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSLOE__"):init()
-				multi:newThread("Threaded_Console",function()
-					while true do
-						thread.sleep(.001)
-						local data = cc.stream:pop()
-						if data then
-							local dat = table.remove(data,1)
-							if dat=="w" then
-								io.write(unpack(data))
-							elseif dat=="p" then
-								print(unpack(data))
-							end
+				multi:newLoop(function()
+					local data = cc.stream:pop()
+					if data then
+						local dat = table.remove(data,1)
+						if dat=="w" then
+							io.write(unpack(data))
+						elseif dat=="p" then
+							print(unpack(data))
 						end
 					end
 				end)

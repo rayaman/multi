@@ -35,7 +35,7 @@ local function _INIT(luvitThread,timer)
 		end
 	end
 	-- Step 1 get setup threads on luvit... Sigh how do i even...
-	require("multi")
+	local multi = require("multi")
 	isMainThread=true
 	function multi:canSystemThread()
 		return true
@@ -123,5 +123,6 @@ local function _INIT(luvitThread,timer)
 	local interval = timer.setInterval(1, function ()
 		multi:uManager()
 	end)
+	return multi
 end
-return {init=function(threadHandle,timerHandle) _INIT(threadHandle,timerHandle) return GLOBAL,THREAD end}
+return {init=function(threadHandle,timerHandle) local multi = _INIT(threadHandle,timerHandle) return GLOBAL, THREAD end}

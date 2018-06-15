@@ -1,76 +1,45 @@
-# multi Version: 1.11.0 (Show me the love, love2d 11.1 support is here see changelog for details. Plus a new threaded object for testing!)
+# multi Version: 2.0.0 (Introducing Network Threads look at the changelog for what was added)
 
 **NOTE: I have been studying a lot about threading for the past few months and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
 
-In Changes you'll find documentation for(In Order):
-- Sterilizing Objects
-- System Threaded Job Queues
-- New mainloop functions
-- System Threaded Tables
-- System Threaded Benchmark
-- System Threaded Queues
-- Threading related features
-- And backwards compat stuff
-
-My multitasking library for lua. It is a pure lua binding if you ingore the integrations and the love2d compat. If you find any bugs or have any issues please let me know :). **If you don't see a table of contents try using the ReadMe.html file. It is eaiser to navigate the readme**</br>
+My multitasking library for lua. It is a pure lua binding if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know :). **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate the readme**</br>
 
 [TOC]
 
 INSTALLING
 ----------
-Note: The latest version of lualanes is required if you want to make use of system threads on lua 5.1+. I will update the dependencies for luarocks since this library should work fine on lua 5.1+
+Note: The latest version of Lua lanes is required if you want to make use of system threads on lua 5.1+. I will update the dependencies for Lua rocks since this library should work fine on lua 5.1+
 
-To install copy the multi folder into your enviroment and you are good to go</br>
-If you want to use the system threads then you'll need to install lanes!
+To install copy the multi folder into your environment and you are good to go</br>
+If you want to use the system threads, then you'll need to install lanes!
 **or** use luarocks
 
 ```
-luarocks install bin -- Inorder to use the new save state stuff
+luarocks install bin -- To use the new save state stuff
 luarocks install multi
 ```
-Note: In the near future you may be able to run multitasking code on multiple machines, network paralisim. This however will have to wait until I hammer out some bugs within the core of system threading itself.
+Note: Soon you may be able to run multitasking code on multiple machines, network parallelism. This however will have to wait until I hammer out some bugs within the core of system threading itself.
 
 See the rambling section to get an idea of how this will work.
 
 Discord
 -------
-For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also you can request features and stuff there as well.</br>
+For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also, you can request features and stuff there as well.</br>
 https://discord.gg/U8UspuA</br>
 
-**Upcoming Plans:** Adding network support for threading. Kinda like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a stand alone and joined versions of the libraries.
+**Upcoming Plans:** Adding network support for threading. Kind of like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a standalone and joined versions of the libraries.
 
 Planned features/TODO
 ---------------------
-- [x] ~~Add system threads for love2d that works like the lanesManager (loveManager, slight differences).~~
-- [x] ~~Improve performance of the library~~
-- [x] ~~Improve coroutine based threading scheduling~~
-- [ ] Improve love2d Idle thread cpu usage/Fix the performance when using system threads in love2d... Tricky Look at the rambling section for insight.
-- [x] ~~Add more control to coroutine based threading~~
-- [ ] Add more control to system based threading
 - [ ] Make practical examples that show how you can solve real problems
-- [x] ~~Add more features to support module creators~~
-- [x] ~~Make a framework for eaiser thread task distributing~~
-- [x] ~~Fix Error handling on threaded multi objects~~ Non threaded multiobjs will crash your program if they error though! Use multi:newThread() of multi:newSystemThread() if your code can error! Unless you use multi:protect() this however lowers performance!
-- [x] ~~Add multi:OnError(function(obj,err))~~
-- [ ] sThread.wrap(obj) **May or may not be completed** Theory: Allows interaction in one thread to affect it in another. The addition to threaded tables may make this possible!
-- [ ] SystemThreaded Actors -- After some tests i figured out a way to make this work... It will work slightly different though. This is due to the actor needing to be splittable...
-- [ ] LoadBalancing for system threads (Once SystemThreaded Actors are done)
-- [x] ~~Add more integrations~~
-- [ ] Fix SystemThreadedTables
-- [ ] Finish the wiki stuff. (11% done)
-- [ ] Test for unknown bugs
+- [ ] Finish the wiki stuff. (11% done) -- It's been at 11% for so long. I really need to get on this!
+- [ ] Test for unknown bugs -- This is always going on
+- [x] ~~Network Parallelism~~
 
 Known Bugs/Issues
 -----------------
-~~In regards to integrations, thread cancellation works slightly different for love2d and lanes. Within love2d I was unable to (To lazy to...) not use the multi library within the thread. A fix for this is to call `multi:Stop()` when you are done with your threaded code! This may change however if I find a way to work around this. In love2d in order to mimic the GLOBAL table I needed the library to constantly sync tha data... You can use the sThread.waitFor(varname), or sThread.hold(func) methods to sync the globals, to get the value instead of using GLOBAL and this could work. If you want to go this route I suggest setting multi.isRunning=true to prevent the auto runner from doing its thing! This will make the multi manager no longer function, but thats the point :P~~ THREAD.kill() should do the trick from within the thread. A listener could be made to detect when thread kill has been requested and sent to the running thread.
 
-Another bug concerns the SystemThreadedJobQueue, Only 1 can be used for now. Going to change in a future update
-
-~~And systemThreadedTables only supports 1 table between the main and worker thread! They do not work when shared between 2 or more threads. If you need that much flexiblity ust the GLOBAL table that all threads have.~~ **FIXED**
-
-~~For module creators using this library. I suggest using SystemThreadedQueues for data transfer instead of SystemThreadedTables for rapid data transfer, If you plan on having Constants that will always be the same then a table is a good idea! They support up to **n** threads and can be messed with and abused as much as you want :D~~ FIXED Use what you want!
-
-~~Love2D SystemThreadedTAbles do not send love2d userdata, use queues instead for that!~~ **FIXED**
+A bug concerns the SystemThreadedJobQueue, only 1 can be used for now. Might change in a future update
 
 Usage:</br>
 -----
@@ -84,12 +53,12 @@ alarm:OnRing(function(a)
 end)
 multi:mainloop() -- the main loop of the program, multi:umanager() exists as well to allow integration in other loops Ex: love2d love.update function. More on this binding in the wiki!
 ```
-The library is modular so you only need to require what you need to. Because of this, the global enviroment is altered</br>
+The library is modular, so you only need to require what you need to. Because of this, the global environment is altered</br>
 
 There are many useful objects that you can use</br>
 Check out the wiki for detailed usage, but here are the objects:</br>
 - Process#</br>
-- QueueQueuer#</br>
+- Queue#</br>
 - Alarm</br>
 - Loop</br>
 - Event</br>
@@ -107,15 +76,15 @@ Check out the wiki for detailed usage, but here are the objects:</br>
 - Job</br>
 - Function</br>
 - Watcher</br>
-Note: *Both a process and queue act like the multi namespace, but allows for some cool things. Because they use the other objects an example on them will be done last*</br>
+Note: *Both a process and queue act like the multi namespace but allows for some cool things. Because they use the other objects an example on them will be done last*</br>
 *Uses the built in coroutine features of lua, these have an interesting interaction with the other means of multi-tasking</br>
 Triggers are kind of useless after the creation of the Connection</br>
 Watchers have no real purpose as well I made it just because.</br>
 
 # Examples of each object being used</br>
-We already showed alarms in action so lets move on to a Loop object
+We already showed alarms in action so let’s move on to a Loop object
 
-Throughout these examples I am going to do some strange things in order to show other features of the library!
+Throughout these examples I am going to do some strange things to show other features of the library!
 
 LOOPS
 -----
@@ -123,10 +92,10 @@ LOOPS
 -- Loops: Have been moved to the core of the library require("multi") would work as well
 require("multi") -- gets the entire library
 count=0
-loop=multi:newLoop(function(self,dt) -- dt is delta time and self is a reference to itself
+loop=multi:newLoop(function(self,dt) -- dt is delta time and self are a reference to itself
   count=count+1
   if count > 10 then
-    self:Break() -- All methods on the multi objects are upper camel case, where as methods on the multi or process/queuer namespace are lower camel case
+    self:Break() -- All methods on the multi objects are upper camel case, whereas methods on the multi or process/queuer namespace are lower camel case
     -- self:Break() will stop the loop and trigger the OnBreak(func) method
     -- Stopping is the act of Pausing and deactivating the object! All objects can have the multiobj:Break() command on it!
   else
@@ -154,16 +123,16 @@ You broke me :(</br>
 
 With loops out of the way lets go down the line
 
-This library aims to be Async like. In reality everything is still on one thread *unless you are using the lanes integration module WIP* (More on that later)
+This library aims to be Async like. Everything is still on one thread *unless you are using the lanes integration module WIP* (A stable WIP, more on that later)
 
 EVENTS
 ------
 ```lua
--- Events, these were the first objects introduced into the library. I seldomly use them in their pure form though, but later on you'll see their advance uses!
--- Events on there own don't really do much... We are going to need 2 objects at least to get something going
+-- Events, these were the first objects introduced into the library. I seldomly use them in their pure form though, but later you'll see their advance uses!
+-- Events on their own don't really do much... We are going to need 2 objects at least to get something going
 require("multi") -- gets the entire library
 count=0
--- lets use the loop again to add to count!
+-- let’s use the loop again to add to count!
 loop=multi:newLoop(function(self,dt)
   count=count+1
 end)
@@ -181,7 +150,7 @@ STEPS
 -----
 ```lua
 require("multi")
--- Steps, are like for loops but non blocking... You can run a loop to infintity and everything will still run I will combine Steps with Ranges in this example.
+-- Steps, are like for loops but non-blocking... You can run a loop to infinity and everything will still run I will combine Steps with Ranges in this example.
 step1=multi:newStep(1,10,1,0) -- Some explaining is due. Argument 1 is the Start # Argument 2 is the ResetAt # (inclusive) Argument 3 is the count # (in our case we are counting by +1, this can be -1 but you need to adjust your start and resetAt numbers)
 -- The 4th Argument is for skipping. This is useful for timing and for basic priority management. A priority management system is included!
 step2=multi:newStep(10,1,-1,1) -- a second step, notice the slight changes!
@@ -189,7 +158,7 @@ step1:OnStart(function(self)
   print("Step Started!")
 end)
 step1:OnStep(function(self,pos)
-  if pos<=10 then -- what what is this? the step only goes to 10!!!
+  if pos<=10 then -- The step only goes to 10
     print("Stepping... "..pos)
    else
     print("How did I get here?")
@@ -197,27 +166,27 @@ step1:OnStep(function(self,pos)
 end)
 step1:OnEnd(function(self)
   print("Done!")
-  -- We finished here, but I feel like we could have reused this step in some way... Yeah I soule Reset() it, but what if i wanted to change it...
+  -- We finished here, but I feel like we could have reused this step in some way... I could use Reset() , but what if I wanted to change it...
   if self.endAt==10 then -- lets only loop once
 	self:Update(1,11,1,0) -- oh now we can reach that else condition!
   end
   -- Note Update() will restart the step!
 end)
 
--- step2 is bored lets give it some love :P
+-- step2 is bored let’s give it some love :P
 step2.range=step2:newRange() -- Set up a range object to have a nested step in a sense! Each nest requires a new range
 -- it is in your interest not to share ranges between objects! You can however do it if it suits your needs though
 step2:OnStep(function(self,pos)
   -- for 1=1,math.huge do
-    --  print("Haha I am holding the code up because I can!!!")
+    --  print("I am holding the code up because I can!")
   --end
-  -- We dont want to hold things up, but we want to nest.
-  -- Note a range is not nessary if the nested for loop has a small range, if however the range is rather large you may want to allow other objects to do some work
+  -- We don’t want to hold things up, but we want to nest.
+  -- Note a range is not necessary if the nested for loop has a small range, if however, the range is rather large you may want to allow other objects to do some work
   for i in self.range(1,100) do
-    print(pos,i) -- Now our nested for loop is using a range object which allows for other objects to get some cpu time while this one is running
+    print(pos,i) -- Now our nested for loop is using a range object which allows for other objects to get some CPU time while this one is running
   end
 end)
--- TSteps are just like alarms and steps mixed together, the only difference in construction is the 4th Argument. On a TStep that argument controls time. The defualt is 1
+-- TSteps are just like alarms and steps mixed together, the only difference in construction is the 4th Argument. On a TStep that argument controls time. The default is 1
 -- The Reset(n) works just like you would figure!
 step3=multi:newTStep(1,10,.5,2) -- lets go from 1 to 10 counting by .5 every 2 seconds
 step3:OnStep(function(self,pos)
@@ -227,7 +196,7 @@ multi:mainloop()
 ```
 # Output
 
-Note: the output on this one is huge!!! So I had to ... some parts! You need to run this for your self to see what is going on!</br>
+Note: the output on this one is huge!!! So, I had to ... some parts! You need to run this for yourself to see what is going on!</br>
 Step Started!</br>
 Stepping... 1</br>
 10	1</br>
@@ -246,7 +215,7 @@ require("multi")
 -- TLoops are loops that run ever n second. We will also look at condition objects as well
 -- Here we are going to modify the old loop to be a little different
 count=0
-loop=multi:newTLoop(function(self) -- We are only going to coult with this loop, but doing so using a condition!
+loop=multi:newTLoop(function(self) -- We are only going to count with this loop but doing so using a condition!
   while self:condition(self.cond) do
     count=count+1
   end
@@ -254,7 +223,7 @@ loop=multi:newTLoop(function(self) -- We are only going to coult with this loop,
   self:Destroy() -- Lets destroy this object, casting it to the dark abyss MUHAHAHA!!!
   -- the reference to this object will be a phantom object that does nothing!
 end,1) -- Notice the ',1' after the function! This is where you put your time value!
-loop.cond=multi:newCondition(function() return count<=100 end) -- conditions need a bit of work before i am happy with them
+loop.cond=multi:newCondition(function() return count<=100 end) -- conditions need a bit of work before I am happy with them
 multi:mainloop()
 ```
 # Output
@@ -266,22 +235,22 @@ These are my favorite objects and you'll see why. They are very useful objects f
 
 ```lua
 require("multi")
--- Lets create the events
+-- Let’s create the events
 yawn={} -- ill just leave that there
-OnCustomSafeEvent=multi:newConnection(true) -- lets pcall the calls incase something goes wrong defualt
-OnCustomEvent=multi:newConnection(false) -- lets not pcall the calls and let errors happen... We are good at coding though so lets get a speed advantage by not pcalling. Pcalling is useful for plugins and stuff that may have been coded badly and you can ingore those connections if need be.
+OnCustomSafeEvent=multi:newConnection(true) -- lets pcall the calls in case something goes wrong default
+OnCustomEvent=multi:newConnection(false) -- let’s not pcall the calls and let errors happen... We are good at coding though so let’s get a speed advantage by not pcalling. Pcalling is useful for plugins and stuff that may have been coded badly and you can ignore those connections if need be.
 OnCustomEvent:Bind(yawn) -- create the connection lookup data in yawn
 
--- Lets connect to them, a recent update adds a nice syntax to connect to these
+-- Let’s connect to them, a recent update adds a nice syntax to connect to these
 cd1=OnCustomSafeEvent:Connect(function(arg1,arg2,...)
   print("CSE1",arg1,arg2,...)
-end,"bob") -- lets give this connection a name
+end,"bob") -- let’s give this connection a name
 cd2=OnCustomSafeEvent:Connect(function(arg1,arg2,...)
   print("CSE2",arg1,arg2,...)
-end,"joe") -- lets give this connection a name
+end,"joe") -- let’s give this connection a name
 cd3=OnCustomSafeEvent:Connect(function(arg1,arg2,...)
   print("CSE3",arg1,arg2,...)
-end) -- lets not give this connection a name
+end) -- let’s not give this connection a name
 
 -- no need for connect, but I kept that function because of backwards compatibility.
 OnCustomEvent(function(arg1,arg2,...)
@@ -289,7 +258,7 @@ OnCustomEvent(function(arg1,arg2,...)
 end)
 
 -- Now within some loop/other object you trigger the connection like
-OnCustomEvent:Fire(1,2,"Hello!!!") -- fire all conections
+OnCustomEvent:Fire(1,2,"Hello!!!") -- fire all connections
 
 -- You may have noticed that some events have names! See the following example!
 OnCustomSafeEvent:getConnection("bob"):Fire(1,100,"Bye!") -- fire only bob!
@@ -322,7 +291,7 @@ You may think timers should be bundled with alarms, but they are a bit different
 TIMERS
 ------
 ```lua
--- You see the thing is that all time based objects use timers eg. Alarms, TSteps, and Loops. Timers are more low level!
+-- You see the thing is that all time-based objects use timers e.g. Alarms, TSteps, and Loops. Timers are more low level!
 require("multi")
 local clock = os.clock
 function sleep(n)  -- seconds
@@ -332,7 +301,7 @@ end -- we will use this later!
 
 timer=multi:newTimer()
 timer:Start()
--- lets do a mock alarm
+-- let’s do a mock alarm
 set=3 -- 3 seconds
 a=0
 while timer:Get()<=set do
@@ -357,7 +326,7 @@ sleep(1)
 print(timer:Get()) -- should be really close to the value of set + 2
 ```
 # Output
-Note: This will make more sense when you run it for your self</br>
+Note: This will make more sense when you run it for yourself</br>
 3 second(s) have passed!</br>
 3.001</br>
 3.001</br>
@@ -371,17 +340,17 @@ UPDATER
 ```lua
 -- Updaters: Have been moved to the core of the library require("multi") would work as well
 require("multi")
-updater=multi:newUpdater(5) -- really simple, think of a look with the skip feature of a step
+updater=multi:newUpdater(5) -- simple, think of a look with the skip feature of a step
 updater:OnUpdate(function(self)
   --print("updating...")
 end)
 -- Here every 5 steps the updater will do stuff!
--- But I feel it is now time to touch into priority management, so lets get into basic priority stuff and get into a more advance version of it
+-- But I feel it is now time to touch into priority management, so let’s get into basic priority stuff and get into a more advance version of it
 --[[
 multi.Priority_Core -- Highest form of priority
 multi.Priority_High
 multi.Priority_Above_Normal
-multi.Priority_Normal -- The defualt form of priority
+multi.Priority_Normal -- The default form of priority
 multi.Priority_Below_Normal
 multi.Priority_Low
 multi.Priority_Idle -- Lowest form of priority
@@ -391,7 +360,7 @@ We aren't going to use regular objects to test priority, but rather benchmarks!
 to set priority on an object though you would do
 multiobj:setPriority(one of the above)
 ]]
--- lets bench for 3 seconds using the 3 forms of priority! First no Priority
+-- let’s bench for 3 seconds using the 3 forms of priority! First no Priority
 multi:benchMark(3,nil,"Regular Bench: "):OnBench(function() -- the onbench() allows us to do each bench after each other!
   print("P1\n---------------")
   multi:enablePriority()
@@ -403,7 +372,7 @@ multi:benchMark(3,nil,"Regular Bench: "):OnBench(function() -- the onbench() all
   multi:benchMark(3,multi.Priority_Low,"Low:")
   multi:benchMark(3,multi.Priority_Idle,"Idle:"):OnBench(function()
     print("P2\n---------------")
-	-- Finally the 3rd form
+	-- Finally, the 3rd form
     multi:enablePriority2()
     multi:benchMark(3,multi.Priority_Core,"Core:")
     multi:benchMark(3,multi.Priority_High,"High:")
@@ -417,7 +386,7 @@ end)
 multi:mainloop() -- Notice how the past few examples did not need this, well only actors need to be in a loop! More on this in the wiki.
 ```
 # Output
-Note: These numbers will vary drastically depending on your compiler and cpu power</br>
+Note: These numbers will vary drastically depending on your compiler and CPU power</br>
 Regular Bench:  2094137 Steps in 3 second(s)!</br>
 P1</br>
 Below_Normal: 236022 Steps in 3 second(s)!</br>
@@ -440,7 +409,7 @@ Notice: Even though I started each bench at the same time the order that they fi
 
 Processes
 ---------
-A process allows you to group the Actor objects within a controlable interface
+A process allows you to group the Actor objects within a controllable interface
 ```lua
 require("multi")
 proc=multi:newProcess() -- takes an optional file as an argument, but for this example we aren't going to use that
@@ -448,7 +417,7 @@ proc=multi:newProcess() -- takes an optional file as an argument, but for this e
 b=0
 loop=proc:newTLoop(function(self)
 	a=a+1
-	proc:Pause() -- pauses the cpu cycler for this processor! Individual objects are not paused, however because they aren't getting cpu time they act as if they were paused
+	proc:Pause() -- pauses the CPU cycler for this processor! Individual objects are not paused, however because they aren't getting CPU time they act as if they were paused
 end,.1)
 updater=proc:newUpdater(multi.Priority_Idle) -- priority can be used in skip arguments as well to manage priority without enabling it!
 updater:OnUpdate(function(self)
@@ -456,14 +425,14 @@ updater:OnUpdate(function(self)
 end)
 a=0 -- a counter
 loop2=proc:newLoop(function(self,dt)
-	print("Lets Go!")
+	print("Let’s Go!")
 	self:hold(3) -- this will keep this object from doing anything! Note: You can only have one hold active at a time! Multiple are possible, but results may not be as they seem see * for how hold works
-	-- Within a process using hold will keep it alive until the hold is satisified!
+	-- Within a process using hold will keep it alive until the hold is satisfied!
 	print("Done being held for 1 second")
 	self:hold(function() return a>10 end)
 	print("A is now: "..a.." b is also: "..b)
 	self:Destroy()
-	self.Parent:Pause() -- lets say you don't have the reference to the process!
+	self.Parent:Pause() -- let’s say you don't have the reference to the process!
 	os.exit()
 end)
 -- Notice this is now being created on the multi namespace
@@ -476,7 +445,7 @@ proc:Start()
 multi:mainloop()
 ```
 # Output
-Lets Go!</br>
+Let’s Go!</br>
 Done being held for 1 second</br>
 A is now: 29 b is also: 479</br>
 
@@ -488,7 +457,7 @@ function multi:hold(task)
 	if type(task)=='number' then -- a sleep cmd
 		local timer=multi:newTimer()
 		timer:Start()
-		while timer:Get()<task do -- This while loop is what makes using multiple holds tricky... If the outer while is good before the nested one then the outter one will have to wait! There is a way around this though!
+		while timer:Get()<task do -- This while loop is what makes using multiple holds tricky... If the outer while is good before the nested one then the outer one will have to wait! There is a way around this though!
 			if love then
 				self.Parent:lManager()
 			else
@@ -567,7 +536,7 @@ Ring ring!!!</br>
 
 Threads
 -------
-These fix the hold problem that you get with regular objects, and they work exactly the same! They even have some extra features that make them really useful.</br>
+These fix the hold problem that you get with regular objects, and they work the same! They even have some extra features that make them really useful.</br>
 ```lua
 require("multi")
 test=multi:newThreadedProcess("main") -- you can thread processors and all Actors see note for a list of actors you can thread!
@@ -633,7 +602,7 @@ Threadable Actors
 Functions
 ---------
 If you ever wanted to pause a function then great now you can
-The uses of the Function object allows one to have a method that can run free in a sense
+The use of the Function object allows one to have a method that can run free in a sense
 ```lua
 require("multi")
 func=multi:newFunction(function(self,arg1,arg2,...)
@@ -687,7 +656,7 @@ trig:Fire(1,2,3,"Hello",true)
 
 Tasks
 -----
-Tasks allow you to run a block of code before the multi mainloops does it thing. Tasks still have a use, but depending on how you program they aren't needed.</br>
+Tasks allow you to run a block of code before the multi mainloop does it thing. Tasks still have a use but depending on how you program they aren't needed.</br>
 ```lua
 require("multi")
 multi:newTask(function()
@@ -711,7 +680,7 @@ As seen in the example above the tasks were done before anything else in the mai
 
 Jobs
 ----
-Jobs were a strange feature that was created for throttling connections! When I was building a irc bot around this library I couldn't have messages posting too fast due to restrictions. Jobs allowed functions to be added to a queue that were executed after a certain amount of time has passed
+Jobs were a strange feature that was created for throttling connections! When I was building an IRC bot around this library I couldn't have messages posting too fast due to restrictions. Jobs allowed functions to be added to a queue that were executed after a certain amount of time has passed
 ```lua
 require("multi") -- jobs use alarms I am pondering if alarms should be added to the core or if jobs should use timers instead...
 -- jobs are built into the core of the library so no need to require them
@@ -750,7 +719,7 @@ Watchers allow you to monitor a variable and trigger an event when the variable 
 ```lua
 require("multi")
 a=0
-watcher=multi:newWatcher(_G,"a") -- watch a in the global enviroment
+watcher=multi:newWatcher(_G,"a") -- watch a in the global environment
 watcher:OnValueChanged(function(self,old,new)
 	print(old,new)
 end)
@@ -769,7 +738,7 @@ multi:mainloop()
 Timeout management
 ------------------
 ```lua
--- Note: I used a tloop so I could control the output of the program a bit.
+-- Note: I used a tloop, so I could control the output of the program a bit.
 require("multi")
 a=0
 inc=1 -- change to 0 to see it not met at all, 1 if you want to see the first condition not met but the second and 2 if you want to see it meet the condition on the first go.
@@ -818,7 +787,7 @@ We did it!	1	2	3</br>
 Rambling
 --------
 5/23/18:
-When it comes to running code across different systems we run into a problem. It takes time to send objects from one maching to another. In the beginning only local networks will be supported. I may add support to send commands to another network to do computing. Like having your own lus cloud. userdata will never be allowed to run on other machines. It is not possible unless the library you are using allows userdata to be turned into a string and back into an object. With this feature you want to send a command that will take time or needs tons of them done millions+, reason being networks are not that "fast" and only simple objects can be sent. If you mirror your enviroment then you can do some cool things.
+When it comes to running code across different systems we run into a problem. It takes time to send objects from one matching to another. In the beginning only, local networks will be supported. I may add support to send commands to another network to do computing. Like having your own lua cloud. userdata will never be allowed to run on other machines. It is not possible unless the library you are using allows userdata to be turned into a string and back into an object. With this feature you want to send a command that will take time or needs tons of them done millions+, reason being networks are not that "fast" and only simple objects can be sent. If you mirror your environment then you can do some cool things.
 
 The planned structure will be something like this:
 multi-Single Threaded Multitasking
@@ -845,7 +814,7 @@ multi:mainloop()
 ```lua
 GLOBAL,sThread=require("multi.integration.networkManager").init() -- This will determine if one is using lanes,love2d, or luvit
 node = multi:newNode("NodeName","MainSystem") -- Search the network for the host, connect to it and be ready for requests!
--- On the main thread, a simple multi:newNetworkThread thread and also non system threads, you can access global data without an issue. When dealing with system threads is when you have a problem.
+-- On the main thread, a simple multi:newNetworkThread thread and non-system threads, you can access global data without an issue. When dealing with system threads is when you have a problem.
 node:setLog{
 	maxLines = 10000,
     cleanOnInterval = true,
@@ -853,30 +822,28 @@ node:setLog{
     noLog = false -- default is false, make true if you do not need a log
 }
 node:settings{
-	maxJobs = 100, -- Job queues will respect this as well as the host when it is figuting out which node is under the least load. Default: 0 or infinite
+	maxJobs = 100, -- Job queues will respect this as well as the host when it is figuring out which node is under the least load. Default: 0 or infinite
     sendLoadInterval = 60 -- every 60 seconds update the host of the nodes load
     sendLoad = true -- default is true, tells the server how stressed the system is
 }
 multi:mainloop()
--- Note: the node will contain a log of all the commands that it gets. A file called "NodeName.log" will contain the info. You can set the limit by lines or file size. Also you can set it to clear the log every interval of time if an error does not exist. All errors are both logged and sent to the host as well. You can have more than one host and more than one node(duh :P).
+-- Note: the node will contain a log of all the commands that it gets. A file called "NodeName.log" will contain the info. You can set the limit by lines or file size. Also, you can set it to clear the log every interval of time if an error does not exist. All errors are both logged and sent to the host as well. You can have more than one host and more than one node(duh :P).
 ```
 The goal of the node is to set up a simple and easy way to run commands on a remote machine.
 
-There are 2 main ways you can use this feature. 1. One node per machine with system threads being able to use the full processing power of the machine. 2. Multiple nodes on one machine where each node is acting like its own thread. And of course a mix of the two is indeed possible.
+There are 2 main ways you can use this feature. 1. One node per machine with system threads being able to use the full processing power of the machine. 2. Multiple nodes on one machine where each node is acting like its own thread. And of course, a mix of the two is indeed possible.
 
 
-Love2d Sleeping reduces the cpu time making my load detection think the system is under more load, thus preventing it from sleeping... I will look into other means. As of right now it will not eat all of your cpu if threads are active. For now I suggest killing threads that aren't needed anymore. On lanes threads at idle use 0% cpu and it is amazing. A state machine may solve what I need though. One state being idle state that sleeps and only goes into the active state if a job request or data is sent to it... after some time of not being under load it wil switch back into the idle state... We'll see what happens.
+Love2d Sleeping reduces the CPU time making my load detection think the system is under more load, thus preventing it from sleeping... I will investigate other means. As of right now it will not eat all your CPU if threads are active. For now, I suggest killing threads that aren't needed anymore. On lanes threads at idle use 0% CPU and it is amazing. A state machine may solve what I need though. One state being idle state that sleeps and only goes into the active state if a job request or data is sent to it... after some time of not being under load it will switch back into the idle state... We'll see what happens.
 
-Love2d doesn't like to send functions through channels. By defualt it does not support this. I achieve this by dumping the function and loadstring it on the thread. This however is slow. For the System Threaded Job Queue I had to change my original idea of sending functions as jobs. The current way you do it now is register a job functions once and then call that job across the thread through a queue. Each worker thread pops from the queue and returns the job. The Job ID is automatically updated and allows you to keep track of the order that the data comes in. A table with # indexes can be used to originze the data...
+Love2d doesn't like to send functions through channels. By default, it does not support this. I achieve this by dumping the function and loadstring it on the thread. This however is slow. For the System Threaded Job Queue, I had to change my original idea of sending functions as jobs. The current way you do it now is register a job functions once and then call that job across the thread through a queue. Each worker thread pops from the queue and returns the job. The Job ID is automatically updated and allows you to keep track of the order that the data comes in. A table with # indexes can be used to organize the data...
 
-In regards to benchmarking. If you see my bench marks and are wondering they are 10x better its because I am using luajit for my tests. I highly recommend using luajit for my library, but lua 5.1 will work just as well, but not as fast.
+Regarding benchmarking. If you see my bench marks and are wondering they are 10x better it’s because I am using luajit for my tests. I highly recommend using luajit for my library, but lua 5.1 will work just as well, but not as fast.
 
-So while working on the jobQueue:doToAll() method I figured out why love2d's threaded tables were acting up when more than 1 thread was sharing the table. It turns out 1 thread was eating all of the pops from the queue and starved all of the other queues... Ill need to use the same trick I did with GLOBAL to fix the problem... However at the rate I am going threading in love will become way slower. I might use the regualr GLOBAL to manage data internally for threadedtables...
+So, while working on the jobQueue:doToAll() method I figured out why love2d's threaded tables were acting up when more than 1 thread was sharing the table. It turns out 1 thread was eating all the pops from the queue and starved all the other queues... I’ll need to use the same trick I did with GLOBAL to fix the problem... However, at the rate I am going threading in love will become way slower. I might use the regular GLOBAL to manage data internally for threadedtables...
 
-It has been awhile since I had to bring out the Multi Functions... Syncing within threads are a pain! I had no idea what a task it would be to get something as simple as syncing data was going to be... I will probably add a SystemThreadedSyncer in the future because it will make life eaiser for you guys as well. SystemThreadedTables are still not going to work on love2d, but will work fine on lanes... I have a solution and it is being worked on... Depending on when I pust the next update to this library the second half of this ramble won't apply anymore
+I have been using this (EventManager --> MultiManager --> now multi) for my own purposes and started making this when I first started learning lua. You can see how the code changed and evolved throughout the years. I tried to include all the versions that still existed on my HDD.
 
-I have been using this (EventManager --> MultiManager --> now multi) for my own purposes and started making this when I first started learning lua. You are able to see how the code changed and evolved throughout the years. I tried to include all the versions that still existed on my HDD.
+I added my old versions to this library... It started out as the EventManager and was kind of crappy, but it was the start to this library. It kept getting better and better until it became what it is today. There are some features that no longer exist in the latest version, but they were remove because they were useless... I added these files to the GitHub so for those interested can see into my mind in a sense and see how I developed the library before I used GitHub.
 
-I added my old versions to this library... It started out as the EventManager and was kinda crappy but it was the start to this library. It kept getting better and better until it became what it is today. There are some features that nolonger exist in the latest version, but they were remove because they were useless... I added these files to the github so for those interested can see into my mind in a sense and see how I developed the library before I used github.
-
-The first version of the EventManager was function based not object based and benched at about 2000 steps per second... Yeah that was bad... I used loadstring and it was a mess... Take a look and see how it grew throughout the years I think it may intrest some of you guys!
+The first version of the EventManager was function based not object based and benched at about 2000 steps per second... Yeah that was bad... I used loadstring and it was a mess... Look and see how it grew throughout the years I think it may interest some of you guys!

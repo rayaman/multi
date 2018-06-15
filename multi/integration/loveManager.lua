@@ -1,4 +1,4 @@
-require("multi.compat.love2d")
+local multi = require("multi.compat.love2d")
 function multi:canSystemThread()
 	return true
 end

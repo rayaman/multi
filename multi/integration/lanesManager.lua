@@ -32,7 +32,7 @@ end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
 --~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
-require("multi") -- get it all and have it on all lanes
+local multi = require("multi") -- get it all and have it on all lanes
 isMainThread=true
 function multi:canSystemThread()
 	return true
@@ -40,7 +40,6 @@ end
 function multi:getPlatform()
 	return "lanes"
 end
-local multi=multi
 -- Step 2 set up the linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff
 local __SleepingLinda = lanes.linda() -- handles sleeping stuff
@@ -143,4 +142,4 @@ multi.integration={} -- for module creators
 multi.integration.GLOBAL=GLOBAL
 multi.integration.THREAD=THREAD
 require("multi.integration.shared")
-return {init=function() return GLOBAL,THREAD end}
+return {init=function() return GLOBAL, THREAD end}

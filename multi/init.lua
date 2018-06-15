@@ -22,41 +22,38 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 require("bin")
-multi 				= {}
-multi.Version		= "1.11.0"
-multi._VERSION		= "1.11.0"
-multi.stage			= "stable"
-multi.__index		= multi
-multi.Mainloop		= {}
-multi.Tasks			= {}
-multi.Tasks2		= {}
-multi.Garbage		= {}
-multi.ender			= {}
-multi.Children		= {}
-multi.Paused		= {}
-multi.Active		= true
-multi.fps			= 60
-multi.Id			= -1
-multi.Type			= "mainprocess"
-multi.Rest			= 0
-multi._type			= type
-multi.Jobs			= {}
-multi.queue			= {}
-multi.jobUS			= 2
-multi.clock			= os.clock
-multi.time			= os.time
-multi.LinkedPath	= multi
-multi.isRunning		= false
+local multi = {}
+multi.Version = "2.0.0"
+multi._VERSION = "2.0.0"
+multi.stage = "stable"
+multi.__index = multi
+multi.Mainloop = {}
+multi.Garbage = {}
+multi.ender = {}
+multi.Children = {}
+multi.Active = true
+multi.fps = 60
+multi.Id = -1
+multi.Type = "mainprocess"
+multi.Rest = 0
+multi._type = type
+multi.Jobs = {}
+multi.queue = {}
+multi.jobUS = 2
+multi.clock = os.clock
+multi.time = os.time
+multi.LinkedPath = multi
+multi.isRunning = false
 --Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
-multi.Priority_Core			= 1
-multi.Priority_High			= 4
-multi.Priority_Above_Normal	= 16
-multi.Priority_Normal		= 64
-multi.Priority_Below_Normal	= 256
-multi.Priority_Low			= 1024
-multi.Priority_Idle			= 4096
-multi.PStep					= 1
-multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
+multi.Priority_Core = 1
+multi.Priority_High = 4
+multi.Priority_Above_Normal = 16
+multi.Priority_Normal = 64
+multi.Priority_Below_Normal = 256
+multi.Priority_Low = 1024
+multi.Priority_Idle = 4096
+multi.PStep = 1
+multi.PList = {multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
 --^^^^
 multi.PriorityTick=1 -- Between 1, 2 and 4
 multi.Priority=multi.Priority_Core
@@ -204,65 +201,6 @@ function multi.executeFunction(name,...)
 		print('Error: Not a function')
 	end
 end
-function multi:waitFor(obj)
-	local value=false
-	self.__waiting=function()
-		value=true
-	end
-	obj:connectFinal(self.__waiting)
-	self:hold(function() return value end)
-end
-multi.WaitFor=multi.waitFor
-function multi:reboot(r)
-	local before=collectgarbage('count')
-	multi.Mainloop={}
-	multi.Tasks={}
-	multi.Tasks2={}
-	multi.Garbage={}
-	multi.ender={}
-	multi.Children={}
-	multi.Paused={}
-	multi.Active=true
-	multi.fps=60
-	multi.Id=-1
-	multi.Type='mainprocess'
-	multi.Rest=0
-	multi._type=type
-	multi.Jobs={}
-	multi.queue={}
-	multi.jobUS=2
-	multi.clock=os.clock
-	multi.time=os.time
-	multi.LinkedPath=multi
-	multi.isRunning=false
-	multi.Priority_Core=1
-	multi.Priority_High=4
-	multi.Priority_Above_Normal=16
-	multi.Priority_Normal=64
-	multi.Priority_Below_Normal=256
-	multi.Priority_Low=1024
-	multi.Priority_Idle=4096
-	multi.PList={multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
-	multi.PStep=1
-	multi.PriorityTick=1
-	multi.Priority=multi.Priority_Core
-	multi.threshold=256
-	multi.threstimed=.001
-	if r then
-		for i,v in pairs(_G) do
-			if type(i)=='table' then
-				if i.Parent and i.Id and i.Act then
-					_G[i]={}
-				end
-			end
-		end
-	end
-	collectgarbage()
-	local after=collectgarbage('count')
-	print([[Before rebooting total Ram used was ]]..before..[[Kb
-After rebooting total Ram used is ]]..after..[[ Kb
-A total of ]]..(before-after)..[[Kb was cleaned up]])
-end
 function multi:getChildren()
 	return self.Mainloop
 end
@@ -287,62 +225,6 @@ function multi:getError()
 		return self.error
 	end
 end
-function multi:Do_Order()
-	local Loop=self.Mainloop
-	_G.ID=0
-	for _D=#Loop,1,-1 do
-		if Loop[_D] then
-			if Loop[_D].Active then
-				Loop[_D].Id=_D
-				self.CID=_D
-				Loop[_D]:Act()
-			end
-		end
-	end
-end
-function multi:enablePriority()
-	function self:Do_Order()
-		local Loop=self.Mainloop
-		_G.ID=0
-		local PS=self
-		for _D=#Loop,1,-1 do
-			for P=1,7 do
-				if Loop[_D] then
-					if (PS.PList[P])%Loop[_D].Priority==0 then
-						if Loop[_D].Active then
-							Loop[_D].Id=_D
-							self.CID=_D
-							Loop[_D]:Act()
-						end
-					end
-				end
-			end
-		end
-	end
-end
-function multi:enablePriority2()
-	function self:Do_Order()
-		local Loop=self.Mainloop
-		_G.ID=0
-		local PS=self
-		for _D=#Loop,1,-1 do
-			if Loop[_D] then
-				if (PS.PStep)%Loop[_D].Priority==0 then
-					if Loop[_D].Active then
-						Loop[_D].Id=_D
-						self.CID=_D
-						Loop[_D]:Act()
-					end
-				end
-			end
-		end
-		PS.PStep=PS.PStep+1
-		if PS.PStep>self.Priority_Idle then
-			PS.PStep=1
-		end
-	end
-end
-multi.disablePriority=multi.unProtect
 function multi:benchMark(sec,p,pt)
 	local temp=self:newLoop(function(self,t)
 		if self.clock()-self.init>self.sec then
@@ -389,35 +271,6 @@ function multi:IsAnActor()
 end
 function multi:OnMainConnect(func)
 	table.insert(self.func,func)
-end
-function multi:protect()
-	function self:Do_Order()
-		local Loop=self.Mainloop
-		for _D=#Loop,1,-1 do
-			if Loop[_D]~=nil then
-				Loop[_D].Id=_D
-				self.CID=_D
-				local status, err=pcall(Loop[_D].Act,Loop[_D])
-				if err and not(Loop[_D].error) then
-					Loop[_D].error=err
-					self.OnError:Fire(Loop[_D],err)
-				end
-			end
-		end
-	end
-end
-function multi:unProtect()
-	local Loop=self.Mainloop
-	_G.ID=0
-	for _D=#Loop,1,-1 do
-		if Loop[_D] then
-			if Loop[_D].Active then
-				Loop[_D].Id=_D
-				self.CID=_D
-				Loop[_D]:Act()
-			end
-		end
-	end
 end
 function multi:reallocate(o,n)
 	n=n or #o.Mainloop+1
@@ -484,10 +337,6 @@ function multi:getType()
 	return self.Type
 end
 multi.GetType=multi.getType
-function multi:Sleep(n)
-	self:hold(n)
-end
-multi.sleep=multi.Sleep
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
@@ -531,8 +380,6 @@ function multi:Pause()
 		self.Active=false
 		if self.Parent.Mainloop[self.Id]~=nil then
 			table.remove(self.Parent.Mainloop,self.Id)
-			table.insert(self.Parent.Paused,self)
-			self.PId=#self.Parent.Paused
 		end
 	end
 end
@@ -545,18 +392,12 @@ function multi:Resume()
 		end
 	else
 		if self:isPaused() then
-			table.remove(self.Parent.Paused,self.PId)
 			table.insert(self.Parent.Mainloop,self)
 			self.Id=#self.Parent.Mainloop
 			self.Active=true
 		end
 	end
 end
-function multi:resurrect()
-	table.insert(self.Parent.Mainloop,self)
-	self.Active=true
-end
-multi.Resurrect=multi.resurrect
 function multi:Destroy()
 	if self.Type=='process' or self.Type=='mainprocess' then
 		local c=self:getChildren()
@@ -573,69 +414,6 @@ function multi:Destroy()
 			end
 		end
 		self.Active=false
-	end
-end
-
-function multi:hold(task)
-	self:Pause()
-	self.held=true
-	if type(task)=='number' then
-		local timer=multi:newTimer()
-		timer:Start()
-		while timer:Get()<task do
-			if love then
-				if love.thread then
-					self.Parent:Do_Order()
-				else
-					self.Parent:lManager()
-				end
-			else
-				self.Parent:Do_Order()
-			end
-		end
-		self:Resume()
-		self.held=false
-	elseif type(task)=='function' then
-		local env=self.Parent:newEvent(task)
-		env:OnEvent(function(envt) envt:Pause() envt.Active=false end)
-		while env.Active do
-			if love then
-				if love.graphics then
-					self.Parent:lManager()
-				else
-					self.Parent:Do_Order()
-				end
-			else
-				self.Parent:Do_Order()
-			end
-		end
-		env:Destroy()
-		self:Resume()
-		self.held=false
-	else
-		print('Error Data Type!!!')
-	end
-end
-multi.Hold=multi.hold
-function multi:oneTime(func,...)
-	if not(self.Type=='mainprocess' or self.Type=='process') then
-		for _k=1,#self.Parent.Tasks2 do
-			if self.Parent.Tasks2[_k]==func then
-				return false
-			end
-		end
-		table.insert(self.Parent.Tasks2,func)
-		func(...)
-		return true
-	else
-		for _k=1,#self.Tasks2 do
-			if self.Tasks2[_k]==func then
-				return false
-			end
-		end
-		table.insert(self.Tasks2,func)
-		func(...)
-		return true
 	end
 end
 function multi:Reset(n)
@@ -664,7 +442,6 @@ function multi:newBase(ins)
 	c.ender={}
 	c.important={}
 	c.Id=0
-	c.PId=0
 	c.Act=function() end
 	c.Parent=self
 	c.held=false
@@ -682,21 +459,17 @@ function multi:newProcess(file)
 	c.Parent=self
 	c.Active=true
 	c.func={}
-	c.Id=0
 	c.Type='process'
 	c.Mainloop={}
-	c.Tasks={}
-	c.Tasks2={}
 	c.Garbage={}
 	c.Children={}
-	c.Paused={}
 	c.Active=true
 	c.Id=-1
 	c.Rest=0
 	c.Jobs={}
 	c.queue={}
 	c.jobUS=2
-	c.l=self:newLoop(function(self,dt) c:uManager(dt) end)
+	c.l=self:newLoop(function(self,dt) c:uManager() end)
 	c.l:Pause()
 	function c:getController()
 		return c.l
@@ -926,7 +699,6 @@ function multi:newJob(func,name)
 	c.Active=true
 	c.func={}
 	c.Id=0
-	c.PId=0
 	c.Parent=self
 	c.Type='job'
 	c.trigfunc=func or function() end
@@ -974,111 +746,142 @@ function multi:newCondition(func)
 	return c
 end
 multi.NewCondition=multi.newCondition
-function multi:mainloop()
+function multi:mainloop(settings)
 	if not multi.isRunning then
-		multi.isRunning=true
-		for i=1,#self.Tasks do
-			self.Tasks[i](self)
+		local protect = false
+		local priority = false
+		if settings then
+			if settings.preLoop then
+				settings.preLoop(self)
+			end
+			protect = settings.protect
+			priority = settings.priority
 		end
+		multi.isRunning=true
 		rawset(self,'Start',self.clock())
 		while self.Active do
-			self:Do_Order()
-		end
-	else
-		return "Already Running!"
-	end
-end
-function multi:protectedMainloop()
-	multi:protect()
-	if not multi.isRunning then
-		multi.isRunning=true
-		for i=1,#self.Tasks do
-			self.Tasks[i](self)
-		end
-		rawset(self,'Start',self.clock())
-		while self.Active do
-			self:Do_Order()
-		end
-	else
-		return "Already Running!"
-	end
-end
-function multi:unprotectedMainloop()
-	multi:unProtect()
-	if not multi.isRunning then
-		multi.isRunning=true
-		for i=1,#self.Tasks do
-			self.Tasks[i](self)
-		end
-		rawset(self,'Start',self.clock())
-		while self.Active do
-			local Loop=self.Mainloop
-			_G.ID=0
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if Loop[_D].Active then
-						Loop[_D].Id=_D
-						self.CID=_D
-						Loop[_D]:Act()
+			if priority==1 then
+				local Loop=self.Mainloop
+				local PS=self
+				for _D=#Loop,1,-1 do
+					for P=1,7 do
+						if Loop[_D] then
+							if (PS.PList[P])%Loop[_D].Priority==0 then
+								if Loop[_D].Active then
+									self.CID=_D
+									if not protect then
+										Loop[_D]:Act()
+									else
+										local status, err=pcall(Loop[_D].Act,Loop[_D])
+										if err then
+											Loop[_D].error=err
+											self.OnError:Fire(Loop[_D],err)
+										end
+									end
+								end
+							end
+						end
 					end
 				end
-			end
-		end
-	else
-		return "Already Running!"
-	end
-end
-function multi:prioritizedMainloop1()
-	multi:enablePriority()
-	if not multi.isRunning then
-		multi.isRunning=true
-		for i=1,#self.Tasks do
-			self.Tasks[i](self)
-		end
-		rawset(self,'Start',self.clock())
-		while self.Active do
-			local Loop=self.Mainloop
-			_G.ID=0
-			local PS=self
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if (PS.PList[PS.PStep])%Loop[_D].Priority==0 then
+			elseif priority==2 then
+				local Loop=self.Mainloop
+				local PS=self
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
+						if (PS.PStep)%Loop[_D].Priority==0 then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+									end
+								end
+							end
+						end
+					end
+				end
+				PS.PStep=PS.PStep+1
+				if PS.PStep>self.Priority_Idle then
+					PS.PStep=1
+				end
+			else
+				local Loop=self.Mainloop
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
 						if Loop[_D].Active then
-							Loop[_D].Id=_D
 							self.CID=_D
-							Loop[_D]:Act()
+							if not protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+								end
+							end
 						end
 					end
 				end
 			end
-			PS.PStep=PS.PStep+1
-			if PS.PStep>7 then
-				PS.PStep=1
-			end
 		end
 	else
 		return "Already Running!"
 	end
 end
-function multi:prioritizedMainloop2()
-	multi:enablePriority2()
-	if not multi.isRunning then
-		multi.isRunning=true
-		for i=1,#self.Tasks do
-			self.Tasks[i](self)
+function multi:uManager(settings)
+	if settings then
+		if settings.preLoop then
+			settings.preLoop(self)
 		end
-		rawset(self,'Start',self.clock())
-		while self.Active do
+	end
+	self.uManager=self.uManagerRef
+end
+function multi:uManagerRef(settings)
+	if self.Active then
+		if settings.priority==1 then
 			local Loop=self.Mainloop
-			_G.ID=0
+			local PS=self
+			for _D=#Loop,1,-1 do
+				for P=1,7 do
+					if Loop[_D] then
+						if (PS.PList[P])%Loop[_D].Priority==0 then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not settings.protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		elseif settings.priority==2 then
+			local Loop=self.Mainloop
 			local PS=self
 			for _D=#Loop,1,-1 do
 				if Loop[_D] then
 					if (PS.PStep)%Loop[_D].Priority==0 then
 						if Loop[_D].Active then
-							Loop[_D].Id=_D
 							self.CID=_D
-							Loop[_D]:Act()
+							if not settings.protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+								end
+							end
 						end
 					end
 				end
@@ -1087,28 +890,25 @@ function multi:prioritizedMainloop2()
 			if PS.PStep>self.Priority_Idle then
 				PS.PStep=1
 			end
+		else
+			local Loop=self.Mainloop
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Active then
+						self.CID=_D
+						if not settings.protect then
+							Loop[_D]:Act()
+						else
+							local status, err=pcall(Loop[_D].Act,Loop[_D])
+							if err then
+								Loop[_D].error=err
+								self.OnError:Fire(Loop[_D],err)
+							end
+						end
+					end
+				end
+			end
 		end
-	else
-		return "Already Running!"
-	end
-end
-function multi._tFunc(self,dt)
-	for i=1,#self.Tasks do
-		self.Tasks[i](self)
-	end
-	if dt then
-		self.pump=true
-	end
-	self.pumpvar=dt
-	rawset(self,'Start',self.clock())
-end
-function multi:uManager(dt)
-	if self.Active then
-		self:oneTime(self._tFunc,self,dt)
-		function self:uManager(dt)
-			self:Do_Order()
-		end
-		self:Do_Order()
 	end
 end
 --Core Actors
@@ -1310,9 +1110,6 @@ function multi:newStep(start,reset,count,skip)
 	end
 	self:create(c)
 	return c
-end
-function multi:newTask(func)
-	table.insert(self.Tasks,func)
 end
 function multi:newTLoop(func,set)
 	local c=self:newBase()
@@ -1608,7 +1405,6 @@ function multi:newTBase(name)
 	c.func={}
 	c.ender={}
 	c.Id=0
-	c.PId=0
 	c.Parent=self
 	c.important={}
 	c.held=false
@@ -2003,7 +1799,6 @@ function multi:newThreadedProcess(name)
 		ct.func={}
 		ct.ender={}
 		ct.Id=0
-		ct.PId=0
 		ct.Act=function() end
 		ct.Parent=self
 		ct.held=false
@@ -2017,11 +1812,8 @@ function multi:newThreadedProcess(name)
 	c.Id=0
 	c.Type='process'
 	c.Mainloop={}
-	c.Tasks={}
-	c.Tasks2={}
 	c.Garbage={}
 	c.Children={}
-	c.Paused={}
 	c.Active=true
 	c.Id=-1
 	c.Rest=0
@@ -2166,7 +1958,6 @@ function multi:ToString()
 			ender=self.ender,
 			-- IDK if these need to be present...
 			-- Id=self.Id,
-			-- PId=self.PId,
 			held=self.held,
 		}
 	else
@@ -2179,7 +1970,6 @@ function multi:ToString()
 			ender=self.ender,
 			-- IDK if these need to be present...
 			-- Id=self.Id,
-			-- PId=self.PId,
 			held=self.held,
 		}
 	end
@@ -2399,3 +2189,4 @@ multi.load_updater:OnUpdate(function(self)
 		self.Parent.dStepB = os.clock()
 	end
 end)
+return multi
