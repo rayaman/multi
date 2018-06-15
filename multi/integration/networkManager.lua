@@ -24,6 +24,7 @@ function multi:newNode(name,settings)
 		print("Got data from the master or another node!")
 	end)
 	node.server:broadcast("NODE_"..name)
+	return node
 end
 function multi:newMaster(name,settings) -- You will be able to have more than one master connecting to a node if that is what you want to do. I want you to be able to have the freedom to code any way that you want to code. 
 	local master = {}
@@ -34,6 +35,7 @@ function multi:newMaster(name,settings) -- You will be able to have more than on
 		client:send("Hello!")
 	end)
 	net:newCastedClients("NODE_(.+)") -- Searches for nodes and connects to them, the master.clients table will contain them by name
+	return master
 end
 -- For the same reasons that the other integrations have this
 multi.integration.nGLOBAL=nGLOBAL
