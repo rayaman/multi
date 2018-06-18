@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-require("bin")
+local bin = pcall(require,"bin")
 local multi = {}
 multi.Version = "2.0.0"
 multi._VERSION = "2.0.0"

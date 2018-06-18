@@ -4,7 +4,14 @@ Update: 2.0.0 Big update
 ------------------------
 **Note:** After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!
 
-Changed:
+#Added:
+- require("multi.integration.networkManager")
+- multi:newNode([name])
+- multi:newMaster(name)
+
+**Note:** There are many ways to work this. You could send functions/methods to a node like haw systemThreadedJobQueue work. Or you could write the methods you want in advance in each node file and send over the command to run the method with arguments ... and it will return the results. Network threading is different than system threading. Data transfer is really slow compared to system threading. In fact the main usage for this feature in the library is mearly for experments. Right now I honestly do not know what I want to do with this feature and what I am going to add to this feature. The ablitiy to use this frature like a system thread will be possible, but there are some things that differ.
+
+#Changed:
 - multi:mainloop(settings) -- now takes a table of settings
 - multi:uManager(settings) -- now takes a table of settings
 - connections:holdUT(n) can take a number now. Where they will not continue until it gets triggered **n** times Added 3 updated ago, forgot to list it as a new feature
@@ -28,13 +35,13 @@ multi = require("multi")
 require("multi.integration.luvitManager").init(thread,timer) -- Luvit does not cuttently have support for the global table or threads.
 ```
 
-Improvements:
+#Improvements:
 - Updated the ThreadedConsole, now 100x faster!
 - Updated the ThreadedConections, .5x faster!
 - Both multi:uManager(settings) and multi:mainloop(settings) provide about the same performance! Though uManager is slightly slower due to function overhead, but still really close.
 - Revamped pausing mulit-objects they now take up less memory when being used
 
-Removed:
+#Removed:
 - require("multi.all") -- We are going into a new version of the library so this is nolonger needed
 - require("multi.compat.backwards[1,5,0]") -- This is really old and is no longer supported going forward
 - multi:Do_Order()
