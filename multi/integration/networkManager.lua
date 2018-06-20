@@ -14,6 +14,7 @@ local CMD_INITNODE		= 0x05
 local CMD_INITMASTER	= 0x06
 local CMD_GLOBAL		= 0x07
 local CMD_LOAD			= 0x08
+local CMD_CALL			= 0x09
 
 local char = string.char
 local byte = string.byte
@@ -45,23 +46,9 @@ end
 function queue:peek()
 	return self[1]
 end
+local queues = {}
 multi.OnNetQueue = multi:newConnection()
 multi.OnGUpdate = multi:newConnection()
-
--- internal global system
-local GLOBAL = {}
-local THREAD = {}
-local PROXY = {}
-setmetatable(GLOBAL,{
-	__index = function(t,k)
-		return PROXY[k]
-	end,
-	__newindex = function(t,k,v)
-		local v = v
-		PROXY[k] = v
-		multi.OnGUpdate:Fire(k,packData(v))
-	end
-})
 
 -- Managing the data that goes through the system
 local function packData(data)
@@ -104,6 +91,20 @@ local function resolveData(data)
 	end
 end
 
+-- internal global system
+local GLOBAL = {}
+local PROXY = {}
+setmetatable(GLOBAL,{
+	__index = function(t,k)
+		return PROXY[k]
+	end,
+	__newindex = function(t,k,v)
+		local v = v
+		PROXY[k] = v
+		multi.OnGUpdate:Fire(k,packData(v))
+	end
+})
+
 -- The main driving force of the network manager: Nodes
 function multi:newNode(name,settings)
 	-- Here we have to use the net library to broadcast our node across the network
@@ -114,7 +115,8 @@ function multi:newNode(name,settings)
 	node.server = net:newUDPServer(0) -- hosts the node using the default port
 	node.port = node.server.port
 	node.connections = net.ClientCache
-	node.queue = newQueue()
+	node.queue = queue:newQueue()
+	node.loadRate=1
 	if settings then
 		if settings.crossTalk then
 			net.OnCastedClientInfo(function(client,name,ip,port)
@@ -157,30 +159,35 @@ function multi:newNode(name,settings)
 			local name,d=dat:match("(.-)|(.+)")
 			multi.OnNetQueue:Fire(name,d)
 		elseif cmd == CMD_TASK then
-			
+			local args,func = dat:match("(.-)|(.+)")
+			func = resolveData(func)
+			args = resolveData(args)
+			func(unpack(args))
 		elseif cmd == CMD_INITNODE then
 			print("Connected with another node!")
-			node.nodes[dat]={server,ip,port}
+			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
-			end)
-			-- set this up
+			end)-- set this up
 		elseif cmd == CMD_INITMASTER then
 			print("Connected to the master!")
-			node.masters[dat]={server,ip,port}
+			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
-			end)
-			-- set this up
+			end)-- set this up
+			multi:newTLoop(function()
+				server:send(ip,char(CMD_LOAD)..node.name.."|"..multi:getLoad(),port)
+			end,node.loadRate)
+			server:send(ip,char(CMD_LOAD)..node.name.."|"..multi:getLoad(),port)
 		elseif cmd == CMD_GLOBAL then
 			local k,v = dat:match("(.-)|(.+)")
 			PROXY[k]=resolveData(v)
-		elseif cmd == CMD_LOAD then
-			local load = multi:getLoad()
-			server:send(ip,node.name.."|"..load,port)
 		end
 	end)
-	function node:sendTo(name,data)
+	function node:sendToMaster(name,data)
+		self.connections[name]:send(data)
+	end
+	function node:sendToNode(name,data)
 		self.connections[name]:send(data)
 	end
 	node.server:broadcast("NODE_"..name)
@@ -188,46 +195,79 @@ function multi:newNode(name,settings)
 end
 
 -- Masters
-function multi:newMaster(name,settings) -- You will be able to have more than one master connecting to a node if that is what you want to do. I want you to be able to have the freedom to code any way that you want to code. 
+function multi:newMaster(name,settings) -- You will be able to have more than one master connecting to node(s) if that is what you want to do. I want you to be able to have the freedom to code any way that you want to code. 
 	local master = {}
 	master.name = name
 	master.conn = multi:newConnection()
+	master.conn2 = multi:newConnection()
+	master.OnFirstNodeConnected = multi:newConnection()
 	master.queue = queue:newQueue()
 	master.connections = net.ClientCache -- Link to the client cache that is created on the net interface
-	function master:newNetworkThread(name,func) -- If name specified then it will be sent to the specified node! Otherwise the least worked node will get the job
-		local fData = CMD_TASK..packData(func)
+	master.loads = {}
+	master.trigger = multi:newFunction(function(self)
+		master.OnFirstNodeConnected:Fire()
+		self:Pause()
+	end)
+	function master:newNetworkThread(tname,name,func,...) -- If name specified then it will be sent to the specified node! Otherwise the least worked node will get the job
+		local fData = packData(func)
+		local tab = {...}
+		local aData = ""
+		if #tab~=o then
+			aData = (packData{...}).."|"
+		else
+			aData = (packData{1,1}).."|"
+		end
 		if not name then
 			local name = self:getFreeNode()
-			self:sendTo(name,data)
+			if not name then
+				name = self:getRandomNode()
+			end
+			if name==nil then
+				multi:newTLoop(function(loop)
+					if name~=nil then
+						print("Readying Func")
+						self:sendTo(name,char(CMD_TASK)..aData..fData)
+						loop:Desrtoy()
+					end
+				end,.1)
+			else
+				self:sendTo(name,char(CMD_TASK)..aData..fData)
+			end
 		else
 			local name = "NODE_"..name
-			self:sendTo(name,data)
+			self:sendTo(name,char(CMD_TASK)..aData..fData)
 		end
 	end
 	function master:sendTo(name,data)
-		self.connections["NODE_"..name]:send(data)
+		if self.connections["NODE_"..name]==nil then
+			multi:newTLoop(function(loop)
+				if self.connections["NODE_"..name]~=nil then
+					self.connections["NODE_"..name]:send(data)
+					loop:Desrtoy()
+				end
+			end,.1)
+		else
+			self.connections["NODE_"..name]:send(data)
+		end
 	end
 	function master:getFreeNode()
 		local count = 0
-		for i,v in pairs(self.connections)
-			v:send(CMD_LOAD)
-			count=count+1
-		end
-		local list = {}
-		local ref = self.conn(function(name,load)
-			list[#list+1]={load,name}
-		end)
-		self.conn:holdUT(count) -- we need to wait until we got a response from each node
-		ref:Remove() -- We need to destroy that connection that we made
 		local min = math.huge
-		local ref
-		for i = 1,#list do
-			if list[i][1]<min then
-				min = list[i][1]
-				ref = list[i][2]
+		local refO
+		for i,v in pairs(master.loads) do
+			if v<min then
+				min = v
+				refO = i
 			end
 		end
-		return ref
+		return refO
+	end
+	function master:getRandomNode()
+		local list = {}
+		for i,v in pairs(master.connections) do
+			list[#list+1]=i:sub(6,-1)
+		end
+		return list[math.random(1,#list)]
 	end
 	net.OnCastedClientInfo(function(client,name,ip,port)
 		multi.OnGUpdate(function(k,v)
@@ -237,26 +277,30 @@ function multi:newMaster(name,settings) -- You will be able to have more than on
 		for i,v in pairs(master.connections) do
 			print(i)
 		end
-		client:send(char(CMD_INITMASTER)..name) -- Tell the node that you are a master trying to connect
-		client.OnDataRecieved(function(client,data)
-			local cmd = byte(data:sub(1,1)) -- the first byte is the command
-			local dat = data:sub(2,-1) -- the data that you want to read
-			if cmd == CMD_ERROR then
-				
-			elseif cmd == CMD_PING then
-				
-			elseif cmd == CMD_PONG then
-				
-			elseif cmd == CMD_QUEUE then
-				local name,d=dat:match("(.-)|(.+)")
-				multi.OnNetQueue:Fire(name,d)
-			elseif cmd == CMD_GLOBAL then
-				local k,v = dat:match("(.-)|(.+)")
-				PROXY[k]=resolveData(v)
-			elseif cmd == CMD_LOAD then
-				local name,load = dat:match("(.-)|(.+)")
-				master.conn:Fire(name,tonumber(load))
-			end
+		client.OnClientReady(function()
+			client:send(char(CMD_INITMASTER)..name) -- Tell the node that you are a master trying to connect
+			client.OnDataRecieved(function(client,data)
+				local cmd = byte(data:sub(1,1)) -- the first byte is the command
+				local dat = data:sub(2,-1) -- the data that you want to read
+				master.trigger()
+				if cmd == CMD_ERROR then
+					
+				elseif cmd == CMD_PING then
+					
+				elseif cmd == CMD_PONG then
+					
+				elseif cmd == CMD_QUEUE then
+					local name,d=dat:match("(.-)|(.+)")
+					multi.OnNetQueue:Fire(name,d)
+				elseif cmd == CMD_GLOBAL then
+					local k,v = dat:match("(.-)|(.+)")
+					PROXY[k]=resolveData(v)
+					print("Got Global Command")
+				elseif cmd == CMD_LOAD then
+					local name,load = dat:match("(.-)|(.+)")
+					master.loads[name]=tonumber(load)
+				end
+			end)
 		end)
 	end)
 	net:newCastedClients("NODE_(.+)") -- Searches for nodes and connects to them, the master.clients table will contain them by name
@@ -265,5 +309,5 @@ end
 
 -- The init function that gets returned
 return {init = function()
-	return GLOBAL,THREAD
+	return GLOBAL
 end}

@@ -44,6 +44,10 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.isRunning = false
+multi.defaultSettings = {
+	priority = 0,
+	protect = false,
+}
 --Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
 multi.Priority_Core = 1
 multi.Priority_High = 4
@@ -590,7 +594,7 @@ function multi:newConnection(protect)
 			end
 		end)
 		repeat
-			self.Parent:uManager()
+			self.Parent:uManager(multi.defaultSettings)
 		until self.waiting==false
 		id:Destroy()
 	end
@@ -747,6 +751,7 @@ function multi:newCondition(func)
 end
 multi.NewCondition=multi.newCondition
 function multi:mainloop(settings)
+	multi.defaultSettings = settings or multi.defaultSettings
 	if not multi.isRunning then
 		local protect = false
 		local priority = false
@@ -838,11 +843,12 @@ function multi:uManager(settings)
 			settings.preLoop(self)
 		end
 	end
+	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
 end
 function multi:uManagerRef(settings)
 	if self.Active then
-		if settings.priority==1 then
+		if multi.defaultSettings.priority==1 then
 			local Loop=self.Mainloop
 			local PS=self
 			for _D=#Loop,1,-1 do
@@ -851,7 +857,7 @@ function multi:uManagerRef(settings)
 						if (PS.PList[P])%Loop[_D].Priority==0 then
 							if Loop[_D].Active then
 								self.CID=_D
-								if not settings.protect then
+								if not multi.defaultSettings.protect then
 									Loop[_D]:Act()
 								else
 									local status, err=pcall(Loop[_D].Act,Loop[_D])
@@ -865,7 +871,7 @@ function multi:uManagerRef(settings)
 					end
 				end
 			end
-		elseif settings.priority==2 then
+		elseif multi.defaultSettings.priority==2 then
 			local Loop=self.Mainloop
 			local PS=self
 			for _D=#Loop,1,-1 do
@@ -873,7 +879,7 @@ function multi:uManagerRef(settings)
 					if (PS.PStep)%Loop[_D].Priority==0 then
 						if Loop[_D].Active then
 							self.CID=_D
-							if not settings.protect then
+							if not multi.defaultSettings.protect then
 								Loop[_D]:Act()
 							else
 								local status, err=pcall(Loop[_D].Act,Loop[_D])
@@ -896,7 +902,7 @@ function multi:uManagerRef(settings)
 				if Loop[_D] then
 					if Loop[_D].Active then
 						self.CID=_D
-						if not settings.protect then
+						if not multi.defaultSettings.protect then
 							Loop[_D]:Act()
 						else
 							local status, err=pcall(Loop[_D].Act,Loop[_D])
