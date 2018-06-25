@@ -119,7 +119,7 @@ function multi:newSystemThreadedConnection(name,protect)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init()
-		require("multi")
+		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
 			sThread=_G.sThread
@@ -134,7 +134,7 @@ function multi:newSystemThreadedConnection(name,protect)
 				conn.queueCall = multi:newSystemThreadedQueue(self.name.."THREADED_CALLQ"):init()
 			end
 		else
-			require("multi") -- so things don't break, but also allows bi-directional connections to work
+			local multi = require("multi") -- so things don't break, but also allows bi-directional connections to work
 			conn.queueCall = sThread.waitFor(self.name.."THREADED_CALLQ"):init()
 		end
 		setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
@@ -216,7 +216,7 @@ function multi:systemThreadedBenchmark(n,p)
 	local GLOBAL=multi.integration.GLOBAL
 	for i=1,cores do
 		multi:newSystemThread("STHREAD_BENCH",function()
-			require("multi")
+			local multi = require("multi")
 			if multi:getPlatform()=="love2d" then
 				GLOBAL=_G.GLOBAL
 				sThread=_G.sThread
@@ -257,7 +257,7 @@ function multi:newSystemThreadedConsole(name)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init()
-		require("multi")
+		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
 			sThread=_G.sThread
@@ -381,7 +381,7 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 	GLOBAL["__JQ_COUNT__"]=c.cores
 	for i=1,c.cores do
 		multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function(name,ind)
-			require("multi")
+			local multi = require("multi")
 			ThreadName=name
 			__sleep__=.001
 			if love then -- lets make sure we don't reference up-values if using love2d
