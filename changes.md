@@ -6,8 +6,82 @@ Update: 2.0.0 Big update
 
 #Added:
 - require("multi.integration.networkManager")
-- multi:newNode([name])
-- multi:newMaster(name)
+- multi:newNode(tbl: settings)
+- multi:newMaster(tbl: settings)
+- multi:nodeManager(port)
+
+Note: These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added.
+
+**NodeManager.lua**
+```lua
+
+```
+
+**Node.lua**
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+multi = require("multi")
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+nGLOBAL = require("multi.integration.networkManager").init()
+master = multi:newNode{
+	crossTalk = false, -- default value, allows nodes to talk to eachother. WIP NOT READY YET!
+	allowRemoteRegistering = true, -- allows you to register functions from the master on the node, default is false
+	name = nil, -- default value
+	noBroadCast = true, -- if using the node manager, set this to true to prevent the node from broadcasting
+	managerDetails = {"localhost",12345}, -- connects to the node manager if one exists
+}
+function RemoteTest(a,b,c) -- a function that we will be executing remotely
+	print("Yes I work!",a,b,c)
+end
+settings = {
+	priority = 0, -- 1 or 2
+	protect = false, -- if something goes wrong we will crash hard, but the speed gain is good
+}
+multi:mainloop(settings)
+```
+
+**Master.lua**
+```lua
+-- set up the package
+package.path="?/init.lua;?.lua;"..package.path
+-- Import the libraries
+multi = require("multi")
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+nGLOBAL = require("multi.integration.networkManager").init()
+-- Act as a master node
+master = multi:newMaster{
+	name = "Main", -- the name of the master
+	noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+	managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
+}
+-- Send to all the nodes that are connected to the master
+master:doToAll(function(node_name)
+	master:register("TestFunc",node_name,function(msg)
+		print("It works: "..msg)
+	end)
+	multi:newAlarm(2):OnRing(function(alarm)
+		master:execute("TestFunc",node_name,"Hello!")
+		alarm:Destroy()
+	end)
+	multi:newThread("Checker",function()
+		while true do
+			thread.sleep(1)
+			if nGLOBAL["test"] then
+				print(nGLOBAL["test"])
+				thread.kill()
+			end
+		end
+	end)
+	nGLOBAL["test2"]={age=22}
+end)
+
+-- Starting the multitasker
+settings = {
+	priority = 0, -- 0, 1 or 2
+	protect = false,
+}
+multi:mainloop(settings)
+```
 
 **Note:** There are many ways to work this. You could send functions/methods to a node like haw systemThreadedJobQueue work. Or you could write the methods you want in advance in each node file and send over the command to run the method with arguments ... and it will return the results. Network threading is different than system threading. Data transfer is really slow compared to system threading. In fact the main usage for this feature in the library is mearly for experments. Right now I honestly do not know what I want to do with this feature and what I am going to add to this feature. The ablitiy to use this frature like a system thread will be possible, but there are some things that differ.
 

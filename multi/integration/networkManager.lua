@@ -31,13 +31,16 @@ end
 -- Internal queue system for network queues
 local queue = {}
 queue.__index = queue
-function queue:newQueue()
+function queue:newQueue(name,master)
+	if not name then error("You must include a name in order to create a queue!") end
 	local c = {}
+	c.name = name
+	c.master = master
 	setmetatable(c,self)
 	return c
 end
 function queue:push(data)
-	table.insert(self,packData(data))
+	master:doToAll(char(CMD_QUEUE)..packData(data))
 end
 function queue:raw_push(data) -- Internal usage only
 	table.insert(self,data)
