@@ -11,26 +11,28 @@ master = multi:newMaster{
 	managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
 }
 -- Send to all the nodes that are connected to the master
-master:doToAll(function(node_name)
-	master:register("TestFunc",node_name,function(msg)
-		print("It works: "..msg)
-	end)
-	multi:newAlarm(2):OnRing(function(alarm)
-		master:execute("TestFunc",node_name,"Hello!")
-		alarm:Destroy()
-	end)
-	multi:newThread("Checker",function()
+master.OnNodeConnected(function(node)
+	print("Lets Go!")
+	master:execute("RemoteTest",node,1,2,3)
+	multi:newThread("waiter",function()
+		print("Hello!")
 		while true do
-			thread.sleep(1)
-			if nGLOBAL["test"] then
-				print(nGLOBAL["test"])
-				thread.kill()
-			end
+			thread.sleep(2)
+			print("sending")
+			master:pushTo(node,"This is a test 2")
 		end
 	end)
-	nGLOBAL["test2"]={age=22}
 end)
-
+multi:newThread("some-test",function()
+	local dat = master:pop()
+	while true do
+		thread.skip(10)
+		if dat then
+			print(dat)
+		end
+		dat = master:pop()
+	end
+end,"NODE_TESTNODE")
 -- Starting the multitasker
 settings = {
 	priority = 0, -- 0, 1 or 2

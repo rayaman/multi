@@ -29,26 +29,23 @@ local function pieceCommand(cmd,...)
 end
 
 -- Internal queue system for network queues
-local queue = {}
-queue.__index = queue
-function queue:newQueue(name,master)
-	if not name then error("You must include a name in order to create a queue!") end
+local Queue = {}
+Queue.__index = Queue
+function Queue:newQueue()
 	local c = {}
-	c.name = name
-	c.master = master
 	setmetatable(c,self)
 	return c
 end
-function queue:push(data)
-	master:doToAll(char(CMD_QUEUE)..packData(data))
-end
-function queue:raw_push(data) -- Internal usage only
+function Queue:push(data)
 	table.insert(self,data)
 end
-function queue:pop()
-	return resolveData(table.remove(self,1))
+function Queue:raw_push(data) -- Internal usage only
+	table.insert(self,data)
 end
-function queue:peek()
+function Queue:pop()
+	return table.remove(self,1)
+end
+function Queue:peek()
 	return self[1]
 end
 local queues = {}
@@ -162,7 +159,7 @@ function multi:newNode(settings)
 	node.server = net:newUDPServer(0) -- hosts the node using the default port
 	node.port = node.server.port
 	node.connections = net.ClientCache
-	node.queue = queue:newQueue()
+	node.queue = Queue:newQueue()
 	node.functions = bin.stream("RegisteredFunctions.dat",false)
 	node.hasFuncs = {}
 	if settings.managerDetails then
@@ -195,6 +192,15 @@ function multi:newNode(settings)
 			end
 		end
 	end
+	function node:pushTo(name,data)
+		node:sendTo(name,char(CMD_QUEUE)..packData(data))
+	end
+	function node:peek()
+		return node.queue:peek()
+	end
+	function node:pop()
+		return node.queue:pop()
+	end
 	node.loadRate=1
 	if settings then
 		if settings.crossTalk then
@@ -215,8 +221,7 @@ function multi:newNode(settings)
 					elseif cmd == CMD_PONG then
 						
 					elseif cmd == CMD_QUEUE then
-						local name,d=dat:match("(.-)|(.+)")
-						multi.OnNetQueue:Fire(name,d)
+						queue:push(resolveData(dat))
 					elseif cmd == CMD_GLOBAL then
 						local k,v = dat:match("(.-)|(.+)")
 						PROXY[k]=resolveData(v)
@@ -235,8 +240,7 @@ function multi:newNode(settings)
 		elseif cmd == CMD_PONG then
 			
 		elseif cmd == CMD_QUEUE then	
-			local name,d=dat:match("(.-)|(.+)")
-			multi.OnNetQueue:Fire(name,d)
+			node.queue:push(resolveData(dat))
 		elseif cmd == CMD_REG then
 			if not settings.allowRemoteRegistering then
 				print(ip..": has attempted to register a function when it is currently not allowed!")
@@ -276,7 +280,7 @@ function multi:newNode(settings)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
 			end)-- set this up
 		elseif cmd == CMD_INITMASTER then
-			print("Connected to the master!")
+			print("Connected to the master!",dat)
 			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
@@ -285,16 +289,15 @@ function multi:newNode(settings)
 				server:send(ip,char(CMD_LOAD)..node.name.."|"..multi:getLoad(),port)
 			end,node.loadRate)
 			server:send(ip,char(CMD_LOAD)..node.name.."|"..multi:getLoad(),port)
+			server:send(ip,char(CMD_INITNODE)..node.name,port)
 		elseif cmd == CMD_GLOBAL then
 			local k,v = dat:match("(.-)|(.+)")
 			PROXY[k]=resolveData(v)
 		end
 	end)
-	function node:sendToMaster(name,data)
-		self.connections[name]:send(data)
-	end
-	function node:sendToNode(name,data)
-		self.connections[name]:send(data)
+	function node:sendTo(name,data)
+		local conn = node.connections[name]
+		conn[1]:send(conn[2],data,conn[3])
 	end
 	if not settings.noBroadCast then 
 		node.server:broadcast("NODE_"..name)
@@ -311,7 +314,8 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	master.conn = multi:newConnection()
 	master.conn2 = multi:newConnection()
 	master.OnFirstNodeConnected = multi:newConnection()
-	master.queue = queue:newQueue()
+	master.OnNodeConnected = multi:newConnection()
+	master.queue = Queue:newQueue()
 	master.connections = net.ClientCache -- Link to the client cache that is created on the net interface
 	master.loads = {}
 	master.trigger = multi:newFunction(function(self,node)
@@ -328,8 +332,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 				if cmd == "N" then
 					local name,ip,port = data:match("(.-)|(.-)|(.+)")
 					local c = net:newUDPClient(ip,port)
-					master.connections[name]=c
-					net.OnCastedClientInfo:Fire(c,name,ip,port)
+					net.OnCastedClientInfo:Fire(c,name,ip,port)master.connections[name]=c
 				elseif cmd == "R" then
 					local name = data:sub(2,-1)
 					master.connections[name]=nil
@@ -375,6 +378,15 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		temp:addBlock(args,#args)
 		master:sendTo(node,temp.data)
 	end
+	function master:pushTo(name,data)
+		master:sendTo(name,char(CMD_QUEUE)..packData(data))
+	end
+	function master:peek()
+		return self.queue:peek()
+	end
+	function master:pop()
+		return self.queue:pop()
+	end
 	function master:newNetworkThread(tname,func,name,...) -- If name specified then it will be sent to the specified node! Otherwise the least worked node will get the job
 		local fData = packData(func)
 		local tab = {...}
@@ -411,18 +423,18 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		end
 	end
 	function master:sendTo(name,data)
-		if name:sub(1,5)=="NODE_" then
-			name = name:sub(6,-1)
+		if name:sub(1,5)~="NODE_" then
+			name = "NODE_"..name
 		end
-		if self.connections["NODE_"..name]==nil then
+		if self.connections[name]==nil then
 			multi:newTLoop(function(loop)
-				if self.connections["NODE_"..name]~=nil then
-					self.connections["NODE_"..name]:send(data)
+				if self.connections[name]~=nil then
+					self.connections[name]:send(data)
 					loop:Desrtoy()
 				end
 			end,.1)
 		else
-			self.connections["NODE_"..name]:send(data)
+			self.connections[name]:send(data)
 		end
 	end
 	function master:getFreeNode()
@@ -453,7 +465,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			nodename = i
 		end
 		client.OnClientReady(function()
-			client:send(char(CMD_INITMASTER)..name) -- Tell the node that you are a master trying to connect
+			client:send(char(CMD_INITMASTER)..master.name) -- Tell the node that you are a master trying to connect
 			client.OnDataRecieved(function(client,data)
 				local cmd = byte(data:sub(1,1)) -- the first byte is the command
 				local dat = data:sub(2,-1) -- the data that you want to read
@@ -464,9 +476,10 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 					
 				elseif cmd == CMD_PONG then
 					
+				elseif cmd == CMD_INITNODE then
+					master.OnNodeConnected:Fire(dat)
 				elseif cmd == CMD_QUEUE then
-					local name,d=dat:match("(.-)|(.+)")
-					multi.OnNetQueue:Fire(name,d)
+					master.queue:push(resolveData(dat))
 				elseif cmd == CMD_GLOBAL then
 					local k,v = dat:match("(.-)|(.+)")
 					PROXY[k]=resolveData(v)

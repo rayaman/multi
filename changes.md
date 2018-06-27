@@ -5,15 +5,45 @@ Update: 2.0.0 Big update
 **Note:** After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!
 
 #Added:
-- require("multi.integration.networkManager")
-- multi:newNode(tbl: settings)
-- multi:newMaster(tbl: settings)
-- multi:nodeManager(port)
+- `nGLOBAL = require("multi.integration.networkManager").init()`
+- `node = multi:newNode(tbl: settings)`
+- `master = multi:newMaster(tbl: settings)`
+- `multi:nodeManager(port)`
+
+Node:
+- node:sendTo(name,data)
+- node:pushTo(name,data)
+- node:peek()
+- node:pop()
+
+Master:
+- master:doToAll(func)
+- master:register(name,node,func)
+- master:execute(name,node,...)
+- master:newNetworkThread(tname,func,name,...)
+- master:getFreeNode()
+- master:getRandomNode()
+- master:sendTo(name,data)
+- master:pushTo(name,data)
+- master:peek()
+- master:pop()
 
 Note: These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added.
 
 **NodeManager.lua**
 ```lua
+package.path="?/init.lua;?.lua;"..package.path
+multi = require("multi")
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+nGLOBAL = require("multi.integration.networkManager").init()
+multi:nodeManager(12345) -- Host a node manager on port: 12345
+print("Node Manager Running...")
+settings = {
+	priority = 0, -- 1 or 2
+	protect = false,
+}
+multi:mainloop(settings)
+-- Thats all you need to run the node manager, everything else is done automatically
 
 ```
 
