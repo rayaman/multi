@@ -5,7 +5,7 @@ nGLOBAL = require("multi.integration.networkManager").init()
 node = multi:newNode{
 	crossTalk = false, -- default value, allows nodes to talk to eachother. WIP NOT READY YET!
 	allowRemoteRegistering = true, -- allows you to register functions from the master on the node, default is false
-	name = "TESTNODE", -- default value
+	name = nil, --"TESTNODE", -- default value
 	noBroadCast = true, -- if using the node manager, set this to true to prevent the node from broadcasting
 	managerDetails = {"localhost",12345}, -- connects to the node manager if one exists
 }

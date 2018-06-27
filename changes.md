@@ -28,7 +28,9 @@ Master:
 - master:peek()
 - master:pop()
 
-Note: These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added.
+**Note On Queues:** When it comes to network queues, they only send 1 way. What I mean by that is that if the master sends a message to a node, its own queue will not get populated at all. The reason for this is because syncing between which popped from what network queue would make things really slow and would not perform so well. This means you have to code a bit differently. Use: master getFreeNode() to get the name of the node under the least amount of load. Then handle the sending of data to each node that way.
+
+**Note:** These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added.
 
 **NodeManager.lua**
 ```lua

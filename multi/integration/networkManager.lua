@@ -130,7 +130,7 @@ function multi:nodeManager(port)
 				end
 				server.timeouts[cid] = true
 				server:send(cid,"ping")
-			end,3)
+			end,.1)
 			server.nodes[cid]=data:sub(2,-1)
 			server.OnNodeAdded:Fire(server.nodes[cid])
 		elseif cmd == "G" then

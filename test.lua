@@ -15,11 +15,14 @@ master.OnNodeConnected(function(node)
 	print("Lets Go!")
 	master:execute("RemoteTest",node,1,2,3)
 	multi:newThread("waiter",function()
-		print("Hello!")
+		print("Hello!",node)
 		while true do
 			thread.sleep(2)
 			print("sending")
 			master:pushTo(node,"This is a test 2")
+			if master.connections["NODE_"..node]==nil then
+				thread.kill()
+			end
 		end
 	end)
 end)
