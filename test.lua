@@ -7,8 +7,8 @@ nGLOBAL = require("multi.integration.networkManager").init()
 -- Act as a master node
 master = multi:newMaster{
 	name = "Main", -- the name of the master
-	noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
-	managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
+	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+	--managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
 }
 -- Send to all the nodes that are connected to the master
 master.OnNodeConnected(function(node)
