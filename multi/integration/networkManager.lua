@@ -158,6 +158,7 @@ function multi:newNode(settings)
 	node.name = name
 	node.server = net:newUDPServer(0) -- hosts the node using the default port
 	node.port = node.server.port
+	print(node.port,node.port.udp:getsockname())
 	node.connections = net.ClientCache
 	node.queue = Queue:newQueue()
 	node.functions = bin.stream("RegisteredFunctions.dat",false)
@@ -330,6 +331,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			client.OnDataRecieved(function(client,data)
 				local cmd = data:sub(1,1)
 				if cmd == "N" then
+					print(data)
 					local name,ip,port = data:match("(.-)|(.-)|(.+)")
 					local c = net:newUDPClient(ip,port)
 					net.OnCastedClientInfo:Fire(c,name,ip,port)master.connections[name]=c
