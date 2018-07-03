@@ -158,7 +158,7 @@ function multi:newNode(settings)
 	node.name = name
 	node.server = net:newUDPServer(0) -- hosts the node using the default port
 	node.port = node.server.port
-	print(node.port,node.port.udp:getsockname())
+	print(node.port,node.server.udp:getsockname())
 	node.connections = net.ClientCache
 	node.queue = Queue:newQueue()
 	node.functions = bin.stream("RegisteredFunctions.dat",false)
