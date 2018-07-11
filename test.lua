@@ -7,18 +7,24 @@ nGLOBAL = require("multi.integration.networkManager").init()
 -- Act as a master node
 master = multi:newMaster{
 	name = "Main", -- the name of the master
-	noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
-	managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
+	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+	--managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
 }
 -- Send to all the nodes that are connected to the master
 master.OnNodeConnected(function(node)
 	print("Lets Go!")
+	master:newNetworkThread("Thread",function()
+		local node = _G.node
+		local console = node:getConsole()
+		multi:newTLoop(function()
+			console:print("Yo whats up man!")
+		end,1)
+	end)
 	master:execute("RemoteTest",node,1,2,3)
 	multi:newThread("waiter",function()
 		print("Hello!",node)
 		while true do
 			thread.sleep(2)
-			print("sending")
 			master:pushTo(node,"This is a test 2")
 			if master.connections["NODE_"..node]==nil then
 				thread.kill()

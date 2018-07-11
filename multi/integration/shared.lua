@@ -397,9 +397,10 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 			FUNCS={}
 			SFunc=multi:newFunction(function(self)
 				MainLoop:Pause()
-				self:hold(.1)
-				MainLoop:Resume()
-				self:Pause()
+				multi:newAlarm(.1):OnRing(function(alarm)
+					alarm:Destroy()
+					MainLoop:Resume()
+				end)
 			end)
 			multi:newLoop(function()
 				local rd=REG:peek()
@@ -472,6 +473,7 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 		while data do
 			if data then
 				local a=unpack(data)
+				print(a)
 				if a=="_THREADINIT_" then
 					self.link.threadsResponded=self.link.threadsResponded+1
 					if self.link.threadsResponded==self.link.cores then

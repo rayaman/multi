@@ -79,7 +79,7 @@ function multi.queuefinal(self)
 		self.Parent:Remove()
 	end
 end
-if table.unpack then
+if table.unpack and not unpack then
 	unpack=table.unpack
 end
 function table.merge(t1, t2)
