@@ -11,22 +11,25 @@ master = multi:newMaster{
 	--managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
 }
 -- Send to all the nodes that are connected to the master
-master.OnNodeConnected(function(node)
+master.OnError(function(name,err)
+	print(name.." has encountered an error: "..err)
+end)
+master.OnNodeConnected(function(name)
 	print("Lets Go!")
-	master:newNetworkThread("Thread",function()
-		local node = _G.node
-		local console = node:getConsole()
+	master:newNetworkThread("Thread",function(node)
+		local print = node:getConsole().print -- it is important to define things as local... another thing i could do is fenv to make sure all masters work in a protectd isolated enviroment
 		multi:newTLoop(function()
-			console:print("Yo whats up man!")
+			print("Yo whats up man!")
+			error("doing a test")
 		end,1)
 	end)
-	master:execute("RemoteTest",node,1,2,3)
+	master:execute("RemoteTest",name,1,2,3)
 	multi:newThread("waiter",function()
-		print("Hello!",node)
+		print("Hello!",name)
 		while true do
 			thread.sleep(2)
-			master:pushTo(node,"This is a test 2")
-			if master.connections["NODE_"..node]==nil then
+			master:pushTo(name,"This is a test 2")
+			if master.connections["NODE_"..name]==nil then
 				thread.kill()
 			end
 		end
@@ -45,6 +48,7 @@ end,"NODE_TESTNODE")
 -- Starting the multitasker
 settings = {
 	priority = 0, -- 0, 1 or 2
-	protect = false,
+	protect = true,
 }
-multi:mainloop(settings)
+multi:threadloop(settings)
+--multi:mainloop(settings)

@@ -1,4 +1,4 @@
--- CURRENT TASK: newNetThread()
+-- CURRENT TASK: 
 
 local multi = require("multi")
 local net = require("net")
@@ -158,7 +158,7 @@ function multi:newNode(settings)
 	local node = {}
 	node.name = name
 	multi.OnError(function(i,error)
-		node.OnError(node,error,node.server)
+		node.OnError:Fire(node,error,node.server)
 	end)
 	node.server = net:newUDPServer(0) -- hosts the node using the default port
 	_, node.port = node.server.udp:getsockname()
@@ -168,12 +168,16 @@ function multi:newNode(settings)
 	node.hasFuncs = {}
 	node.OnError = multi:newConnection()
 	node.OnError(function(node,err,master)
+		print("ERROR",err,node.name)
 		local temp = bin.new()
-		temp:addBlock(#node.name)
+		temp:addBlock(#node.name,2)
 		temp:addBlock(node.name)
-		temp:addBlock(#err)
+		temp:addBlock(#err,2)
 		temp:addBlock(err)
-		node.server:send(char(CMD_ERROR..temp))
+		for i,v in pairs(node.connections) do
+			print(i)
+			v[1]:send(v[2],char(CMD_ERROR)..temp.data,v[3])
+		end
 	end)
 	if settings.managerDetails then
 		local c = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
@@ -216,14 +220,17 @@ function multi:newNode(settings)
 	end
 	function node:getConsole()
 		local c = {}
-		c.connections = node.connections
-		function c:print(...)
+		local conn = node.connections
+		function c.print(...)
 			local data = char(CMD_CONSOLE)..packData({...})
-			for i,v in pairs(self.connections) do
+			for i,v in pairs(conn) do
+				--print(i)
 				v[1]:send(v[2],data,v[3])
 			end
-			print("sent message")
 		end
+		-- function c:printTo()
+			
+		-- end
 		return c
 	end
 	node.loadRate=1
@@ -266,7 +273,10 @@ function multi:newNode(settings)
 			local func = holder:getBlock("s",len2)
 			args = resolveData(args)
 			func = resolveData(func)
-			func(unpack(args))
+			status, err = pcall(func,node,unpack(args))
+			if not status then
+				node.OnError:Fire(node,err,server)
+			end
 		elseif cmd == CMD_INITNODE then
 			print("Connected with another node!")
 			node.connections[dat]={server,ip,port}
@@ -427,7 +437,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			multi:newTLoop(function(loop)
 				if self.connections[name]~=nil then
 					self.connections[name]:send(data)
-					loop:Desrtoy()
+					loop:Destroy()
 				end
 			end,.1)
 		else
@@ -486,7 +496,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 					local node = temp:getBlock("s",len)
 					len = temp:getBlock("n",2)
 					local err = temp:getBlock("s",len)
-					master.OnError(name,err)
+					master.OnError:Fire(name,err)
 				elseif cmd == CMD_CONSOLE then
 					print(unpack(resolveData(dat)))
 				elseif cmd == CMD_PONG then

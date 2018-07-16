@@ -10,7 +10,7 @@ node = multi:newNode{
 	--managerDetails = {"localhost",12345}, -- connects to the node manager if one exists
 }
 function RemoteTest(a,b,c) -- a function that we will be executing remotely
-	print("Yes I work!",a,b,c)
+	--print("Yes I work!",a,b,c)
 	multi:newThread("waiter",function()
 		print("Hello!")
 		while true do
@@ -31,6 +31,7 @@ multi:newThread("some-test",function()
 end,"NODE_TESTNODE")
 settings = {
 	priority = 0, -- 1 or 2
-	protect = false, -- if something goes wrong we will crash hard, but the speed gain is good
+	stopOnError = true,
+	protect = true, -- if something goes wrong we will crash hard, but the speed gain is good
 }
 multi:mainloop(settings)

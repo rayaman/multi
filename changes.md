@@ -1,22 +1,29 @@
 #Changes
 [TOC]
-Update: 2.0.0 Big update
+Update: 2.0.0 Big update (Lots of additions some changes)
 ------------------------
-**Note:** After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!
+**Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally reduced function overhead helps keep the threads running better.
 
 #Added:
 - `nGLOBAL = require("multi.integration.networkManager").init()`
 - `node = multi:newNode(tbl: settings)`
 - `master = multi:newMaster(tbl: settings)`
 - `multi:nodeManager(port)`
+- `thread.isThread()` -- for coroutine based threads
+- New setting to the main loop,stopOnError which defaults to true. This will cause the object that crashes when under protect to be destroyed, so the error does not keep happening.
+- multi:threadloop(settings) works just like mainloop, but prioritizes (corutine based) threads. Regular multi-objects will still work. This improves the preformance of (coroutine based) threads greatly.
 
-Node:
+Changed:
+- When a (corutine based)thread errors it does not print anymore! Conect to multi.OnError() to get errors when they happen!
+
+#Node:
 - node:sendTo(name,data)
 - node:pushTo(name,data)
 - node:peek()
 - node:pop()
+- node:getConsole()
 
-Master:
+#Master:
 - master:doToAll(func)
 - master:register(name,node,func)
 - master:execute(name,node,...)
@@ -27,10 +34,20 @@ Master:
 - master:pushTo(name,data)
 - master:peek()
 - master:pop()
+- master:OnError(nodename, error) -- if a node has an error this is triggered.
 
-**Note On Queues:** When it comes to network queues, they only send 1 way. What I mean by that is that if the master sends a message to a node, its own queue will not get populated at all. The reason for this is because syncing between which popped from what network queue would make things really slow and would not perform so well. This means you have to code a bit differently. Use: master getFreeNode() to get the name of the node under the least amount of load. Then handle the sending of data to each node that way.
+#Going forward:
+- Improve Performance
+- Fix supporting libraries (Bin, and net need tons of work)
+- Look for the bugs
+- Figure out what I can do to make this library more awesome
 
-**Note:** These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added.
+
+**Note On Queues:** When it comes to network queues, they only send 1 way. What I mean by that is that if the master sends a message to a node, its own queue will not get populated at all. The reason for this is because syncing between which popped from what network queue would make things really slow and would not perform well at all. This means you have to code a bit differently. Use: master getFreeNode() to get the name of the node under the least amount of load. Then handle the sending of data to each node that way.
+
+Now there is a little trick you can do. If you combine both networkmanager and systemthreading manager, then you could have a proxy queue for all system threads that can pull from that "node". Now data passing within a lan network, (And wan network if using the node manager, though p2p isn't working as i would like and you would need to open ports and make things work. Remember you can define an port for your node so you can port forward that if you want), is fast enough, but the waiting problem is something to consider. Ask yourseld what you are coding and if network paralisim is worth using.
+
+**Note:** These examples assume that you have already connected the nodes to the node manager. Also you do not need to use the node manager, but sometimes broadcast does not work as expected and the master doesnot connect to the nodes. Using the node manager offers nice features like: removing nodes from the master when they have disconnected, and automatically telling the master when nodes have been added. A more complete example showing connections regardless of order will be shown in the example folder check it out. New naming scheme too.
 
 **NodeManager.lua**
 ```lua
@@ -49,6 +66,8 @@ multi:mainloop(settings)
 
 ```
 
+Side note: I had a setting called cross talk that would allow nodes to talk to each other. After some tought I decided to not allow nodes to talk to each other directly! You however can create another master withing the node. (The node will connect to its own master as well). This will give you the ability "Cross talk" with each node. Reimplementing the master features into each node directly was un nessacery. 
+
 **Node.lua**
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -56,7 +75,6 @@ multi = require("multi")
 local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
 nGLOBAL = require("multi.integration.networkManager").init()
 master = multi:newNode{
-	crossTalk = false, -- default value, allows nodes to talk to eachother. WIP NOT READY YET!
 	allowRemoteRegistering = true, -- allows you to register functions from the master on the node, default is false
 	name = nil, -- default value
 	noBroadCast = true, -- if using the node manager, set this to true to prevent the node from broadcasting

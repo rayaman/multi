@@ -6,7 +6,7 @@ Copyright (c) 2017 Ryan Ward
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+to use, copy, modify, merge, publish, distribute, sub-license, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
@@ -750,14 +750,82 @@ function multi:newCondition(func)
 	return c
 end
 multi.NewCondition=multi.newCondition
+function multi:threadloop(settings)
+	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
+	local Threads=multi:linkDomain("Threads")
+	local Globals=multi:linkDomain("Globals")
+	local counter=0
+	local tick = 0
+	while true do
+		tick = tick + 1
+		if tick == 1024 then
+			tick = 0
+			multi:uManager(settings)
+		end
+		counter=counter+1
+		for i=#Threads,1,-1 do
+			ret={}
+			if coroutine.status(Threads[i].thread)=="dead" then
+				table.remove(Threads,i)
+			else
+				if Threads[i].timer:Get()>=Threads[i].sleep then
+					if Threads[i].firstRunDone==false then
+						Threads[i].firstRunDone=true
+						Threads[i].timer:Start()
+						_,ret=coroutine.resume(Threads[i].thread,Threads[i].ref)
+					else
+						_,ret=coroutine.resume(Threads[i].thread,Globals)
+					end
+					if _==false then
+						self.Parent.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
+					end
+					if ret==true or ret==false then
+						ret={}
+					end
+				end
+				if ret then
+					if ret[1]=="_kill_" then
+						table.remove(Threads,i)
+					elseif ret[1]=="_sleep_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=ret[2]
+					elseif ret[1]=="_skip_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=math.huge
+						local event=multi:newEvent(function(evnt) return counter>=evnt.counter end)
+						event.link=Threads[i]
+						event.counter=counter+ret[2]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+						end)
+					elseif ret[1]=="_hold_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=math.huge
+						local event=multi:newEvent(ret[2])
+						event.link=Threads[i]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+						end)
+					elseif ret.Name then
+						Globals[ret.Name]=ret.Value
+					end
+				end
+			end
+		end
+	end
+end
 function multi:mainloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
 	if not multi.isRunning then
 		local protect = false
 		local priority = false
+		local stopOnError = true
 		if settings then
 			if settings.preLoop then
 				settings.preLoop(self)
+			end
+			if settings.stopOnError then
+				stopOnError = settings.stopOnError
 			end
 			protect = settings.protect
 			priority = settings.priority
@@ -781,6 +849,9 @@ function multi:mainloop(settings)
 										if err then
 											Loop[_D].error=err
 											self.OnError:Fire(Loop[_D],err)
+											if stopOnError then
+												Loop[_D]:Destroy()
+											end
 										end
 									end
 								end
@@ -803,6 +874,9 @@ function multi:mainloop(settings)
 									if err then
 										Loop[_D].error=err
 										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
 									end
 								end
 							end
@@ -826,6 +900,9 @@ function multi:mainloop(settings)
 								if err then
 									Loop[_D].error=err
 									self.OnError:Fire(Loop[_D],err)
+									if stopOnError then
+										Loop[_D]:Destroy()
+									end
 								end
 							end
 						end
@@ -1386,6 +1463,9 @@ end
 function thread.yeild()
 	coroutine.yield({"_sleep_",0})
 end
+function thread.isThread()
+	return coroutine.running()
+end
 function thread.getCores()
 	return thread.__CORES
 end
@@ -1488,8 +1568,7 @@ multi.scheduler:OnLoop(function(self)
 					_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
 				end
 				if _==false then
-					self.Parent.OnError:Fire(self.Threads[i],ret)
-					print("Error in thread: <"..self.Threads[i].Name.."> "..ret)
+					self.Parent.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
 				end
 				if ret==true or ret==false then
 					print("Thread Ended!!!")
