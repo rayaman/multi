@@ -473,7 +473,6 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 		while data do
 			if data then
 				local a=unpack(data)
-				print(a)
 				if a=="_THREADINIT_" then
 					self.link.threadsResponded=self.link.threadsResponded+1
 					if self.link.threadsResponded==self.link.cores then

@@ -15,7 +15,7 @@ require("love.filesystem")
 require("love.system")
 require("love.timer")
 require("love.image")
-require("multi")
+local multi = require("multi")
 GLOBAL={}
 isMainThread=false
 setmetatable(GLOBAL,{

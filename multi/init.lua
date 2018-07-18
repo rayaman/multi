@@ -777,7 +777,7 @@ function multi:threadloop(settings)
 						_,ret=coroutine.resume(Threads[i].thread,Globals)
 					end
 					if _==false then
-						self.Parent.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
+						multi.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
 					end
 					if ret==true or ret==false then
 						ret={}
