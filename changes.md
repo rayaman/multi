@@ -10,11 +10,14 @@ Update: 2.0.0 Big update (Lots of additions some changes)
 - `master = multi:newMaster(tbl: settings)`
 - `multi:nodeManager(port)`
 - `thread.isThread()` -- for coroutine based threads
-- New setting to the main loop,stopOnError which defaults to true. This will cause the object that crashes when under protect to be destroyed, so the error does not keep happening.
+- New setting to the main loop, stopOnError which defaults to true. This will cause the objects that crash, when under protect, to be destroyed. So the error does not keep happening.
 - multi:threadloop(settings) works just like mainloop, but prioritizes (corutine based) threads. Regular multi-objects will still work. This improves the preformance of (coroutine based) threads greatly.
+- multi.OnPreLoad -- an event that is triggered right before the mainloop starts
 
 Changed:
 - When a (corutine based)thread errors it does not print anymore! Conect to multi.OnError() to get errors when they happen!
+- Connections get yet another update. Connect takes an additional argument now which is the position in the table that the func should be called. Note: Fire calls methods backwards so 1 is the back and the # of connections (the default value) is the beginning of the call table
+- The love2d compat layer has now been revamped allowing module creators to connect to events without the user having to add likes of code for those events. Its all done automagically 
 
 #Node:
 - node:sendTo(name,data)
@@ -35,6 +38,9 @@ Changed:
 - master:peek()
 - master:pop()
 - master:OnError(nodename, error) -- if a node has an error this is triggered.
+
+#Bugs
+- Fixed a small typo I made which caused a hard crash when a (coroutine) thread crashes. This only happened if protect was false. Which is now the defualt value for speed reasons.
 
 #Going forward:
 - Improve Performance

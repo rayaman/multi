@@ -133,11 +133,11 @@ function multi:setPriority(s)
 			self.Priority=self.Priority_Core
 		elseif s:lower()=='high' or s:lower()=='h' then
 			self.Priority=self.Priority_High
-		elseif s:lower()=='above' or s:lower()=='an' then
+		elseif s:lower()=='above' or s:lower()=='a' then
 			self.Priority=self.Priority_Above_Normal
 		elseif s:lower()=='normal' or s:lower()=='n' then
 			self.Priority=self.Priority_Normal
-		elseif s:lower()=='below' or s:lower()=='bn' then
+		elseif s:lower()=='below' or s:lower()=='b' then
 			self.Priority=self.Priority_Below_Normal
 		elseif s:lower()=='low' or s:lower()=='l' then
 			self.Priority=self.Priority_Low
@@ -637,9 +637,9 @@ function multi:newConnection(protect)
 	function c:Remove()
 		self.func={}
 	end
-	function c:connect(func,name)
+	function c:connect(func,name,num)
 		self.ID=self.ID+1
-		table.insert(self.func,1,{func,self.ID})
+		table.insert(self.func,num or #self.func+1,{func,self.ID})
 		local temp = {
 			Link=self.func,
 			func=func,
@@ -749,6 +749,7 @@ function multi:newCondition(func)
 	self:create(c)
 	return c
 end
+multi.OnPreLoad=multi:newConnection()
 multi.NewCondition=multi.newCondition
 function multi:threadloop(settings)
 	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
@@ -816,6 +817,8 @@ function multi:threadloop(settings)
 end
 function multi:mainloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
+	self.uManager=self.uManagerRef
+	multi.OnPreLoad:Fire()
 	if not multi.isRunning then
 		local protect = false
 		local priority = false
@@ -915,6 +918,7 @@ function multi:mainloop(settings)
 	end
 end
 function multi:uManager(settings)
+	multi.OnPreLoad:Fire()
 	if settings then
 		if settings.preLoop then
 			settings.preLoop(self)
@@ -1464,7 +1468,7 @@ function thread.yeild()
 	coroutine.yield({"_sleep_",0})
 end
 function thread.isThread()
-	return coroutine.running()
+	return coroutine.running()~=nil
 end
 function thread.getCores()
 	return thread.__CORES
@@ -1568,7 +1572,7 @@ multi.scheduler:OnLoop(function(self)
 					_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
 				end
 				if _==false then
-					self.Parent.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
+					self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
 				end
 				if ret==true or ret==false then
 					print("Thread Ended!!!")
