@@ -1,6 +1,6 @@
 #Changes
 [TOC]
-Update: 2.0.0 Big update (Lots of additions some changes)
+Update: 12.0.0 Big update (Lots of additions some changes)
 ------------------------
 **Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally reduced function overhead helps keep the threads running better.
 
@@ -17,14 +17,16 @@ Update: 2.0.0 Big update (Lots of additions some changes)
 Changed:
 - When a (corutine based)thread errors it does not print anymore! Conect to multi.OnError() to get errors when they happen!
 - Connections get yet another update. Connect takes an additional argument now which is the position in the table that the func should be called. Note: Fire calls methods backwards so 1 is the back and the # of connections (the default value) is the beginning of the call table
-- The love2d compat layer has now been revamped allowing module creators to connect to events without the user having to add likes of code for those events. Its all done automagically 
+- The love2d compat layer has now been revamped allowing module creators to connect to events without the user having to add likes of code for those events. Its all done automagically.
+- This library is about 8 years old and using 2.0.0 makes it seem young. I changed it to 12.0.0 since it has some huge changes and there were indeed 12 major releases that added some cool things. Going forward I'll use major.minor.bugfix
+- multi.OnError() is now required to capture errors that are thrown when in prorected mode.
 
 #Node:
 - node:sendTo(name,data)
 - node:pushTo(name,data)
 - node:peek()
 - node:pop()
-- node:getConsole()
+- node:getConsole() -- has only 1 function print which allows you to print to the master.
 
 #Master:
 - master:doToAll(func)
@@ -40,9 +42,13 @@ Changed:
 - master:OnError(nodename, error) -- if a node has an error this is triggered.
 
 #Bugs
-- Fixed a small typo I made which caused a hard crash when a (coroutine) thread crashes. This only happened if protect was false. Which is now the defualt value for speed reasons.
+- Fixed a small typo I made which caused a hard crash when a (coroutine) thread crashes. This only happened if protect was true.
 
 #Going forward:
+- I am really excited to finally get this update out there, but left one important thing out. enabling of enviroments for each master connected to a node. This would allow a node to isolate code from multiple masters so they cannot interact with each other. This will come out in version 12.1.0 But might take a while due to the job hunt that I am currently going through.
+- Another feature that I am on the fence about is adding channels. They would work like queues, but are named so you can seperate the data from different channels where only one portion of can see certain data. 
+- I also might add a feature that allows different system threads to consume from a network queue if they are spaned on the same physical machine. This is possible at the moment, just doesn't have a dedicated object for handling this seamlessly. You can do this yourself though.
+- Another feature that I am thinking of adding is crosstalk which is a setting that would allow nodes to talk to other nodes. I did not add it in this release since there are some issues that need to be worked out and its very messy atm. however since nodes are named. I may allow by default pushing data to another node, but not have the global table to sync since this is where the issue lies.
 - Improve Performance
 - Fix supporting libraries (Bin, and net need tons of work)
 - Look for the bugs

@@ -7,7 +7,7 @@ nGLOBAL = require("multi.integration.networkManager").init()
 -- Act as a master node
 master = multi:newMaster{
 	name = "Main", -- the name of the master
-	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+	--noBroadCast = true, -- if using the node manager, set this to true to save on some cpu cycles
 	--managerDetails = {"localhost",12345}, -- the details to connect to the node manager (ip,port)
 }
 -- Send to all the nodes that are connected to the master
@@ -16,14 +16,14 @@ master.OnError(function(name,err)
 end)
 master.OnNodeConnected(function(name)
 	print("Lets Go!")
-	master:newNetworkThread("Thread",function(node)
+	master:newNetworkThread("Thread",function(node) -- spawn a network thread on a node that can execute code and return date
 		local print = node:getConsole().print -- it is important to define things as local... another thing i could do is fenv to make sure all masters work in a protectd isolated enviroment
 		multi:newTLoop(function()
 			print("Yo whats up man!")
 			error("doing a test")
 		end,1)
 	end)
-	master:execute("RemoteTest",name,1,2,3)
+	master:execute("RemoteTest",name,1,2,3) -- calls a predefined or registered global method on a node
 	multi:newThread("waiter",function()
 		print("Hello!",name)
 		while true do

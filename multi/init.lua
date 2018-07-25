@@ -23,8 +23,8 @@ SOFTWARE.
 ]]
 local bin = pcall(require,"bin")
 local multi = {}
-multi.Version = "2.0.0"
-multi._VERSION = "2.0.0"
+multi.Version = "12.0.0"
+multi._VERSION = "12.0.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}

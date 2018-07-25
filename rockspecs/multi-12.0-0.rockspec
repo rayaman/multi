@@ -1,8 +1,8 @@
 package = "multi"
-version = "1.11.0"
+version = "12.0-0"
 source = {
    url = "git://github.com/rayaman/multi.git",
-   tag = "v1.11.0",
+   tag = "v12.0.0",
 }
 description = {
    summary = "Lua Multi tasking library",
@@ -27,6 +27,7 @@ build = {
       ["multi.integration.lanesManager"] = "multi/integration/lanesManager.lua",
       ["multi.integration.loveManager"] = "multi/integration/loveManager.lua",
       ["multi.integration.luvitManager"] = "multi/integration/luvitManager.lua",
+      ["multi.integration.networkManager"] = "multi/integration/networkManager.lua",
       ["multi.integration.shared"] = "multi/integration/shared.lua"
    }
 }
