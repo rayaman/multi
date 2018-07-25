@@ -15,7 +15,8 @@ description = {
 dependencies = {
    "lua >= 5.1",
    "bin",
-   "lanes"
+   "lanes",
+   "lua-net"
 }
 build = {
    type = "builtin",
