@@ -8,14 +8,16 @@ My multitasking library for lua. It is a pure lua binding if you ignore the inte
 
 INSTALLING
 ----------
-Note: The latest version of Lua lanes is required if you want to make use of system threads on lua 5.1+. I will update the dependencies for Lua rocks since this library should work fine on lua 5.1+
+Note: The latest version of Lua lanes is required if you want to make use of system threads on lua 5.1+. I will update the dependencies for Lua rocks since this library should work fine on lua 5.1+ You also need the lua-net library and the bin library. all installed automatically using luarocks. however you can do this manually if lanes and luasocket are installed. Links:
+https://github.com/rayaman/bin
+https://github.com/rayaman/multi
+https://github.com/rayaman/net
 
 To install copy the multi folder into your environment and you are good to go</br>
 If you want to use the system threads, then you'll need to install lanes!
 **or** use luarocks
 
 ```
-luarocks install bin -- To use the new save state stuff
 luarocks install multi
 ```
 Note: Soon you may be able to run multitasking code on multiple machines, network parallelism. This however will have to wait until I hammer out some bugs within the core of system threading itself.
