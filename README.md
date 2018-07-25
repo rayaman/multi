@@ -1,4 +1,4 @@
-# multi Version: 2.0.0 (Introducing Network Threads look at the changelog for what was added)
+# multi Version: 12.0.0 (Introducing Network Threads look at the changelog for what was added)
 
 **NOTE: I have been studying a lot about threading for the past few months and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
 
