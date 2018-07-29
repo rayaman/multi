@@ -1,8 +1,6 @@
 # multi Version: 12.0.0 (Introducing Network Threads look at the changelog for what was added)
 
-**NOTE: I have been studying a lot about threading for the past few months and have some awesome additions in store! They will take a while to come out though. The goal of the library is still to provide a simple and efficient way to multi task in lua**
-
-My multitasking library for lua. It is a pure lua binding if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know :). **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate the readme**</br>
+My multitasking library for lua. It is a pure lua binding, if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know . **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate than readme**</br>
 
 [TOC]
 
