@@ -1025,8 +1025,10 @@ function multi:newEvent(task)
 	c.Type='event'
 	c.Task=task or function() end
 	function c:Act()
-		if self.Task(self) then
+		local t = {self.Task(self)}
+		if t[1] then
 			self:Pause()
+			self.returns = t
 			for _E=1,#self.func do
 				self.func[_E](self)
 			end
@@ -1456,7 +1458,7 @@ function thread.sleep(n)
 	coroutine.yield({"_sleep_",n or 0})
 end
 function thread.hold(n)
-	coroutine.yield({"_hold_",n or function() return true end})
+	return coroutine.yield({"_hold_",n or function() return true end})
 end
 function thread.skip(n)
 	coroutine.yield({"_skip_",n or 0})
@@ -1567,9 +1569,17 @@ multi.scheduler:OnLoop(function(self)
 				if self.Threads[i].firstRunDone==false then
 					self.Threads[i].firstRunDone=true
 					self.Threads[i].timer:Start()
-					_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+					if unpack(self.Threads[i].returns or {}) then
+						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+					else
+						_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+					end
 				else
-					_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+					if unpack(self.Threads[i].returns or {}) then
+						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+					else
+						_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+					end
 				end
 				if _==false then
 					self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
@@ -1598,9 +1608,11 @@ multi.scheduler:OnLoop(function(self)
 					self.Threads[i].timer:Reset()
 					self.Threads[i].sleep=math.huge
 					local event=multi:newEvent(ret[2])
+					event.returns = nil
 					event.link=self.Threads[i]
 					event:OnEvent(function(evnt)
 						evnt.link.sleep=0
+						evnt.link.returns = evnt.returns
 					end)
 				elseif ret.Name then
 					self.Globals[ret.Name]=ret.Value

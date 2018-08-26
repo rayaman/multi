@@ -117,7 +117,7 @@ function multi:newSystemThread(name,func,...)
 	local THREAD_NAME=name
 	local function func2(...)
 		_G["THREAD_NAME"]=THREAD_NAME
-		func()
+		func(...)
 	end
     c.thread=lanes.gen("*", func2)(...)
 	function c:kill()

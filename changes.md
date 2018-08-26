@@ -1,8 +1,41 @@
 #Changes
 [TOC]
+Update 12.1.0
+-------------
+Fixed:
+- bug causing arguments when spawning a new thread not going through
+
+Changed:
+- thread.hold() now returns the arguments that were pass by the event function
+- event objexts now contain a copy of what returns were made by the function that called it in a table called returns that exist inside of the object
+
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+multi = require("multi")
+local a = 0
+multi:newThread("test",function()
+	print("lets go")
+	b,c = thread.hold(function() -- This now returns what was managed here
+		return b,"We did it!"
+	end)
+	print(b,c)
+end)
+multi:newTLoop(function()
+	a=a+1
+	if a == 5 then
+		b = "Hello"
+	end
+end,1)
+multi:mainloop()
+```
+**Note:** Only if the first return is non-nil/false will any other returns be passed! So while variable b above is nil the string "We did it!" will not be passed. Also while this seems simple enough to get working, I had to modify a bit on how the scheduler worked to add such a simple feature. Quite a bit is going on behind the scenes which made this a bit tricky to implement, but not hard. Just needed a bit of tinkering. Plus event objects have not been edited since the creation of the EventManager. They have remained mostly the same since 2011
+
+# Going forward:
+Contunue to make small changes as I come about them. This change was inspired when working of the net library. I was addind simple binary file support over tcp, and needed to pass the data from the socket when the requested amount has been recieved. While upvalues did work, i felt returning data was cleaner and added this feature.
+
 Update: 12.0.0 Big update (Lots of additions some changes)
 ------------------------
-**Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally reduced function overhead helps keep the threads running better.
+**Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
 
 #Added:
 - `nGLOBAL = require("multi.integration.networkManager").init()`

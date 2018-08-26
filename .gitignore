@@ -1,2 +1,8 @@
 
 test2.lua
+*.mp3
+*.exe
+lanestestclient.lua
+lanestest.lua
+sample-node.lua
+sample-master.lua
