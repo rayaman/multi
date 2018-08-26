@@ -1,4 +1,4 @@
-# multi Version: 12.0.0 (Introducing Network Threads look at the changelog for what was added)
+# multi Version: 12.1.0 Fixing bugs and making the library eaiser to use
 
 My multitasking library for lua. It is a pure lua binding, if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know . **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate than readme**</br>
 
