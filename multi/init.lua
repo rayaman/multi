@@ -23,8 +23,9 @@ SOFTWARE.
 ]]
 local bin = pcall(require,"bin")
 local multi = {}
-multi.Version = "12.0.0"
-multi._VERSION = "12.0.0"
+local clock = os.clock
+multi.Version = "12.2.0"
+multi._VERSION = "12.2.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}
@@ -43,7 +44,11 @@ multi.jobUS = 2
 multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
-multi.isRunning = false
+multi.lastTime = clock()
+local mainloopActive = false
+local isRunning = false
+local next
+local ncount = 0
 multi.defaultSettings = {
 	priority = 0,
 	protect = false,
@@ -144,6 +149,7 @@ function multi:setPriority(s)
 		elseif s:lower()=='idle' or s:lower()=='i' then
 			self.Priority=self.Priority_Idle
 		end
+		self.solid = true
 	end
 end
 -- System
@@ -230,25 +236,23 @@ function multi:getError()
 	end
 end
 function multi:benchMark(sec,p,pt)
+	local c = 0
 	local temp=self:newLoop(function(self,t)
-		if self.clock()-self.init>self.sec then
+		if t>sec then
 			if pt then
-				print(pt.." "..self.c.." Steps in "..sec.." second(s)!")
+				print(pt.." "..c.." Steps in "..sec.." second(s)!")
 			end
-			self.tt(self.sec,self.c)
+			self.tt(sec,c)
 			self:Destroy()
 		else
-			self.c=self.c+1
+			c=c+1
 		end
 	end)
-	temp.Priority=p or 1
+	temp:setPriority(p or 1)
 	function temp:OnBench(func)
 		self.tt=func
 	end
 	self.tt=function() end
-	temp.sec=sec
-	temp.init=self.clock()
-	temp.c=0
 	return temp
 end
 function multi.startFPSMonitior()
@@ -268,7 +272,9 @@ function multi.timer(func,...)
 	local timer=multi:newTimer()
 	timer:Start()
 	args={func(...)}
-	return timer:Get(),unpack(args)
+	local t = timer:Get()
+	timer = nil
+	return t,unpack(args)
 end
 function multi:IsAnActor()
 	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
@@ -369,12 +375,15 @@ function multi:ResolveTimer(...)
 		self.funcTMR[i](self,...)
 	end
 	self:Pause()
+	return self
 end
 function multi:OnTimedOut(func)
 	self.funcTM[#self.funcTM+1]=func
+	return self
 end
 function multi:OnTimerResolved(func)
 	self.funcTMR[#self.funcTMR+1]=func
+	return self
 end
 -- Timer stuff done
 function multi:Pause()
@@ -386,6 +395,7 @@ function multi:Pause()
 			table.remove(self.Parent.Mainloop,self.Id)
 		end
 	end
+	return self
 end
 function multi:Resume()
 	if self.Type=='process' or self.Type=='mainprocess' then
@@ -401,6 +411,7 @@ function multi:Resume()
 			self.Active=true
 		end
 	end
+	return self
 end
 function multi:Destroy()
 	if self.Type=='process' or self.Type=='mainprocess' then
@@ -419,9 +430,11 @@ function multi:Destroy()
 		end
 		self.Active=false
 	end
+	return self
 end
 function multi:Reset(n)
 	self:Resume()
+	return self
 end
 function multi:isDone()
 	return self.Active~=true
@@ -482,20 +495,24 @@ function multi:newProcess(file)
 		if self.l then
 			self.l:Resume()
 		end
+		return self
 	end
 	function c:Resume()
 		if self.l then
 			self.l:Resume()
 		end
+		return self
 	end
 	function c:Pause()
 		if self.l then
 			self.l:Pause()
 		end
+		return self
 	end
 	function c:Remove()
 		self:Destroy()
 		self.l:Destroy()
+		return self
 	end
 	if file then
 		self.Cself=c
@@ -512,6 +529,7 @@ function multi:newQueuer(file)
 	c.funcE={}
 	function c:OnQueueCompleted(func)
 		table.insert(self.funcE,func)
+		return self
 	end
 	if file then
 		self.Cself=c
@@ -534,40 +552,45 @@ function multi:newQueuer(file)
 	function c:Start()
 		self.Mainloop[#self.Mainloop]:Resume()
 		self.l:Resume()
+		return self
 	end
 	return c
 end
 function multi:newTimer()
 	local c={}
 	c.Type='timer'
-	c.time=0
-	c.count=0
-	c.paused=false
+	local time=0
+	local count=0
+	local paused=false
 	function c:Start()
-		self.time=os.clock()
+		time=os.clock()
+		return self
 	end
 	function c:Get()
-		if self:isPaused() then return self.time end
-		return (os.clock()-self.time)+self.count
+		if self:isPaused() then return time end
+		return (clock()-time)+count
 	end
 	function c:isPaused()
-		return self.paused
+		return paused
 	end
 	c.Reset=c.Start
 	function c:Pause()
-		self.time=self:Get()
-		self.paused=true
+		time=self:Get()
+		paused=true
+		return self
 	end
 	function c:Resume()
-		self.paused=false
-		self.time=os.clock()-self.time
+		paused=false
+		time=os.clock()-time
+		return self
 	end
 	function c:tofile(path)
 		local m=bin.new()
-		self.count=self.count+self:Get()
+		count=count+self:Get()
 		m:addBlock(self.Type)
-		m:addBlock(self.count)
+		m:addBlock(count)
 		m:tofile(path)
+		return self
 	end
 	self:create(c)
 	return c
@@ -597,12 +620,14 @@ function multi:newConnection(protect)
 			self.Parent:uManager(multi.defaultSettings)
 		until self.waiting==false
 		id:Destroy()
+		return self
 	end
 	c.HoldUT=c.holdUT
 	function c:fConnect(func)
 		local temp=self:connect(func)
 		table.insert(self.fconnections,temp)
 		self.FC=self.FC+1
+		return self
 	end
 	c.FConnect=c.fConnect
 	function c:getConnection(name,ingore)
@@ -633,9 +658,11 @@ function multi:newConnection(protect)
 	end
 	function c:Bind(t)
 		self.func=t
+		return self
 	end
 	function c:Remove()
 		self.func={}
+		return self
 	end
 	function c:connect(func,name,num)
 		self.ID=self.ID+1
@@ -687,6 +714,7 @@ function multi:newConnection(protect)
 		m:addBlock(self.Type)
 		m:addBlock(self.func)
 		m:tofile(path)
+		return self
 	end
 	return c
 end
@@ -721,6 +749,14 @@ function multi:newJob(func,name)
 			end
 			self:Reset(self.Parent.jobUS)
 		end)
+	end
+end
+function multi.nextStep(func)
+	ncount = ncount+1
+	if not next then
+		next = {func}
+	else
+		next[#self.next+1] = func
 	end
 end
 function multi:newRange()
@@ -819,26 +855,54 @@ function multi:mainloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
 	multi.OnPreLoad:Fire()
-	if not multi.isRunning then
+	local p_c,p_h,p_an,p_n,p_bn,p_l,p_i = self.Priority_Core,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Idle
+	local P_LB = p_i
+	if not isRunning then
 		local protect = false
 		local priority = false
 		local stopOnError = true
+		local delay = 3
 		if settings then
+			priority = settings.priority
+			if settings.auto_priority then
+				priority = -1
+			end
 			if settings.preLoop then
 				settings.preLoop(self)
 			end
 			if settings.stopOnError then
 				stopOnError = settings.stopOnError
 			end
+			if settings.auto_stretch then
+				p_i = p_i * settings.auto_stretch
+			end
+			if settings.auto_delay then
+				delay = settings.auto_delay
+			end
+			if settings.auto_lowerbound then
+				P_LB = settings.auto_lowerbound
+			end
 			protect = settings.protect
-			priority = settings.priority
 		end
-		multi.isRunning=true
-		rawset(self,'Start',self.clock())
-		while self.Active do
-			if priority==1 then
-				local Loop=self.Mainloop
-				local PS=self
+		local t,tt = clock(),0
+		isRunning=true
+		local lastTime = clock()
+		rawset(self,'Start',clock())
+		mainloopActive = true
+		local Loop=self.Mainloop
+		local PS=self
+		local PStep = 1
+		local autoP = 0
+		local solid
+		local sRef
+		while mainloopActive do
+			if ncount ~= 0 then
+				for i = 1, ncount do
+					next[i]()
+				end
+				ncount = 0
+			end
+			if priority == 1 then
 				for _D=#Loop,1,-1 do
 					for P=1,7 do
 						if Loop[_D] then
@@ -862,12 +926,10 @@ function multi:mainloop(settings)
 						end
 					end
 				end
-			elseif priority==2 then
-				local Loop=self.Mainloop
-				local PS=self
+			elseif priority == 2 then
 				for _D=#Loop,1,-1 do
 					if Loop[_D] then
-						if (PS.PStep)%Loop[_D].Priority==0 then
+						if (PStep)%Loop[_D].Priority==0 then
 							if Loop[_D].Active then
 								self.CID=_D
 								if not protect then
@@ -886,12 +948,96 @@ function multi:mainloop(settings)
 						end
 					end
 				end
-				PS.PStep=PS.PStep+1
-				if PS.PStep>self.Priority_Idle then
-					PS.PStep=1
+				PStep=PStep+1
+				if PStep==p_i then
+					PStep=0
+				end
+			elseif priority == 3 then
+				tt = clock()-t
+				t = clock()
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
+						if Loop[_D].Priority == p_c or (Loop[_D].Priority == p_h and tt<.5) or (Loop[_D].Priority == p_an and tt<.125) or (Loop[_D].Priority == p_n and tt<.063) or (Loop[_D].Priority == p_bn and tt<.016) or (Loop[_D].Priority == p_l and tt<.003) or (Loop[_D].Priority == p_i and tt<.001) then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			elseif priority == -1 then
+				for _D=#Loop,1,-1 do
+					sRef = Loop[_D]
+					if Loop[_D] then
+						if (sRef.Priority == p_c) or PStep==0 then
+							if sRef.Active then
+								self.CID=_D
+								if not protect then
+									if sRef.solid then
+										sRef:Act()
+										solid = true
+									else
+										time = multi.timer(sRef.Act,sRef)
+										sRef.solid = true
+										solid = false
+									end
+									if Loop[_D] and not solid then
+										if time == 0 then
+											Loop[_D].Priority = p_c
+										else
+											Loop[_D].Priority = P_LB
+										end
+									end
+								else
+									if Loop[_D].solid then
+										Loop[_D]:Act()
+										solid = true
+									else
+										time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+										Loop[_D].solid = true
+										solid = false
+									end
+									if Loop[_D] and not solid then
+										if time == 0 then
+											Loop[_D].Priority = p_c
+										else
+											Loop[_D].Priority = P_LB
+										end
+									end
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				PStep=PStep+1
+				if PStep>p_i then
+					PStep=0
+					if clock()-lastTime>delay then
+						lastTime = clock()
+						for i = 1,#Loop do
+							Loop[i]:ResetPriority()
+						end
+					end
 				end
 			else
-				local Loop=self.Mainloop
 				for _D=#Loop,1,-1 do
 					if Loop[_D] then
 						if Loop[_D].Active then
@@ -919,19 +1065,37 @@ function multi:mainloop(settings)
 end
 function multi:uManager(settings)
 	multi.OnPreLoad:Fire()
+	multi.defaultSettings = settings or multi.defaultSettings
+	self.t,self.tt = clock(),0
 	if settings then
+		priority = settings.priority
+		if settings.auto_priority then
+			priority = -1
+		end
 		if settings.preLoop then
 			settings.preLoop(self)
 		end
+		if settings.stopOnError then
+			stopOnError = settings.stopOnError
+		end
+		multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle or self.Priority_Idle
+		multi.defaultSettings.delay = settings.auto_delay or 3
+		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
+		protect = settings.protect
 	end
-	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
 end
 function multi:uManagerRef(settings)
 	if self.Active then
+		if ncount ~= 0 then
+			for i = 1, ncount do
+				next[i]()
+			end
+			ncount = 0
+		end
+		local Loop=self.Mainloop
+		local PS=self
 		if multi.defaultSettings.priority==1 then
-			local Loop=self.Mainloop
-			local PS=self
 			for _D=#Loop,1,-1 do
 				for P=1,7 do
 					if Loop[_D] then
@@ -945,6 +1109,9 @@ function multi:uManagerRef(settings)
 									if err then
 										Loop[_D].error=err
 										self.OnError:Fire(Loop[_D],err)
+										if multi.defaultSettings.stopOnError then
+											Loop[_D]:Destroy()
+										end
 									end
 								end
 							end
@@ -953,8 +1120,6 @@ function multi:uManagerRef(settings)
 				end
 			end
 		elseif multi.defaultSettings.priority==2 then
-			local Loop=self.Mainloop
-			local PS=self
 			for _D=#Loop,1,-1 do
 				if Loop[_D] then
 					if (PS.PStep)%Loop[_D].Priority==0 then
@@ -967,6 +1132,9 @@ function multi:uManagerRef(settings)
 								if err then
 									Loop[_D].error=err
 									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
 								end
 							end
 						end
@@ -975,10 +1143,94 @@ function multi:uManagerRef(settings)
 			end
 			PS.PStep=PS.PStep+1
 			if PS.PStep>self.Priority_Idle then
-				PS.PStep=1
+				PS.PStep=0
+			end
+		elseif priority == 3 then
+			self.tt = clock()-self.t
+			self.t = clock()
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Priority == self.Priority_Core or (Loop[_D].Priority == self.Priority_High and tt<.5) or (Loop[_D].Priority == self.Priority_Above_Normal and tt<.125) or (Loop[_D].Priority == self.Priority_Normal and tt<.063) or (Loop[_D].Priority == self.Priority_Below_Normal and tt<.016) or (Loop[_D].Priority == self.Priority_Low and tt<.003) or (Loop[_D].Priority == self.Priority_Idle and tt<.001) then
+						if Loop[_D].Active then
+							self.CID=_D
+							if not protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		elseif priority == -1 then
+			for _D=#Loop,1,-1 do
+				local sRef = Loop[_D]
+				if Loop[_D] then
+					if (sRef.Priority == self.Priority_Core) or PStep==0 then
+						if sRef.Active then
+							self.CID=_D
+							if not protect then
+								if sRef.solid then
+									sRef:Act()
+									solid = true
+								else
+									time = multi.timer(sRef.Act,sRef)
+									sRef.solid = true
+									solid = false
+								end
+								if Loop[_D] and not solid then
+									if time == 0 then
+										Loop[_D].Priority = self.Priority_Core
+									else
+										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
+									end
+								end
+							else
+								if Loop[_D].solid then
+									Loop[_D]:Act()
+									solid = true
+								else
+									time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+									Loop[_D].solid = true
+									solid = false
+								end
+								if Loop[_D] and not solid then
+									if time == 0 then
+										Loop[_D].Priority = self.Priority_Core
+									else
+										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
+									end
+								end
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			self.PStep=self.PStep+1
+			if self.PStep>multi.defaultSettings.p_i then
+				self.PStep=0
+				if clock()-self.lastTime>multi.defaultSettings.delay then
+					self.lastTime = clock()
+					for i = 1,#Loop do
+						Loop[i]:ResetPriority()
+					end
+				end
 			end
 		else
-			local Loop=self.Mainloop
 			for _D=#Loop,1,-1 do
 				if Loop[_D] then
 					if Loop[_D].Active then
@@ -1036,9 +1288,11 @@ function multi:newEvent(task)
 	end
 	function c:SetTask(func)
 		self.Task=func
+		return self
 	end
 	function c:OnEvent(func)
 		table.insert(self.func,func)
+		return self
 	end
 	self:create(c)
 	return c
@@ -1059,6 +1313,7 @@ function multi:newUpdater(skip)
 	end
 	function c:SetSkip(n)
 		self.skip=n
+		return self
 	end
 	c.OnUpdate=self.OnMainConnect
 	self:create(c)
@@ -1082,18 +1337,22 @@ function multi:newAlarm(set)
 	function c:Resume()
 		self.Parent.Resume(self)
 		self.timer:Resume()
+		return self
 	end
 	function c:Reset(n)
 		if n then self.set=n end
 		self:Resume()
 		self.timer:Reset()
+		return self
 	end
 	function c:OnRing(func)
 		table.insert(self.func,func)
+		return self
 	end
 	function c:Pause()
 		self.timer:Pause()
 		self.Parent.Pause(self)
+		return self
 	end
 	self:create(c)
 	return c
@@ -1101,17 +1360,19 @@ end
 function multi:newLoop(func)
 	local c=self:newBase()
 	c.Type='loop'
-	c.Start=self.clock()
+	local start=self.clock()
+	local funcs = {}
 	if func then
-		c.func={func}
+		funcs={func}
 	end
 	function c:Act()
-		for i=1,#self.func do
-			self.func[i](self,self.Parent.clock()-self.Start)
+		for i=1,#funcs do
+			funcs[i](self,clock()-start)
 		end
 	end
 	function c:OnLoop(func)
-		table.insert(self.func,func)
+		table.insert(funcs,func)
+		return self
 	end
 	self:create(c)
 	return c
@@ -1126,9 +1387,11 @@ function multi:newFunction(func)
 	c.Parent=self
 	function c:Pause()
 		self.Active=false
+		return self
 	end
 	function c:Resume()
 		self.Active=true
+		return self
 	end
 	setmetatable(c,mt)
 	self:create(c)
@@ -1180,15 +1443,19 @@ function multi:newStep(start,reset,count,skip)
 	c.Reset=c.Resume
 	function c:OnStart(func)
 		table.insert(self.funcS,func)
+		return self
 	end
 	function c:OnStep(func)
 		table.insert(self.func,1,func)
+		return self
 	end
 	function c:OnEnd(func)
 		table.insert(self.funcE,func)
+		return self
 	end
 	function c:Break()
 		self.Active=nil
+		return self
 	end
 	function c:Update(start,reset,count,skip)
 		self.start=start or self.start
@@ -1196,6 +1463,7 @@ function multi:newStep(start,reset,count,skip)
 		self.skip=skip or self.skip
 		self.count=count or self.count
 		self:Resume()
+		return self
 	end
 	self:create(c)
 	return c
@@ -1221,13 +1489,16 @@ function multi:newTLoop(func,set)
 	function c:Resume()
 		self.Parent.Resume(self)
 		self.timer:Resume()
+		return self
 	end
 	function c:Pause()
 		self.timer:Pause()
 		self.Parent.Pause(self)
+		return self
 	end
 	function c:OnLoop(func)
 		table.insert(self.func,func)
+		return self
 	end
 	self:create(c)
 	return c
@@ -1238,6 +1509,7 @@ function multi:newTrigger(func)
 	c.trigfunc=func or function() end
 	function c:Fire(...)
 		self:trigfunc(...)
+		return self
 	end
 	self:create(c)
 	return c
@@ -1265,6 +1537,7 @@ function multi:newTStep(start,reset,count,set)
 		self.count=count or self.count or 1
 		self.timer=self.clock()
 		self:Resume()
+		return self
 	end
 	function c:Act()
 		if self.clock()-self.timer>=self.set then
@@ -1289,20 +1562,25 @@ function multi:newTStep(start,reset,count,set)
 	end
 	function c:OnStart(func)
 		table.insert(self.funcS,func)
+		return self
 	end
 	function c:OnStep(func)
 		table.insert(self.func,func)
+		return self
 	end
 	function c:OnEnd(func)
 		table.insert(self.funcE,func)
+		return self
 	end
 	function c:Break()
 		self.Active=nil
+		return self
 	end
 	function c:Reset(n)
 		if n then self.set=n end
 		self.timer=self.clock()
 		self:Resume()
+		return self
 	end
 	self:create(c)
 	return c
@@ -1391,24 +1669,31 @@ function multi:newTimeStamper()
 		else
 			self.time[#self.time+1]={hour,minute,true}
 		end
+		return self
 	end
 	function c:OnHour(hour,func)
 		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
+		return self
 	end
 	function c:OnMinute(minute,func)
 		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
+		return self
 	end
 	function c:OnSecond(second,func)
 		self.second[#self.second+1]={string.format("%02d",second),func,true}
+		return self
 	end
 	function c:OnDay(day,func)
 		self.day[#self.day+1]={day,func,true}
+		return self
 	end
 	function c:OnMonth(month,func)
 		self.month[#self.month+1]={string.format("%02d",month),func,true}
+		return self
 	end
 	function c:OnYear(year,func)
 		self.year[#self.year+1]={string.format("%02d",year),func,true}
+		return self
 	end
 	self:create(c)
 	return c
@@ -1426,6 +1711,7 @@ function multi:newWatcher(namespace,name)
 		c.cv=ns[n]
 		function c:OnValueChanged(func)
 			table.insert(self.func,func)
+			return self
 		end
 		function c:Act()
 			if self.cv~=self.ns[self.n] then
@@ -1631,18 +1917,22 @@ function multi:newThreadedAlarm(name,set)
 	function c:Resume()
 		self.rest=false
 		self.timer:Resume()
+		return self
 	end
 	function c:Reset(n)
 		if n then self.set=n end
 		self.rest=false
 		self.timer:Reset(n)
+		return self
 	end
 	function c:OnRing(func)
 		table.insert(self.func,func)
+		return self
 	end
 	function c:Pause()
 		self.timer:Pause()
 		self.rest=true
+		return self
 	end
 	c.rest=false
 	c.updaterate=multi.Priority_Low -- skips
@@ -1672,9 +1962,11 @@ function multi:newThreadedUpdater(name,skip)
 	c.skip=skip or 1
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	c.OnUpdate=self.OnMainConnect
 	c.rest=false
@@ -1718,29 +2010,37 @@ function multi:newThreadedTStep(name,start,reset,count,set)
 		self.count=count or self.count or 1
 		self.timer=os.clock()
 		self:Resume()
+		return self
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	function c:OnStart(func)
 		table.insert(self.funcS,func)
+		return self
 	end
 	function c:OnStep(func)
 		table.insert(self.func,func)
+		return self
 	end
 	function c:OnEnd(func)
 		table.insert(self.funcE,func)
+		return self
 	end
 	function c:Break()
 		self.Active=nil
+		return self
 	end
 	function c:Reset(n)
 		if n then self.set=n end
 		self.timer=os.clock()
 		self:Resume()
+		return self
 	end
 	c.updaterate=0--multi.Priority_Low -- skips
 	c.restRate=0
@@ -1784,12 +2084,15 @@ function multi:newThreadedTLoop(name,func,n)
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	function c:OnLoop(func)
 		table.insert(self.func,func)
+		return self
 	end
 	c.rest=false
 	c.updaterate=0
@@ -1828,22 +2131,28 @@ function multi:newThreadedStep(name,start,reset,count,skip)
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	c.Reset=c.Resume
 	function c:OnStart(func)
 		table.insert(self.funcS,func)
+		return self
 	end
 	function c:OnStep(func)
 		table.insert(self.func,1,func)
+		return self
 	end
 	function c:OnEnd(func)
 		table.insert(self.funcE,func)
+		return self
 	end
 	function c:Break()
 		self.rest=true
+		return self
 	end
 	function c:Update(start,reset,count,skip)
 		self.start=start or self.start
@@ -1851,6 +2160,7 @@ function multi:newThreadedStep(name,start,reset,count,skip)
 		self.skip=skip or self.skip
 		self.count=count or self.count
 		self:Resume()
+		return self
 	end
 	c.updaterate=0
 	c.restRate=.1
@@ -1929,21 +2239,26 @@ function multi:newThreadedProcess(name)
 	end
 	function c:Start()
 		self.rest=false
+		return self
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	function c:Remove()
 		self.ref:kill()
+		return self
 	end
 	function c:kill()
 		err=coroutine.yield({"_kill_"})
 		if err then
 			error("Failed to kill a thread! Exiting...")
 		end
+		return self
 	end
 	function c:sleep(n)
 		if type(n)=="function" then
@@ -1954,6 +2269,7 @@ function multi:newThreadedProcess(name)
 		else
 			error("Invalid Type for sleep!")
 		end
+		return self
 	end
 	c.hold=c.sleep
 	multi:newThread(name,function(ref)
@@ -1977,12 +2293,15 @@ function multi:newThreadedLoop(name,func)
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	function c:OnLoop(func)
 		table.insert(self.func,func)
+		return self
 	end
 	c.rest=false
 	c.updaterate=0
@@ -2008,12 +2327,15 @@ function multi:newThreadedEvent(name,task)
 	c.Task=task or function() end
 	function c:OnEvent(func)
 		table.insert(self.func,func)
+		return self
 	end
 	function c:Resume()
 		self.rest=false
+		return self
 	end
 	function c:Pause()
 		self.rest=true
+		return self
 	end
 	c.rest=false
 	c.updaterate=0
@@ -2039,6 +2361,7 @@ end
 -- State Saving Stuff
 function multi:IngoreObject()
 	self.Ingore=true
+	return self
 end
 multi.scheduler:IngoreObject()
 function multi:ToString()

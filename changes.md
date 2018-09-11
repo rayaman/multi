@@ -1,5 +1,76 @@
 #Changes
 [TOC]
+Update 12.2.0
+-------------
+**Added:**
+- multi.nextStep(func)
+- Method chaining
+- Priority 3 has been added!
+- ResetPriority() -- This will set a flag for a process to be re evaluated for how much of an impact it is having on the performance of the system.
+- setting: auto_priority added! -- If only lua os.clock was more fine tuned... milliseconds are not enough for this to work
+- setting: auto_lowerbound added! -- when using auto_priority this will allow you to set the lowbound for pirority. The defualt is a hyrid value that was calculated to reach the max potential with a delay of .001, but can be changed to whatever. Remember this is set to processes that preform really badly! If lua could handle more detail in regards to os.clock() then i would set the value a bit lower like .0005 or something like that
+- setting: auto_stretch added! -- This is another way to modify the extent of the lowest setting. This reduces the impact that a low preforming process has! Setting this higher reduces the number of times that a process is called. Only in effect when using auto_priotity
+- setting: auto_delay added! -- sets the time in seconds that the system will recheck for low performing processes and manage them. Will also upgrade a process if it starts to run better.
+```lua
+-- All methods that did not return before now return a copy of itself. Thus allowing chaining. Most if not all mutators returned nil, so chaining can now be done. I will eventually write up a full documentation of everything which will show this.
+multi = require("multi")
+multi:newStep(1,100):OnStep(function(self,i)
+	print("Index: "..i)
+end):OnEnd(function(self)
+	print("Step is done!")
+end)
+multi:mainloop{
+	priority = 3
+}
+```
+Priority 3 works a bit differently than the other 2.
+
+P1 follows a forumla that resembles this: ~n=I*PRank where n is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
+```
+C: 3322269	~I*7
+H: 2847660	~I*6
+A: 2373050	~I*5
+N: 1898440	~I*4
+B: 1423830	~I*3
+L: 949220	 ~I*2
+I: 474610	 ~I
+~n=I*PRank
+```
+P2 follows a formula that resembles this: ~n=n*4 where n is the idle time, see chart below. The goal of this one was to make core process' higher while keeping idle process' low.
+```
+C: 6700821
+H: 1675205
+A: 418801
+N: 104700
+B: 26175
+L: 6543
+I: 1635
+~n=n*4
+```
+P3 Ignores using a basic funceion and instead bases its processing time on the amount of cpu time is there. If  cpu-time is low and a process is set at a lower priority it will get its time reduced. There is no formula, at idle almost all process work at the same speed!
+```
+C: 2120906
+H: 2120906
+A: 2120906
+N: 2120906
+B: 2120906
+L: 2120906
+I: 2120506
+```
+
+Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting.
+
+**Improved:**
+- Performance at the base level has been doubled! On my machine benchmark went from ~9mil to ~20 mil steps/s.
+Note: If you write slow code this library's improbements wont make much of a difference.
+- Loops have been optimised as well! Being the most used objects I felt they needed to be made as fast as possible
+
+I usually give an example of the changes made, but this time I have an explantion for multi.nextStep(). It's not an entirely new feature since multi:newJob() does something like this, but is completely different. nextStep addes a function that is executed first on the next step. If multiple things are added to next step, then they will be executed in the order that they were added.
+
+Note:
+The upper limit of this libraries performance on my machine is ~39mil. This is simply a while loop counting up from 0 and stops after 1 second. The 20mil that I am currently getting is probably as fast as it can get since its half of the max performance possible, and each layer I have noticed that it doubles complexity. Throughout the years with this library I have seen massive improvements in speed. In the beginning we had only ~2000 steps per second. Fast right? then after some tweaks we went to about 300000 steps per second, then 600000. Some more tweaks brought me to ~1mil steps per second, then to ~4 mil then ~9 mil and now finally ~20 mil... the doubling effect that i have now been seeing means that odds are I have reach the limit. I will aim to add more features and optimize individule objects. If its possible to make the library even faster then I will go for it.
+
+
 Update 12.1.0
 -------------
 Fixed:
@@ -35,7 +106,8 @@ Contunue to make small changes as I come about them. This change was inspired wh
 
 Update: 12.0.0 Big update (Lots of additions some changes)
 ------------------------
-**Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a timer is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
+**Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a 
+is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
 
 #Added:
 - `nGLOBAL = require("multi.integration.networkManager").init()`
