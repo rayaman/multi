@@ -1,12 +1,12 @@
 --[[
 MIT License
 
-Copyright (c) 2017 Ryan Ward
+Copyright (c) 2018 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+to use, copy, modify, merge, publish, distribute, sub-license, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
@@ -31,9 +31,8 @@ function os.getOS()
 end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
---~ package.path="lua/?/init.lua;lua/?.lua;"..package.path
 local multi = require("multi") -- get it all and have it on all lanes
-isMainThread=true
+multi.isMainThread=true
 function multi:canSystemThread()
 	return true
 end
@@ -108,8 +107,10 @@ function THREAD.hold(n)
 	end
 	repeat wait() until n()
 end
+local rand = math.random(1,10000000)
 -- Step 5 Basic Threads!
 function multi:newSystemThread(name,func,...)
+	rand = math.random(1,10000000)
     local c={}
     local __self=c
     c.name=name
@@ -117,6 +118,7 @@ function multi:newSystemThread(name,func,...)
 	local THREAD_NAME=name
 	local function func2(...)
 		_G["THREAD_NAME"]=THREAD_NAME
+		math.randomseed(rand)
 		func(...)
 	end
     c.thread=lanes.gen("*", func2)(...)
@@ -130,8 +132,7 @@ function multi:newSystemThread(name,func,...)
 	c.status:OnUpdate(function(self)
 		local v,err,t=self.link.thread:join(.001)
 		if err then
-			multi.OnError:Fire(self.link,err)
-			print("Error in systemThread: '"..self.link.name.."' <"..err..">")
+			multi.OnError:Fire(self.link,err,"Error in systemThread: '"..self.link.name.."' <"..err..">")
 			self:Destroy()
 		end
 	end)

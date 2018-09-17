@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2017 Ryan Ward
+Copyright (c) 2018 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,8 +24,8 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "12.2.0"
-multi._VERSION = "12.2.0"
+multi.Version = "12.2.1"
+multi._VERSION = "12.2.1"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}
@@ -520,40 +520,6 @@ function multi:newProcess(file)
 	end
 	self:create(c)
 --~ 	c:IngoreObject()
-	return c
-end
-function multi:newQueuer(file)
-	local c=self:newProcess()
-	c.Type='queue'
-	c.last={}
-	c.funcE={}
-	function c:OnQueueCompleted(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	if file then
-		self.Cself=c
-		loadstring('local queue=multi.Cself '..io.open(file,'rb'):read('*all'))()
-	end
-	self:create(c)
-	multi.OnObjectCreated(function(self)
-		if self.Parent then
-			if self.Parent.Type=="queue" then
-				if self:isAnActor() then
-					if self.Type=="alarm" then
-						self.Active=false
-					end
-					self:Pause()
-					self:connectFinal(multi.queuefinal)
-				end
-			end
-		end
-	end)
-	function c:Start()
-		self.Mainloop[#self.Mainloop]:Resume()
-		self.l:Resume()
-		return self
-	end
 	return c
 end
 function multi:newTimer()
@@ -1078,7 +1044,10 @@ function multi:uManager(settings)
 		if settings.stopOnError then
 			stopOnError = settings.stopOnError
 		end
-		multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle or self.Priority_Idle
+		multi.defaultSettings.p_i = self.Priority_Idle
+		if settings.auto_stretch then
+			multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle
+		end
 		multi.defaultSettings.delay = settings.auto_delay or 3
 		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
 		protect = settings.protect

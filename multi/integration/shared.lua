@@ -1,12 +1,12 @@
 --[[
 MIT License
 
-Copyright (c) 2017 Ryan Ward
+Copyright (c) 2018 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
 in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+to use, copy, modify, merge, publish, distribute, sub-license, and/or sell
 copies of the Software, and to permit persons to whom the Software is
 furnished to do so, subject to the following conditions:
 
@@ -114,141 +114,124 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 end
 function multi:newSystemThreadedConnection(name,protect)
 	local c={}
-	c.name = name
-	c.protect=protect
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
+	c.name = name or error("You must supply a name for this object!")
+	c.protect = protect or false
+	c.count = 0
+	multi:newSystemThreadedQueue(name.."THREADED_CALLFIRE"):init()
+	local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
+	local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
 	function c:init()
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
 			sThread=_G.sThread
 		end
+		local conns = 0
+		local qF = sThread.waitFor(self.name.."THREADED_CALLFIRE"):init()
+		local qSM = sThread.waitFor(self.name.."THREADED_CALLSYNCM"):init()
+		local qS = sThread.waitFor(self.name.."THREADED_CALLSYNC"):init()
+		qSM:push("OK")
 		local conn = {}
-		conn.name = self.name
-		conn.count = 0
-		if isMainThread then
-			if GLOBAL[self.name.."THREADED_CONNQ"] then -- if this thing exists then lets grab it, we are doing something different here. instead of cleaning things up, we will gave a dedicated queue to manage things
-				conn.queueCall = sThread.waitFor(self.name.."THREADED_CALLQ"):init()
-			else
-				conn.queueCall = multi:newSystemThreadedQueue(self.name.."THREADED_CALLQ"):init()
-			end
-		else
-			local multi = require("multi") -- so things don't break, but also allows bi-directional connections to work
-			conn.queueCall = sThread.waitFor(self.name.."THREADED_CALLQ"):init()
-		end
+		conn.obj = multi:newConnection(self.protect)
 		setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
-		conn.obj=multi:newConnection(self.protect)
 		function conn:connect(func)
 			return self.obj(func)
-		end
-		function conn:fConnect(func)
-			return self.obj:fConnect(func)
 		end
 		function conn:holdUT(n)
 			self.obj:holdUT(n)
 		end
-		function conn:Bind(t)
-			self.obj:Bind(t)
-		end
 		function conn:Remove()
 			self.obj:Remove()
 		end
-		function conn:getConnection(name,ingore)
-			return self.obj:getConnection(name,ingore)
-		end
 		function conn:Fire(...)
-			local args = {...}
-			table.insert(args,1,multi.randomString(8))
-			table.insert(args,1,self.name)
-			table.insert(args,1,"F")
-			self.queueCall:push(args)
-			if self.trigger_self then
-				self.obj:Fire(...)
+			local args = {multi.randomString(8),...}
+			for i = 1, conns do
+				qF:push(args)
 			end
 		end
-		self.cleanup = .01
-		function conn:SetCleanUpRate(n)
-			self.cleanup=n or .01
-		end
-		conn.lastid=""
-		conn.looper = multi:newLoop(function(self)
-			local con = self.link
-			local data = con.queueCall:peek()
-			if not data then return end
-			local id = data[3]
-			if data[1]=="F" and data[2]==con.name and con.lastid~=id then
-				con.lastid=id
-				table.remove(data,1)-- Remove the first 3 elements
-				table.remove(data,1)-- Remove the first 3 elements
-				table.remove(data,1)-- Remove the first 3 elements
-				con.obj:Fire(unpack(data))
-				local alarm = multi:newAlarm(con.cleanup)
-				alarm:OnRing(function()
-					alarm:Destroy()
-					local dat = con.queueCall:peek()
-					if not dat then return end
-					table.remove(data,1)-- Remove the first 3 elements
-					table.remove(data,1)-- Remove the first 3 elements
-					table.remove(data,1)-- Remove the first 3 elements
-					if dat[3]==id then
-						con.queueCall:pop()
-					end
-				end)
+		local lastID = ""
+		local lastCount = 0
+		multi:newThread("syncer",function()
+			while true do
+				thread.skip(1)
+				local fire = qF:peek()
+				local count = qS:peek()
+				if fire and fire[1]~=lastID then
+					lastID = fire[1]
+					qF:pop()
+					table.remove(fire,1)
+					conn.obj:Fire(unpack(fire))
+				end
+				if count and count[1]~=lastCount then
+					conns = count[2]
+					lastCount = count[1]
+					qs:pop()
+				end
 			end
 		end)
-		conn.HoldUT=conn.holdUT
-		conn.looper.link=conn
-		conn.Connect=conn.connect
-		conn.FConnect=conn.fConnect
-		conn.GetConnection=conn.getConnection
 		return conn
 	end
+	multi:newThread("connSync",function()
+		while true do
+			thread.skip(1)
+			local syncIN = qsm:pop()
+			if syncIN then
+				if syncIN=="OK" then
+					c.count = c.count + 1
+				else
+					c.count = c.count - 1
+				end
+				local rand = math.random(1,1000000)
+				for i = 1, c.count do
+					qs:push({rand,c.count})
+				end
+			end
+		end
+	end)
 	GLOBAL[name]=c
 	return c
 end
-function multi:systemThreadedBenchmark(n,p)
+function multi:systemThreadedBenchmark(n)
 	n=n or 1
 	local cores=multi.integration.THREAD.getCores()
-	local queue=multi:newSystemThreadedQueue("QUEUE")
-	multi.integration.GLOBAL["__SYSTEMBENCHMARK__"]=n
+	local queue=multi:newSystemThreadedQueue("THREAD_BENCH_QUEUE"):init()
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
+	local c = {}
 	for i=1,cores do
-		multi:newSystemThread("STHREAD_BENCH",function()
+		multi:newSystemThread("STHREAD_BENCH",function(n)
 			local multi = require("multi")
 			if multi:getPlatform()=="love2d" then
 				GLOBAL=_G.GLOBAL
 				sThread=_G.sThread
 			end -- we cannot have upvalues... in love2d globals, not locals must be used
-			queue=sThread.waitFor("QUEUE"):init() -- always wait for when looking for a variable at the start of the thread!
-			multi:benchMark(sThread.waitFor("__SYSTEMBENCHMARK__")):OnBench(function(self,count)
+			queue=sThread.waitFor("THREAD_BENCH_QUEUE"):init() -- always wait for when looking for a variable at the start of the thread!
+			multi:benchMark(n):OnBench(function(self,count)
 				queue:push(count)
-				multi:Stop()
+				sThread.kill()
 			end)
 			multi:mainloop()
-		end)
-	end
-	local c={}
-	c.tt=function() end
-	c.p=p
-	function c:OnBench(func)
-		self.tt=func
+		end,n)
 	end
 	multi:newThread("THREAD_BENCH",function()
-		thread.sleep(n+.1)
-		GLOBAL["QUEUE"]=nil -- time to clean up
-		local num=0
-		data=queue:pop()
-		while data do
-			num=num+data
-			data=queue:pop()
+		local count = 0
+		local cc = 0
+		while true do
+			thread.skip(1)
+			local dat = queue:pop()
+			if dat then
+				cc=cc+1
+				count = count + dat
+				if cc == cores then
+					c.OnBench:Fire(count)
+					thread.kill()
+				end
+			end
 		end
-		if p then
-			print(tostring(p)..num)
-		end
-		c.tt(c,num)
 	end)
+	c.OnBench = multi:newConnection()
 	return c
 end
 function multi:newSystemThreadedConsole(name)
@@ -263,7 +246,7 @@ function multi:newSystemThreadedConsole(name)
 			sThread=_G.sThread
 		end
 		local cc={}
-		if isMainThread then
+		if multi.isMainThread then
 			if GLOBAL["__SYSTEM_CONSLOE__"] then
 				cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
 			else
@@ -304,14 +287,17 @@ function multi:newSystemThreadedTable(name)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init() -- create an init function so we can mimic on both love2d and lanes
+		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
 			sThread=_G.sThread
 		end
 		local cc={}
 		cc.tab={}
-		if isMainThread then
-			cc.conn = multi:newSystemThreadedConnection(self.name.."_Tabled_Connection"):init()
+		if multi.isMainThread then
+			if not GLOBAL[self.name.."_Tabled_Connection"] then
+				cc.conn = multi:newSystemThreadedConnection(self.name.."_Tabled_Connection"):init()
+			end
 		else
 			cc.conn = sThread.waitFor(self.name.."_Tabled_Connection"):init()
 		end
@@ -330,125 +316,112 @@ function multi:newSystemThreadedTable(name)
 			__newindex=function(t,k,v)
 				t.tab[k]=v
 				t.conn:Fire(k,v)
-			end,
+			end
 		})
 		return cc
 	end
 	GLOBAL[c.name]=c
 	return c
 end
-function multi:newSystemThreadedJobQueue(numOfCores)
-	local c={}
+local jobqueuecount = 0
+function multi:newSystemThreadedJobQueue(a,b)
+	jobqueuecount=jobqueuecount+1
+	local GLOBAL=multi.integration.GLOBAL
+	local sThread=multi.integration.THREAD
+	local c = {}
+	c.numberofcores = 4
+	c.name = "SYSTEM_THREADED_JOBQUEUE_"..jobqueuecount
+	-- This is done to keep backwards compatability for older code
+	if type(a)=="string" and not(b) then
+		c.name = a
+	elseif type(a)=="number" and not (b) then
+		c.numberofcores = a
+	elseif type(a)=="string" and type(b)=="number" then
+		c.name = a
+		c.numberofcores = b
+	elseif type(a)=="number" and type(b)=="string" then
+		c.name = b
+		c.numberofcores = a
+	end
+	c.isReady = false
 	c.jobnum=1
-	c.cores=numOfCores or multi.integration.THREAD.getCores()
-	c.queueIN=multi:newSystemThreadedQueue("THREADED_JQ"):init()
-	c.queueOUT=multi:newSystemThreadedQueue("THREADED_JQO"):init()
-	c.queueALL=multi:newSystemThreadedQueue("THREADED_QALL"):init()
-	c.REG=multi:newSystemThreadedQueue("THREADED_JQ_F_REG"):init()
-	c.OnReady=multi:newConnection()
+	c.OnJobCompleted = multi:newConnection()
+	local queueIN = self:newSystemThreadedQueue("QUEUE_IN_"..c.name):init()
+	local queueCC = self:newSystemThreadedQueue("QUEUE_CC_"..c.name):init()
+	local queueREG = self:newSystemThreadedQueue("QUEUE_REG_"..c.name):init()
+	local queueJD = self:newSystemThreadedQueue("QUEUE_JD_"..c.name):init()
+	local queueDA = self:newSystemThreadedQueue("QUEUE_DA_"..c.name):init()
+	c.OnReady = multi:newConnection()
 	function c:registerJob(name,func)
-		for i=1,self.cores do
-			self.REG:push({name,func})
+		for i = 1, self.numberofcores do
+			queueREG:push({name,func})
 		end
 	end
+	c.tempQueue = {}
 	function c:pushJob(name,...)
-		self.queueOUT:push({self.jobnum,name,...})
-		self.jobnum=self.jobnum+1
-		return self.jobnum-1
-	end
-	local GLOBAL=multi.integration.GLOBAL -- set up locals in case we are using lanes
-	local sThread=multi.integration.THREAD -- set up locals in case we are using lanes
-	function c:doToAll(func)
-		local TaskName=multi.randomString(16)
-		for i=1,self.cores do
-			self.queueALL:push({TaskName,func})
+		if not self.isReady then
+			table.insert(c.tempQueue,{self.jobnum,name,...})
+			self.jobnum=self.jobnum+1
+			return self.jobnum-1
+		else
+			queueIN:push{self.jobnum,name,...}
+			self.jobnum=self.jobnum+1
+			return self.jobnum-1
 		end
 	end
-	function c:start()
-		multi:newEvent(function()
-			return self.ThreadsLoaded==true
-		end):OnEvent(function(evnt)
-			GLOBAL["THREADED_JQ"]=nil -- remove it
-			GLOBAL["THREADED_JQO"]=nil -- remove it
-			GLOBAL["THREADED_JQ_F_REG"]=nil -- remove it
-			self:doToAll(function()
-				_G["__started__"]=true
-				SFunc()
-			end)
-			evnt:Destroy()
-		end)
+	function c:doToAll(func)
+		for i = 1, self.numberofcores do
+			queueDA:push{multi.randomString(12),func}
+		end
 	end
-	GLOBAL["__JQ_COUNT__"]=c.cores
-	for i=1,c.cores do
-		multi:newSystemThread("System Threaded Job Queue Worker Thread #"..i,function(name,ind)
+	for i=1,c.numberofcores do
+		multi:newSystemThread(c.name.." Worker Thread #"..i,function(name)
 			local multi = require("multi")
-			ThreadName=name
-			__sleep__=.001
 			if love then -- lets make sure we don't reference up-values if using love2d
 				GLOBAL=_G.GLOBAL
 				sThread=_G.sThread
-				__sleep__=.1
 			end
-			JQI=sThread.waitFor("THREADED_JQO"):init() -- Grab it
-			JQO=sThread.waitFor("THREADED_JQ"):init() -- Grab it
-			REG=sThread.waitFor("THREADED_JQ_F_REG"):init() -- Grab it
-			QALL=sThread.waitFor("THREADED_QALL"):init() -- Grab it
-			QALLT={}
-			FUNCS={}
-			SFunc=multi:newFunction(function(self)
-				MainLoop:Pause()
-				multi:newAlarm(.1):OnRing(function(alarm)
-					alarm:Destroy()
-					MainLoop:Resume()
-				end)
-			end)
+			local CC = sThread.waitFor("QUEUE_CC_"..name):init()
+			CC:push("ready")
+			local FUNCS={}
+			local ids = {}
+			local JQI = sThread.waitFor("QUEUE_IN_"..name):init()
+			local JD = sThread.waitFor("QUEUE_JD_"..name):init()
+			local REG = sThread.waitFor("QUEUE_REG_"..name):init()
+			local DA = sThread.waitFor("QUEUE_DA_"..name):init()
+			local lastjob = os.clock()
 			multi:newLoop(function()
+				local job=JQI:pop()
 				local rd=REG:peek()
+				local da=DA:peek()
 				if rd then
 					if not FUNCS[rd[1]] then
 						FUNCS[rd[1]]=rd[2]
-						rd=nil -- lets clean up
+						rd=nil
 						REG:pop()
 					end
 				end
-				local d=QALL:peek()
-				if d then
-					if not QALLT[d[1]] then
-						QALLT[d[1]]=true
-						d[2]()
-						d=nil -- lets clean up
-						QALL:pop()
+				if da then
+					if not ids[da[1]] then
+						local meh = da[1]
+						ids[da[1]]=true
+						da[2](multi)
+						da=nil
+						DA:pop()
+						multi:newAlarm(60):OnRing(function(a)
+							ids[meh] = nil
+							a:Destroy()
+						end)
 					end
 				end
-			end)
-			setmetatable(_G,{
-				__index=function(t,k)
-					return FUNCS[k]
-				end
-			})
-			lastjob=os.clock()
-			MainLoop=multi:newLoop(function(self)
-				if __started__ then
-					local job=JQI:pop()
-					if job then
-						lastjob=os.clock()
-						local d=QALL:peek()
-						if d then
-							if not QALLT[d[1]] then
-								QALLT[d[1]]=true
-								d[2]()
-								d=nil -- lets clean up
-								QALL:pop()
-							end
-						end
-						local ID=table.remove(job,1) -- return and remove
-						local name=table.remove(job,1) -- return and remove
-						if FUNCS[name] then
-							JQO:push({ID,FUNCS[name](unpack(job))})
-						else
-							self:hold(function() return FUNCS[name] end)
-							JQO:push({ID,FUNCS[name](unpack(job))})
-						end
+				if job then
+					lastjob = os.clock()
+					local ID=table.remove(job,1) -- return and remove
+					local _name=table.remove(job,1) -- return and remove
+					if FUNCS[_name] then
+						JD:push({ID,FUNCS[_name](unpack(job))})
+					else -- making use of that new holding feature
+						JD:push({ID,FUNCS:waitFor(_name)(unpack(job))})
 					end
 				end
 			end)
@@ -460,33 +433,40 @@ function multi:newSystemThreadedJobQueue(numOfCores)
 					thread.sleep(.001)
 				end
 			end)
-			JQO:push({"_THREADINIT_"})
+			setmetatable(_G,{
+				__index=function(t,k)
+					return FUNCS[k]
+				end
+			})
 			if not love then
 				multi:mainloop()
 			end
-		end,"Thread<"..i..">",i)
+		end,c.name)
 	end
-	c.OnJobCompleted=multi:newConnection()
-	c.threadsResponded = 0
-	c.updater=multi:newLoop(function(self)
-		local data=self.link.queueIN:pop()
-		while data do
-			if data then
-				local a=unpack(data)
-				if a=="_THREADINIT_" then
-					self.link.threadsResponded=self.link.threadsResponded+1
-					if self.link.threadsResponded==self.link.cores then
-						self.link.ThreadsLoaded=true
-						self.link.OnReady:Fire()
-					end
-				else
-					self.link.OnJobCompleted:Fire(unpack(data))
-				end
+	multi:newThread("counter",function()
+		print("thread started")
+		local _count = 0
+		while _count<c.numberofcores do
+			thread.skip(1)
+			if queueCC:pop() then
+				_count = _count + 1
 			end
-			data=self.link.queueIN:pop()
+		end
+		c.isReady = true
+		for i=1,#c.tempQueue do
+			queueIN:push(c.tempQueue[i])
+		end
+		c.tempQueue = nil
+		c.OnReady:Fire(c)
+		local dat
+		while true do
+			thread.skip(1)
+			dat = queueJD:pop()
+			if dat then
+				c.OnJobCompleted:Fire(unpack(dat))
+			end
 		end
 	end)
-	c.updater.link=c
 	return c
 end
 function multi:newSystemThreadedExecute(cmd)

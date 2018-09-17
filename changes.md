@@ -1,5 +1,41 @@
 #Changes
 [TOC]
+Update 12.2.1 Time for some bug fixes! 
+-------------
+Fixed: SystemThreadedJobQueues
+- You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!
+- You now connect to the OnReady in the jobqueue object. No more holding everything else as you wait for a job queue to be ready
+- Jobqueues:doToAll now passes the queues multi interface as the first and currently only argument
+- No longer need to use jobqueue.OnReady() The code is smarter and will send the pushed jobs automatically when the threads are ready
+
+Fixed: SystemThreadedConnection
+- They work the exact same way as before, but actually work as expected now. The issue before was how i implemented it. Now each connection knows the number of instances of that object that ecist. This way I no longer have to do fancy timings that may or may not work. I can send exactly enough info for each connection to consume from the queue.
+
+Removed: multi:newQueuer
+- This feature has no real use after corutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
+
+Going forward:
+- Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
+- I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
+
+# Example
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+multi = require("multi")
+GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+jq = multi:newSystemThreadedJobQueue()
+jq:registerJob("test",function(a)
+	return "Hello",a
+end)
+jq.OnJobCompleted(function(ID,...)
+	print(ID,...)
+end)
+for i=1,16 do
+	jq:pushJob("test",5)
+end
+multi:mainloop()
+```
+
 Update 12.2.0
 -------------
 **Added:**
