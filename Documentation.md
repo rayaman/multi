@@ -1,4 +1,6 @@
 <details> 
-  <summary>Q1: What is the best Language in the World? </summary>
-   A1: Lua
+  <summary>Example Code</summary>
+   ```lua
+   -- wonder if this works. if it does then awesome
+   ```
 </details>
