@@ -1,4 +1,4 @@
-# multi Version: 12.2.1 Some bug fixes
+# multi Version: 12.2.2 Some more bug fixes
 
 My multitasking library for lua. It is a pure lua binding, if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know . **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate than readme**</br>
 
@@ -27,19 +27,16 @@ Discord
 For real-time assistance with my libraries! A place where you can ask questions and get help with any of my libraries. Also, you can request features and stuff there as well.</br>
 https://discord.gg/U8UspuA</br>
 
-**Upcoming Plans:** Adding network support for threading. Kind of like your own lua cloud. This will require the bin, net, and multi library. Once that happens I will include those libraries as a set. This also means that you can expect both a standalone and joined versions of the libraries.
-
 Planned features/TODO
 ---------------------
 - [ ] Make practical examples that show how you can solve real problems
 - [ ] Finish the wiki stuff. (11% done) -- It's been at 11% for so long. I really need to get on this!
 - [ ] Test for unknown bugs -- This is always going on
-- [x] ~~Network Parallelism~~
+- [x] ~~Network Parallelism~~ This was fun, I have some more plans for this as well
 
 Known Bugs/Issues
 -----------------
-
-A bug concerns the SystemThreadedJobQueue, only 1 can be used for now. Might change in a future update
+~~A bug concerns the SystemThreadedJobQueue, only 1 can be used for now. Might change in a future update~~ :D Fixed
 
 Usage:</br>
 -----

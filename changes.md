@@ -1,5 +1,10 @@
 #Changes
 [TOC]
+Update 12.2.2 Time for some more bug fixes! 
+-------------
+Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
+Thats all for this update
+
 Update 12.2.1 Time for some bug fixes! 
 -------------
 Fixed: SystemThreadedJobQueues

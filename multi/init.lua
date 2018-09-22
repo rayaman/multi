@@ -24,8 +24,8 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "12.2.1"
-multi._VERSION = "12.2.1"
+multi.Version = "12.2.2"
+multi._VERSION = "12.2.2"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}
