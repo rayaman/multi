@@ -182,7 +182,7 @@ function multi:getParentProcess()
 end
 multi.GetParentProcess=multi.getParentProcess
 function multi:Stop()
-	self.Active=false
+	mainloopActive=false
 end
 function multi:condition(cond)
 	if not self.CD then
