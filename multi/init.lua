@@ -181,7 +181,7 @@ function multi:getParentProcess()
 	return self.Mainloop[self.CID]
 end
 multi.GetParentProcess=multi.getParentProcess
-function multi:Stop()
+function multi.Stop()
 	mainloopActive=false
 end
 function multi:condition(cond)
