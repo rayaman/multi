@@ -1,4 +1,4 @@
-# multi Version: 12.2.2 Some more bug fixes
+# multi Version: 12.3.0 Documentation and bug fixes
 
 My multitasking library for lua. It is a pure lua binding, if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know . **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate than readme**</br>
 

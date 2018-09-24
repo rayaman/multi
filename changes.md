@@ -1,5 +1,11 @@
 #Changes
 [TOC]
+Update 12.3.0 So you documented it finally
+-------------
+Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything while writing the documentation.
+Changed: A few things to make things more clear when using the library
+Added: ...
+
 Update 12.2.2 Time for some more bug fixes! 
 -------------
 Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.

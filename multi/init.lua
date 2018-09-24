@@ -24,8 +24,8 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "12.2.2"
-multi._VERSION = "12.2.2"
+multi.Version = "12.3.0"
+multi._VERSION = "12.3.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}
@@ -277,7 +277,7 @@ function multi.timer(func,...)
 	return t,unpack(args)
 end
 function multi:IsAnActor()
-	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
+	return self.Act~=nil
 end
 function multi:OnMainConnect(func)
 	table.insert(self.func,func)
@@ -301,11 +301,14 @@ function multi:getJobs()
 	return #self.Jobs
 end
 function multi:removeJob(name)
+	local count = 0
 	for i=#self.Jobs,1,-1 do
 		if self.Jobs[i][2]==name then
 			table.remove(self.Jobs,i)
+			count = count + 1
 		end
 	end
+	return count
 end
 function multi:FreeMainEvent()
 	self.func={}
@@ -469,7 +472,7 @@ function multi:newBase(ins)
 	end
 	return c
 end
-function multi:newProcess(file)
+function multi:newProcessor(file)
 	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
 	local c = {}
 	setmetatable(c, self)
@@ -510,14 +513,15 @@ function multi:newProcess(file)
 		return self
 	end
 	function c:Remove()
-		self:Destroy()
+		self:__Destroy()
 		self.l:Destroy()
-		return self
 	end
 	if file then
 		self.Cself=c
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
+	self.__Destroy = self.Destroy
+	self.Destroy = Remove
 	self:create(c)
 --~ 	c:IngoreObject()
 	return c
@@ -599,7 +603,7 @@ function multi:newConnection(protect)
 	function c:getConnection(name,ingore)
 		if ingore then
 			return self.connections[name] or {
-				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ignore
+				Fire=function() return end -- if the connection doesn't exist lets call all of them or silently ignore
 			}
 		else
 			return self.connections[name] or self
@@ -753,476 +757,10 @@ function multi:newCondition(func)
 end
 multi.OnPreLoad=multi:newConnection()
 multi.NewCondition=multi.newCondition
-function multi:threadloop(settings)
-	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
-	local Threads=multi:linkDomain("Threads")
-	local Globals=multi:linkDomain("Globals")
-	local counter=0
-	local tick = 0
-	while true do
-		tick = tick + 1
-		if tick == 1024 then
-			tick = 0
-			multi:uManager(settings)
-		end
-		counter=counter+1
-		for i=#Threads,1,-1 do
-			ret={}
-			if coroutine.status(Threads[i].thread)=="dead" then
-				table.remove(Threads,i)
-			else
-				if Threads[i].timer:Get()>=Threads[i].sleep then
-					if Threads[i].firstRunDone==false then
-						Threads[i].firstRunDone=true
-						Threads[i].timer:Start()
-						_,ret=coroutine.resume(Threads[i].thread,Threads[i].ref)
-					else
-						_,ret=coroutine.resume(Threads[i].thread,Globals)
-					end
-					if _==false then
-						multi.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
-					end
-					if ret==true or ret==false then
-						ret={}
-					end
-				end
-				if ret then
-					if ret[1]=="_kill_" then
-						table.remove(Threads,i)
-					elseif ret[1]=="_sleep_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=ret[2]
-					elseif ret[1]=="_skip_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=math.huge
-						local event=multi:newEvent(function(evnt) return counter>=evnt.counter end)
-						event.link=Threads[i]
-						event.counter=counter+ret[2]
-						event:OnEvent(function(evnt)
-							evnt.link.sleep=0
-						end)
-					elseif ret[1]=="_hold_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=math.huge
-						local event=multi:newEvent(ret[2])
-						event.link=Threads[i]
-						event:OnEvent(function(evnt)
-							evnt.link.sleep=0
-						end)
-					elseif ret.Name then
-						Globals[ret.Name]=ret.Value
-					end
-				end
-			end
-		end
-	end
-end
-function multi:mainloop(settings)
-	multi.defaultSettings = settings or multi.defaultSettings
-	self.uManager=self.uManagerRef
-	multi.OnPreLoad:Fire()
-	local p_c,p_h,p_an,p_n,p_bn,p_l,p_i = self.Priority_Core,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Idle
-	local P_LB = p_i
-	if not isRunning then
-		local protect = false
-		local priority = false
-		local stopOnError = true
-		local delay = 3
-		if settings then
-			priority = settings.priority
-			if settings.auto_priority then
-				priority = -1
-			end
-			if settings.preLoop then
-				settings.preLoop(self)
-			end
-			if settings.stopOnError then
-				stopOnError = settings.stopOnError
-			end
-			if settings.auto_stretch then
-				p_i = p_i * settings.auto_stretch
-			end
-			if settings.auto_delay then
-				delay = settings.auto_delay
-			end
-			if settings.auto_lowerbound then
-				P_LB = settings.auto_lowerbound
-			end
-			protect = settings.protect
-		end
-		local t,tt = clock(),0
-		isRunning=true
-		local lastTime = clock()
-		rawset(self,'Start',clock())
-		mainloopActive = true
-		local Loop=self.Mainloop
-		local PS=self
-		local PStep = 1
-		local autoP = 0
-		local solid
-		local sRef
-		while mainloopActive do
-			if ncount ~= 0 then
-				for i = 1, ncount do
-					next[i]()
-				end
-				ncount = 0
-			end
-			if priority == 1 then
-				for _D=#Loop,1,-1 do
-					for P=1,7 do
-						if Loop[_D] then
-							if (PS.PList[P])%Loop[_D].Priority==0 then
-								if Loop[_D].Active then
-									self.CID=_D
-									if not protect then
-										Loop[_D]:Act()
-									else
-										local status, err=pcall(Loop[_D].Act,Loop[_D])
-										if err then
-											Loop[_D].error=err
-											self.OnError:Fire(Loop[_D],err)
-											if stopOnError then
-												Loop[_D]:Destroy()
-											end
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			elseif priority == 2 then
-				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if (PStep)%Loop[_D].Priority==0 then
-							if Loop[_D].Active then
-								self.CID=_D
-								if not protect then
-									Loop[_D]:Act()
-								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
-									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
-										if stopOnError then
-											Loop[_D]:Destroy()
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-				PStep=PStep+1
-				if PStep==p_i then
-					PStep=0
-				end
-			elseif priority == 3 then
-				tt = clock()-t
-				t = clock()
-				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if Loop[_D].Priority == p_c or (Loop[_D].Priority == p_h and tt<.5) or (Loop[_D].Priority == p_an and tt<.125) or (Loop[_D].Priority == p_n and tt<.063) or (Loop[_D].Priority == p_bn and tt<.016) or (Loop[_D].Priority == p_l and tt<.003) or (Loop[_D].Priority == p_i and tt<.001) then
-							if Loop[_D].Active then
-								self.CID=_D
-								if not protect then
-									Loop[_D]:Act()
-								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
-									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
-										if stopOnError then
-											Loop[_D]:Destroy()
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			elseif priority == -1 then
-				for _D=#Loop,1,-1 do
-					sRef = Loop[_D]
-					if Loop[_D] then
-						if (sRef.Priority == p_c) or PStep==0 then
-							if sRef.Active then
-								self.CID=_D
-								if not protect then
-									if sRef.solid then
-										sRef:Act()
-										solid = true
-									else
-										time = multi.timer(sRef.Act,sRef)
-										sRef.solid = true
-										solid = false
-									end
-									if Loop[_D] and not solid then
-										if time == 0 then
-											Loop[_D].Priority = p_c
-										else
-											Loop[_D].Priority = P_LB
-										end
-									end
-								else
-									if Loop[_D].solid then
-										Loop[_D]:Act()
-										solid = true
-									else
-										time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
-										Loop[_D].solid = true
-										solid = false
-									end
-									if Loop[_D] and not solid then
-										if time == 0 then
-											Loop[_D].Priority = p_c
-										else
-											Loop[_D].Priority = P_LB
-										end
-									end
-									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
-										if stopOnError then
-											Loop[_D]:Destroy()
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-				PStep=PStep+1
-				if PStep>p_i then
-					PStep=0
-					if clock()-lastTime>delay then
-						lastTime = clock()
-						for i = 1,#Loop do
-							Loop[i]:ResetPriority()
-						end
-					end
-				end
-			else
-				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if Loop[_D].Active then
-							self.CID=_D
-							if not protect then
-								Loop[_D]:Act()
-							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		end
-	else
-		return "Already Running!"
-	end
-end
-function multi:uManager(settings)
-	multi.OnPreLoad:Fire()
-	multi.defaultSettings = settings or multi.defaultSettings
-	self.t,self.tt = clock(),0
-	if settings then
-		priority = settings.priority
-		if settings.auto_priority then
-			priority = -1
-		end
-		if settings.preLoop then
-			settings.preLoop(self)
-		end
-		if settings.stopOnError then
-			stopOnError = settings.stopOnError
-		end
-		multi.defaultSettings.p_i = self.Priority_Idle
-		if settings.auto_stretch then
-			multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle
-		end
-		multi.defaultSettings.delay = settings.auto_delay or 3
-		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
-		protect = settings.protect
-	end
-	self.uManager=self.uManagerRef
-end
-function multi:uManagerRef(settings)
-	if self.Active then
-		if ncount ~= 0 then
-			for i = 1, ncount do
-				next[i]()
-			end
-			ncount = 0
-		end
-		local Loop=self.Mainloop
-		local PS=self
-		if multi.defaultSettings.priority==1 then
-			for _D=#Loop,1,-1 do
-				for P=1,7 do
-					if Loop[_D] then
-						if (PS.PList[P])%Loop[_D].Priority==0 then
-							if Loop[_D].Active then
-								self.CID=_D
-								if not multi.defaultSettings.protect then
-									Loop[_D]:Act()
-								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
-									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
-										if multi.defaultSettings.stopOnError then
-											Loop[_D]:Destroy()
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		elseif multi.defaultSettings.priority==2 then
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if (PS.PStep)%Loop[_D].Priority==0 then
-						if Loop[_D].Active then
-							self.CID=_D
-							if not multi.defaultSettings.protect then
-								Loop[_D]:Act()
-							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-			PS.PStep=PS.PStep+1
-			if PS.PStep>self.Priority_Idle then
-				PS.PStep=0
-			end
-		elseif priority == 3 then
-			self.tt = clock()-self.t
-			self.t = clock()
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if Loop[_D].Priority == self.Priority_Core or (Loop[_D].Priority == self.Priority_High and tt<.5) or (Loop[_D].Priority == self.Priority_Above_Normal and tt<.125) or (Loop[_D].Priority == self.Priority_Normal and tt<.063) or (Loop[_D].Priority == self.Priority_Below_Normal and tt<.016) or (Loop[_D].Priority == self.Priority_Low and tt<.003) or (Loop[_D].Priority == self.Priority_Idle and tt<.001) then
-						if Loop[_D].Active then
-							self.CID=_D
-							if not protect then
-								Loop[_D]:Act()
-							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		elseif priority == -1 then
-			for _D=#Loop,1,-1 do
-				local sRef = Loop[_D]
-				if Loop[_D] then
-					if (sRef.Priority == self.Priority_Core) or PStep==0 then
-						if sRef.Active then
-							self.CID=_D
-							if not protect then
-								if sRef.solid then
-									sRef:Act()
-									solid = true
-								else
-									time = multi.timer(sRef.Act,sRef)
-									sRef.solid = true
-									solid = false
-								end
-								if Loop[_D] and not solid then
-									if time == 0 then
-										Loop[_D].Priority = self.Priority_Core
-									else
-										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
-									end
-								end
-							else
-								if Loop[_D].solid then
-									Loop[_D]:Act()
-									solid = true
-								else
-									time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
-									Loop[_D].solid = true
-									solid = false
-								end
-								if Loop[_D] and not solid then
-									if time == 0 then
-										Loop[_D].Priority = self.Priority_Core
-									else
-										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
-									end
-								end
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-			self.PStep=self.PStep+1
-			if self.PStep>multi.defaultSettings.p_i then
-				self.PStep=0
-				if clock()-self.lastTime>multi.defaultSettings.delay then
-					self.lastTime = clock()
-					for i = 1,#Loop do
-						Loop[i]:ResetPriority()
-					end
-				end
-			end
-		else
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if Loop[_D].Active then
-						self.CID=_D
-						if not multi.defaultSettings.protect then
-							Loop[_D]:Act()
-						else
-							local status, err=pcall(Loop[_D].Act,Loop[_D])
-							if err then
-								Loop[_D].error=err
-								self.OnError:Fire(Loop[_D],err)
-							end
-						end
-					end
-				end
-			end
-		end
-	end
-end
 --Core Actors
-function multi:newCustomObject(objRef,t)
+function multi:newCustomObject(objRef,isActor)
 	local c={}
-	if t=='process' then
+	if isActor then
 		c=self:newBase()
 		if type(objRef)=='table' then
 			table.merge(c,objRef)
@@ -2326,6 +1864,473 @@ function multi:newThreadedEvent(name,task)
 	end)
 	self:create(c)
 	return c
+end
+-- Multi runners
+function multi:threadloop(settings)
+	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
+	local Threads=multi:linkDomain("Threads")
+	local Globals=multi:linkDomain("Globals")
+	local counter=0
+	local tick = 0
+	while true do
+		tick = tick + 1
+		if tick == 1024 then
+			tick = 0
+			multi:uManager(settings)
+		end
+		counter=counter+1
+		for i=#Threads,1,-1 do
+			ret={}
+			if coroutine.status(Threads[i].thread)=="dead" then
+				table.remove(Threads,i)
+			else
+				if Threads[i].timer:Get()>=Threads[i].sleep then
+					if Threads[i].firstRunDone==false then
+						Threads[i].firstRunDone=true
+						Threads[i].timer:Start()
+						_,ret=coroutine.resume(Threads[i].thread,Threads[i].ref)
+					else
+						_,ret=coroutine.resume(Threads[i].thread,Globals)
+					end
+					if _==false then
+						multi.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
+					end
+					if ret==true or ret==false then
+						ret={}
+					end
+				end
+				if ret then
+					if ret[1]=="_kill_" then
+						table.remove(Threads,i)
+					elseif ret[1]=="_sleep_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=ret[2]
+					elseif ret[1]=="_skip_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=math.huge
+						local event=multi:newEvent(function(evnt) return counter>=evnt.counter end)
+						event.link=Threads[i]
+						event.counter=counter+ret[2]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+						end)
+					elseif ret[1]=="_hold_" then
+						Threads[i].timer:Reset()
+						Threads[i].sleep=math.huge
+						local event=multi:newEvent(ret[2])
+						event.link=Threads[i]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+						end)
+					elseif ret.Name then
+						Globals[ret.Name]=ret.Value
+					end
+				end
+			end
+		end
+	end
+end
+function multi:mainloop(settings)
+	multi.defaultSettings = settings or multi.defaultSettings
+	self.uManager=self.uManagerRef
+	multi.OnPreLoad:Fire()
+	local p_c,p_h,p_an,p_n,p_bn,p_l,p_i = self.Priority_Core,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Idle
+	local P_LB = p_i
+	if not isRunning then
+		local protect = false
+		local priority = false
+		local stopOnError = true
+		local delay = 3
+		if settings then
+			priority = settings.priority
+			if settings.auto_priority then
+				priority = -1
+			end
+			if settings.preLoop then
+				settings.preLoop(self)
+			end
+			if settings.stopOnError then
+				stopOnError = settings.stopOnError
+			end
+			if settings.auto_stretch then
+				p_i = p_i * settings.auto_stretch
+			end
+			if settings.auto_delay then
+				delay = settings.auto_delay
+			end
+			if settings.auto_lowerbound then
+				P_LB = settings.auto_lowerbound
+			end
+			protect = settings.protect
+		end
+		local t,tt = clock(),0
+		isRunning=true
+		local lastTime = clock()
+		rawset(self,'Start',clock())
+		mainloopActive = true
+		local Loop=self.Mainloop
+		local PS=self
+		local PStep = 1
+		local autoP = 0
+		local solid
+		local sRef
+		while mainloopActive do
+			if ncount ~= 0 then
+				for i = 1, ncount do
+					next[i]()
+				end
+				ncount = 0
+			end
+			if priority == 1 then
+				for _D=#Loop,1,-1 do
+					for P=1,7 do
+						if Loop[_D] then
+							if (PS.PList[P])%Loop[_D].Priority==0 then
+								if Loop[_D].Active then
+									self.CID=_D
+									if not protect then
+										Loop[_D]:Act()
+									else
+										local status, err=pcall(Loop[_D].Act,Loop[_D])
+										if err then
+											Loop[_D].error=err
+											self.OnError:Fire(Loop[_D],err)
+											if stopOnError then
+												Loop[_D]:Destroy()
+											end
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			elseif priority == 2 then
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
+						if (PStep)%Loop[_D].Priority==0 then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				PStep=PStep+1
+				if PStep==p_i then
+					PStep=0
+				end
+			elseif priority == 3 then
+				tt = clock()-t
+				t = clock()
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
+						if Loop[_D].Priority == p_c or (Loop[_D].Priority == p_h and tt<.5) or (Loop[_D].Priority == p_an and tt<.125) or (Loop[_D].Priority == p_n and tt<.063) or (Loop[_D].Priority == p_bn and tt<.016) or (Loop[_D].Priority == p_l and tt<.003) or (Loop[_D].Priority == p_i and tt<.001) then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			elseif priority == -1 then
+				for _D=#Loop,1,-1 do
+					sRef = Loop[_D]
+					if Loop[_D] then
+						if (sRef.Priority == p_c) or PStep==0 then
+							if sRef.Active then
+								self.CID=_D
+								if not protect then
+									if sRef.solid then
+										sRef:Act()
+										solid = true
+									else
+										time = multi.timer(sRef.Act,sRef)
+										sRef.solid = true
+										solid = false
+									end
+									if Loop[_D] and not solid then
+										if time == 0 then
+											Loop[_D].Priority = p_c
+										else
+											Loop[_D].Priority = P_LB
+										end
+									end
+								else
+									if Loop[_D].solid then
+										Loop[_D]:Act()
+										solid = true
+									else
+										time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+										Loop[_D].solid = true
+										solid = false
+									end
+									if Loop[_D] and not solid then
+										if time == 0 then
+											Loop[_D].Priority = p_c
+										else
+											Loop[_D].Priority = P_LB
+										end
+									end
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+				PStep=PStep+1
+				if PStep>p_i then
+					PStep=0
+					if clock()-lastTime>delay then
+						lastTime = clock()
+						for i = 1,#Loop do
+							Loop[i]:ResetPriority()
+						end
+					end
+				end
+			else
+				for _D=#Loop,1,-1 do
+					if Loop[_D] then
+						if Loop[_D].Active then
+							self.CID=_D
+							if not protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	else
+		return "Already Running!"
+	end
+end
+function multi:uManager(settings)
+	multi.OnPreLoad:Fire()
+	multi.defaultSettings = settings or multi.defaultSettings
+	self.t,self.tt = clock(),0
+	if settings then
+		priority = settings.priority
+		if settings.auto_priority then
+			priority = -1
+		end
+		if settings.preLoop then
+			settings.preLoop(self)
+		end
+		if settings.stopOnError then
+			stopOnError = settings.stopOnError
+		end
+		multi.defaultSettings.p_i = self.Priority_Idle
+		if settings.auto_stretch then
+			multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle
+		end
+		multi.defaultSettings.delay = settings.auto_delay or 3
+		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
+		protect = settings.protect
+	end
+	self.uManager=self.uManagerRef
+end
+function multi:uManagerRef(settings)
+	if self.Active then
+		if ncount ~= 0 then
+			for i = 1, ncount do
+				next[i]()
+			end
+			ncount = 0
+		end
+		local Loop=self.Mainloop
+		local PS=self
+		if multi.defaultSettings.priority==1 then
+			for _D=#Loop,1,-1 do
+				for P=1,7 do
+					if Loop[_D] then
+						if (PS.PList[P])%Loop[_D].Priority==0 then
+							if Loop[_D].Active then
+								self.CID=_D
+								if not multi.defaultSettings.protect then
+									Loop[_D]:Act()
+								else
+									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									if err then
+										Loop[_D].error=err
+										self.OnError:Fire(Loop[_D],err)
+										if multi.defaultSettings.stopOnError then
+											Loop[_D]:Destroy()
+										end
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		elseif multi.defaultSettings.priority==2 then
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if (PS.PStep)%Loop[_D].Priority==0 then
+						if Loop[_D].Active then
+							self.CID=_D
+							if not multi.defaultSettings.protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			PS.PStep=PS.PStep+1
+			if PS.PStep>self.Priority_Idle then
+				PS.PStep=0
+			end
+		elseif priority == 3 then
+			self.tt = clock()-self.t
+			self.t = clock()
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Priority == self.Priority_Core or (Loop[_D].Priority == self.Priority_High and tt<.5) or (Loop[_D].Priority == self.Priority_Above_Normal and tt<.125) or (Loop[_D].Priority == self.Priority_Normal and tt<.063) or (Loop[_D].Priority == self.Priority_Below_Normal and tt<.016) or (Loop[_D].Priority == self.Priority_Low and tt<.003) or (Loop[_D].Priority == self.Priority_Idle and tt<.001) then
+						if Loop[_D].Active then
+							self.CID=_D
+							if not protect then
+								Loop[_D]:Act()
+							else
+								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+		elseif priority == -1 then
+			for _D=#Loop,1,-1 do
+				local sRef = Loop[_D]
+				if Loop[_D] then
+					if (sRef.Priority == self.Priority_Core) or PStep==0 then
+						if sRef.Active then
+							self.CID=_D
+							if not protect then
+								if sRef.solid then
+									sRef:Act()
+									solid = true
+								else
+									time = multi.timer(sRef.Act,sRef)
+									sRef.solid = true
+									solid = false
+								end
+								if Loop[_D] and not solid then
+									if time == 0 then
+										Loop[_D].Priority = self.Priority_Core
+									else
+										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
+									end
+								end
+							else
+								if Loop[_D].solid then
+									Loop[_D]:Act()
+									solid = true
+								else
+									time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+									Loop[_D].solid = true
+									solid = false
+								end
+								if Loop[_D] and not solid then
+									if time == 0 then
+										Loop[_D].Priority = self.Priority_Core
+									else
+										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
+									end
+								end
+								if err then
+									Loop[_D].error=err
+									self.OnError:Fire(Loop[_D],err)
+									if multi.defaultSettings.stopOnError then
+										Loop[_D]:Destroy()
+									end
+								end
+							end
+						end
+					end
+				end
+			end
+			self.PStep=self.PStep+1
+			if self.PStep>multi.defaultSettings.p_i then
+				self.PStep=0
+				if clock()-self.lastTime>multi.defaultSettings.delay then
+					self.lastTime = clock()
+					for i = 1,#Loop do
+						Loop[i]:ResetPriority()
+					end
+				end
+			end
+		else
+			for _D=#Loop,1,-1 do
+				if Loop[_D] then
+					if Loop[_D].Active then
+						self.CID=_D
+						if not multi.defaultSettings.protect then
+							Loop[_D]:Act()
+						else
+							local status, err=pcall(Loop[_D].Act,Loop[_D])
+							if err then
+								Loop[_D].error=err
+								self.OnError:Fire(Loop[_D],err)
+							end
+						end
+					end
+				end
+			end
+		end
+	end
 end
 -- State Saving Stuff
 function multi:IngoreObject()
