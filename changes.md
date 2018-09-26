@@ -1,17 +1,26 @@
 #Changes
 [TOC]
-Update 12.3.0 So you documented it finally
+Update 13.0.0 So you documented it, finally, but it's sad to see some things go isn't it?
 -------------
 Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything while writing the documentation.
-Changed: A few things to make things more clear when using the library
+Changed: 
+- A few things to make things more clear when using the library
+- The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
+
+
+Removed:
+- Ranges and conditions -- corutine based threads can dmulate what these objects did and much better!
+- 
+
+
 Added: ...
 
-Update 12.2.2 Time for some more bug fixes! 
+Update 12.2.2 Time for some more bug fixes!
 -------------
 Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 Thats all for this update
 
-Update 12.2.1 Time for some bug fixes! 
+Update 12.2.1 Time for some bug fixes!
 -------------
 Fixed: SystemThreadedJobQueues
 - You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!

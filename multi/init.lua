@@ -24,8 +24,8 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "12.3.0"
-multi._VERSION = "12.3.0"
+multi.Version = "13.0.0"
+multi._VERSION = "13.0.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Mainloop = {}
@@ -184,21 +184,6 @@ multi.GetParentProcess=multi.getParentProcess
 function multi.Stop()
 	mainloopActive=false
 end
-function multi:condition(cond)
-	if not self.CD then
-		self:Pause()
-		self.held=true
-		self.CD=cond.condition
-	elseif not(cond.condition()) then
-		self.held=false
-		self:Resume()
-		self.CD=nil
-		return false
-	end
-	self.Parent:Do_Order()
-	return true
-end
-multi.Condition=multi.condition
 function multi:isHeld()
 	return self.held
 end
@@ -281,6 +266,7 @@ function multi:IsAnActor()
 end
 function multi:OnMainConnect(func)
 	table.insert(self.func,func)
+	return self
 end
 function multi:reallocate(o,n)
 	n=n or #o.Mainloop+1
@@ -321,7 +307,7 @@ function multi:connectFinal(func)
 	elseif self.Type=='step' or self.Type=='tstep' then
 		self:OnEnd(func)
 	else
-		print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(function) to trigger it's final event!")
+		print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
 		self:OnBreak(func)
 	end
 end
@@ -369,7 +355,7 @@ function multi:SetTime(n)
 			self:Destroy()
 		end
 	end
-	return c
+	return self
 end
 multi.ResetTime=multi.SetTime
 function multi:ResolveTimer(...)
@@ -729,34 +715,7 @@ function multi.nextStep(func)
 		next[#self.next+1] = func
 	end
 end
-function multi:newRange()
-	local selflink=self
-	local temp={
-		getN = function(self) selflink:Do_Order() self.n=self.n+self.c if self.n>self.b then self.Link.held=false self.Link:Resume() return nil end return self.n end,
-	}
-	setmetatable(temp,{
-		__call=function(self,a,b,c)
-			self.c=c or 1
-			self.n=a-self.c
-			self.a=a
-			self.b=b
-			self.Link=selflink--.Parent.Mainloop[selflink.CID] or
-			self.Link:Pause()
-			self.Link.held=true
-			return function() return self:getN() end
-		end
-	})
-	self:create(temp)
-	return temp
-end
-multi.NewRange=multi.newRange
-function multi:newCondition(func)
-	local c={['condition']=func,Type="condition"}
-	self:create(c)
-	return c
-end
 multi.OnPreLoad=multi:newConnection()
-multi.NewCondition=multi.newCondition
 --Core Actors
 function multi:newCustomObject(objRef,isActor)
 	local c={}
@@ -889,7 +848,12 @@ function multi:newFunction(func)
 	c.func=func
 	mt={
 		__index=multi,
-		__call=function(self,...) if self.Active then return self:func(...) end local t={...} return "PAUSED" end
+		__call=function(self,...) 
+			if self.Active then 
+				return self:func(...) 
+			end
+			return nil,true
+		end
 	}
 	c.Parent=self
 	function c:Pause()

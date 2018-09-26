@@ -1,23 +1,8 @@
 package.path="?/init.lua;?.lua;"..package.path
 local multi = require("multi")
-print(multi:hasJobs())
-multi:setJobSpeed(1) -- set job speed to 1 second
-multi:newJob(function()
-    print("A job!")
-end,"test")
-
-multi:newJob(function()
-    print("Another job!")
-    multi:removeJob("test") -- removes all jobs with name "test"
-end,"test")
-
-multi:newJob(function()
-    print("Almost done!")
-end,"test")
-
-multi:newJob(function()
-    print("Final job!")
-end,"test")
-print(multi:hasJobs())
-print("There are "..multi:getJobs().." jobs in the queue!")
+alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
+alarm:OnRing(function(a)
+	print("3 Seconds have passed!")
+	a:Reset(n) -- if n were nil it will reset back to 3, or it would reset to n seconds
+end)
 multi:mainloop()
