@@ -551,10 +551,18 @@ function multi:newTimer()
 	self:create(c)
 	return c
 end
-function multi:newConnection(protect)
+function multi:newConnection(protect,func)
 	local c={}
+	c.callback = func
 	c.Parent=self
-	setmetatable(c,{__call=function(self,...) return self:connect(...) end})
+	setmetatable(c,{__call=function(self,...)
+		local t = ...
+		if type(t)=="table" and t.Type ~= nil then
+			return self:Fire(args,select(2,...))
+		else
+			return self:connect(...)
+		end
+	end})
 	c.Type='connector'
 	c.func={}
 	c.ID=0
@@ -660,6 +668,9 @@ function multi:newConnection(protect)
 		temp.Destroy=temp.Remove
 		if name then
 			self.connections[name]=temp
+		end
+		if self.callback then
+			self.callback(temp)
 		end
 		return temp
 	end
@@ -1057,7 +1068,29 @@ function multi:newTStep(start,reset,count,set)
 	return c
 end
 function multi:newTimeStamper()
-	local c=self:newBase()
+	local c=self:newUpdater(self.Priority_Idle)
+	c:OnUpdate(function()
+		c:Run()
+	end)
+	local feb = 28
+	local leap = tonumber(os.date("%Y"))%4==0 and (tonumber(os.date("%Y"))%100~=0 or tonumber(os.date("%Y"))%400==0)
+	if leap then
+		feb = 29
+	end
+	local dInM = {
+		["01"] = 31,
+		["02"] = feb,
+		["03"] = 31,
+		["04"] = 30,
+		["05"] = 31,
+		["06"] = 30,
+		["07"] = 31, -- This is dumb, why do we still follow this double 31 days!?
+		["08"] = 31,
+		["09"] = 30,
+		["10"] = 31,
+		["11"] = 30,
+		["12"] = 31,
+	}
 	c.Type='timestamper'
 	c.Priority=self.Priority_Idle
 	c.hour = {}
@@ -1067,7 +1100,7 @@ function multi:newTimeStamper()
 	c.day = {}
 	c.month = {}
 	c.year = {}
-	function c:Act()
+	function c:Run()
 		for i=1,#self.hour do
 			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
 				self.hour[i][2](self)
@@ -1101,10 +1134,14 @@ function multi:newTimeStamper()
 					self.day[i][3]=true
 				end
 			else
-				if string.format("%02d",self.day[i][1])==os.date("%d") and self.day[i][3] then
+				local dday = self.day[i][1]
+				if dday < 0 then
+					dday = dInM[os.date("%m")]+(dday+1)
+				end
+				if string.format("%02d",dday)==os.date("%d") and self.day[i][3] then
 					self.day[i][2](self)
 					self.day[i][3]=false
-				elseif string.format("%02d",self.day[i][1])~=os.date("%d") and not self.day[i][3] then
+				elseif string.format("%02d",dday)~=os.date("%d") and not self.day[i][3] then
 					self.day[i][3]=true
 				end
 			end
@@ -1243,8 +1280,23 @@ function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
-function thread.testFor(name,val,sym)
-	thread.hold(function() return thread.get(name)~=nil end)
+function thread.testFor(name,_val,sym)
+	thread.hold(function() 
+		local val = thread.get(name)~=nil 
+		if val then
+			if sym == "==" or sym == "=" then
+				return _val==val
+			elseif sym == ">" then
+				return _val>val
+			elseif sym == "<" then
+				return _val<val
+			elseif sym == "<=" then
+				return _val<=val
+			elseif sym == ">=" then
+				return _val>=val
+			end
+		end
+	end)
 	return thread.get(name)
 end
 function multi:newTBase(name)
@@ -1676,7 +1728,6 @@ function multi:newThreadedProcess(name)
 	setmetatable(c, multi)
 	function c:newBase(ins)
 		local ct = {}
-		setmetatable(ct, self.Parent)
 		ct.Active=true
 		ct.func={}
 		ct.ender={}

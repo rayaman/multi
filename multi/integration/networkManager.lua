@@ -23,7 +23,7 @@ SOFTWARE.
 ]]
 local multi = require("multi")
 local net = require("net")
-require("bin")
+local bin = require("bin")
 bin.setBitsInterface(infinabits) -- the bits interface does not work so well, another bug to fix
 
 -- Commands that the master and node will respect, max of 256 commands
@@ -142,17 +142,20 @@ function multi:nodeManager(port)
 	server.OnDataRecieved(function(server,data,cid,ip,port)
 		local cmd = data:sub(1,1)
 		if cmd == "R" then
-			multi:newTLoop(function(loop)
-				if server.timeouts[cid]==true then
-					server.OnNodeRemoved:Fire(server.nodes[cid])
-					server.nodes[cid] = nil
-					server.timeouts[cid] = nil
-					loop:Destroy()
-					return
+			multi:newThread("Test",function(loop)
+				while true do
+					if server.timeouts[cid]==true then
+						server.OnNodeRemoved:Fire(server.nodes[cid])
+						server.nodes[cid] = nil
+						server.timeouts[cid] = nil
+						thread.kill()
+					else
+						server.timeouts[cid] = true
+						server:send(cid,"ping")
+					end
+					thread.sleep(1)
 				end
-				server.timeouts[cid] = true
-				server:send(cid,"ping")
-			end,1)
+			end)
 			server.nodes[cid]=data:sub(2,-1)
 			server.OnNodeAdded:Fire(server.nodes[cid])
 		elseif cmd == "G" then
@@ -436,12 +439,15 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 				name = self:getRandomNode()
 			end
 			if name==nil then
-				multi:newTLoop(function(loop)
-					if name~=nil then
-						self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
-						loop:Desrtoy()
+				multi:newThread("Test",function(loop)
+					while true do
+						if name~=nil then
+							self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
+							thread.kill()
+						end
+						thread.sleep(.1)
 					end
-				end,.1)
+				end)
 			else
 				self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
 			end
@@ -455,12 +461,15 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			name = "NODE_"..name
 		end
 		if self.connections[name]==nil then
-			multi:newTLoop(function(loop)
-				if self.connections[name]~=nil then
-					self.connections[name]:send(data)
-					loop:Destroy()
+			multi:newThread("Test",function(loop)
+				while true do
+					if self.connections[name]~=nil then
+						self.connections[name]:send(data)
+						thread.kill()
+					end
+					thread.sleep(.1)
 				end
-			end,.1)
+			end)
 		else
 			self.connections[name]:send(data)
 		end
@@ -495,16 +504,19 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		client.OnClientReady(function()
 			client:send(char(CMD_INITMASTER)..master.name) -- Tell the node that you are a master trying to connect
 			if not settings.managerDetails then
-				multi:newTLoop(function(loop)
-					if master.timeouts[name]==true then
-						master.timeouts[name] = nil
-						master.connections[name] = nil
-						loop:Destroy()
-						return
+				multi:newThread("Test",function(loop)
+					while true do
+						if master.timeouts[name]==true then
+							master.timeouts[name] = nil
+							master.connections[name] = nil
+							thread.kill()
+						else
+							master.timeouts[name] = true
+							master:sendTo(name,char(CMD_PING))
+						end
+						thread.sleep(1)
 					end
-					master.timeouts[name] = true
-					master:sendTo(name,char(CMD_PING))
-				end,1)
+				end)
 			end
 			client.name = name
 			client.OnDataRecieved(function(client,data)

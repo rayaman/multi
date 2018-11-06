@@ -4,14 +4,28 @@ Update 13.0.0 So you documented it, finally, but it's sad to see some things go 
 -------------
 Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything while writing the documentation.
 Changed: 
-- A few things to make things more clear when using the library
+- A few things, to make concepts in the library more clear
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
+- Modified the connection object to allow for some more syntaxial suger!
 
+Connection Example:
+```lua
+loop = multi:newTLoop(function(self)
+	self:OnLoops() -- new way to Fire a connection! Only works when used on a multi object, bin objects, or any object that contains a Type parameter
+end,1)
+loop.OnLoops = multi:newConnection()
+loop.OnLoops(function()
+	print("Looping")
+end)
+multi:mainloop()
+```
 
 Removed:
 - Ranges and conditions -- corutine based threads can dmulate what these objects did and much better!
 - 
 
+Fixed:
+- There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 
 Added: ...
 
