@@ -2,7 +2,7 @@
 [TOC]
 Update 13.0.0 So you documented it, finally, but it's sad to see some things go isn't it?
 -------------
-Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything while writing the documentation.
+Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
 Changed: 
 - A few things, to make concepts in the library more clear
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
@@ -22,12 +22,47 @@ multi:mainloop()
 
 Removed:
 - Ranges and conditions -- corutine based threads can dmulate what these objects did and much better!
-- 
+- Due to the creation of hyper threaded processes the following objects are no more!
+-- ~~multi:newThreadedEvent()~~
+-- ~~multi:newThreadedLoop()~~
+-- ~~multi:newThreadedTLoop()~~
+-- ~~multi:newThreadedStep()~~
+-- ~~multi:newThreadedTStep()~~
+-- ~~multi:newThreadedAlarm()~~
+-- ~~multi:newThreadedUpdater()~~
+
+These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
 
 Fixed:
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 
-Added: ...
+Added:
+- multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes.
+- multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj
+
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+local multi = require("multi")
+conn = multi:newConnector()
+conn.OnTest = multi:newConnection()
+conn.OnTest(function()
+	print("Yes!")
+end)
+test = multi:newHyperThreadedProcess("test")
+test:newTLoop(function()
+	print("HI!")
+	conn:OnTest()
+end,1)
+test:newLoop(function()
+	print("HI2!")
+	thread.sleep(.5)
+end)
+multi:newAlarm(3):OnRing(function()
+	test:Sleep(10)
+end)
+test:Start()
+multi:mainloop()
+```
 
 Update 12.2.2 Time for some more bug fixes!
 -------------

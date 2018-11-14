@@ -729,10 +729,74 @@ multi:newAlarm(3):OnRing(function() a = true end) -- allows a to exist
 multi:mainloop()
 ```
 
-CBT: Process
------------
+CBT: Threaded Process
+---------------------
 `process = multi:newThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace
 
-System Threads - Multi-core
----------------------------
+`nil = process:getController()` -- Returns nothing there is no "controller" when using threaded processes
+`self = process:Start()` -- Starts the processor
+`self = process:Pause()` -- Pauses the processor
+`self = process:Resume()` -- Resumes a paused processor
+`self = process:Kill()` -- Kills/Destroys the process thread
+`self = process:Remove()` -- Destroys/Kills the processor and all of the Actors running on it
+`self = process:Sleep(NUMBER n)` -- Forces a process to sleep for n amount of time
+`self = process:Hold(FUNCTION/NUMBER n)` -- Forces a process to either test a condition or sleep.
 
+Everything eles works as if you were using the multi.* interface. You can create multi objects on the process and the objects are able to use the thread.* interface.
+
+Note: When using Hold/Sleep/Skip on an object created inside of a threaded process, you actually hold the entire process! Which means all objects on that process will be stopping until the conditions are met!
+
+Example:
+```lua
+test = multi:newThreadedProcess("test")
+test:newLoop(function()
+	print("HI!")
+end)
+test:newLoop(function()
+	print("HI2!")
+	thread.sleep(.5)
+end)
+multi:newAlarm(3):OnRing(function()
+	test:Sleep(10)
+end)
+test:Start()
+multi:mainloop()
+```
+
+CBT: Hyper Threaded Process
+---------------------------
+`process = multi:newHyperThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace. Hold/Sleep/Skip can be used in each multi obj created without stopping each other object that is running.
+
+`nil = process:getController()` -- Returns nothing there is no "controller" when using threaded processes
+`self = process:Start()` -- Starts the processor
+`self = process:Pause()` -- Pauses the processor
+`self = process:Resume()` -- Resumes a paused processor
+`self = process:Kill()` -- Kills/Destroys the process thread
+`self = process:Remove()` -- Destroys/Kills the processor and all of the Actors running on it
+`self = process:Sleep(NUMBER n)` -- Forces a process to sleep for n amount of time
+`self = process:Hold(FUNCTION/NUMBER n)` -- Forces a process to either test a condition or sleep.
+
+Example:
+```lua
+test = multi:newHyperThreadedProcess("test")
+test:newLoop(function()
+	print("HI!")
+end)
+test:newLoop(function()
+	print("HI2!")
+	thread.sleep(.5)
+end)
+multi:newAlarm(3):OnRing(function()
+	test:Sleep(10)
+end)
+test:Start()
+multi:mainloop()
+```
+Same example as above, but notice how this works opposed to the non hyper version
+
+System Threads - Multi-Integration
+----------------------------------
+
+
+Network Threads - Multi-Integration
+-----------------------------------

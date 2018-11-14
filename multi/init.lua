@@ -430,7 +430,7 @@ function multi:isDone()
 end
 multi.IsDone=multi.isDone
 function multi:create(ref)
-	multi.OnObjectCreated:Fire(ref)
+	multi.OnObjectCreated:Fire(ref,self)
 end
 --Constructors [CORE]
 function multi:newBase(ins)
@@ -549,6 +549,10 @@ function multi:newTimer()
 		return self
 	end
 	self:create(c)
+	return c
+end
+function multi:newConnector()
+	local c = {Type = "connector"}
 	return c
 end
 function multi:newConnection(protect,func)
@@ -800,26 +804,28 @@ function multi:newAlarm(set)
 	local c=self:newBase()
 	c.Type='alarm'
 	c.Priority=self.Priority_Low
-	c.timer=self:newTimer()
 	c.set=set or 0
+	local count = 0
+	local t = clock()
 	function c:Act()
-		if self.timer:Get()>=self.set then
+		if clock()-t>=self.set then
 			self:Pause()
 			self.Active=false
 			for i=1,#self.func do
 				self.func[i](self)
 			end
+			t = clock()
 		end
 	end
 	function c:Resume()
 		self.Parent.Resume(self)
-		self.timer:Resume()
+		t = count + t
 		return self
 	end
 	function c:Reset(n)
 		if n then self.set=n end
 		self:Resume()
-		self.timer:Reset()
+		t = clock()
 		return self
 	end
 	function c:OnRing(func)
@@ -827,7 +833,7 @@ function multi:newAlarm(set)
 		return self
 	end
 	function c:Pause()
-		self.timer:Pause()
+		count = clock()
 		self.Parent.Pause(self)
 		return self
 	end
@@ -1432,299 +1438,10 @@ multi.scheduler:OnLoop(function(self)
 end)
 multi.scheduler:Pause()
 multi.OnError=multi:newConnection()
-function multi:newThreadedAlarm(name,set)
-	local c=self:newTBase(name)
-	c.Type='alarmThread'
-	c.timer=self:newTimer()
-	c.set=set or 0
-	function c:Resume()
-		self.rest=false
-		self.timer:Resume()
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self.rest=false
-		self.timer:Reset(n)
-		return self
-	end
-	function c:OnRing(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:Pause()
-		self.timer:Pause()
-		self.rest=true
-		return self
-	end
-	c.rest=false
-	c.updaterate=multi.Priority_Low -- skips
-	c.restRate=0 -- secs
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c.timer:Get()>=c.set then
-					c:Pause()
-					for i=1,#c.func do
-						c.func[i](c)
-					end
-				end
-				thread.skip(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedUpdater(name,skip)
-	local c=self:newTBase(name)
-	c.Type='updaterThread'
-	c.pos=1
-	c.skip=skip or 1
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.OnUpdate=self.OnMainConnect
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](c)
-				end
-				c.pos=c.pos+1
-				thread.skip(c.skip)
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedTStep(name,start,reset,count,set)
-	local c=self:newTBase(name)
-	local think=1
-	c.Type='tstepThread'
-	c.start=start or 1
-	local reset = reset or math.huge
-	c.endAt=reset
-	c.pos=start or 1
-	c.skip=skip or 0
-	c.count=count or 1*think
-	c.funcE={}
-	c.timer=os.clock()
-	c.set=set or 1
-	c.funcS={}
-	function c:Update(start,reset,count,set)
-		self.start=start or self.start
-		self.pos=self.start
-		self.endAt=reset or self.endAt
-		self.set=set or self.set
-		self.count=count or self.count or 1
-		self.timer=os.clock()
-		self:Resume()
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.Active=nil
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self.timer=os.clock()
-		self:Resume()
-		return self
-	end
-	c.updaterate=0--multi.Priority_Low -- skips
-	c.restRate=0
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if os.clock()-c.timer>=c.set then
-					c:Reset()
-					if c.pos==c.start then
-						for fe=1,#c.funcS do
-							c.funcS[fe](c)
-						end
-					end
-					for i=1,#c.func do
-						c.func[i](c,c.pos)
-					end
-					c.pos=c.pos+c.count
-					if c.pos-c.count==c.endAt then
-						c:Pause()
-						for fe=1,#c.funcE do
-							c.funcE[fe](c)
-						end
-						c.pos=c.start
-					end
-				end
-				thread.skip(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedTLoop(name,func,n)
-	local c=self:newTBase(name)
-	c.Type='tloopThread'
-	c.restN=n or 1
-	if func then
-		c.func={func}
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnLoop(func)
-		table.insert(self.func,func)
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](c)
-				end
-				thread.sleep(c.restN) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedStep(name,start,reset,count,skip)
-	local c=self:newTBase(name)
-	local think=1
-	c.Type='stepThread'
-	c.pos=start or 1
-	c.endAt=reset or math.huge
-	c.skip=skip or 0
-	c.spos=0
-	c.count=count or 1*think
-	c.funcE={}
-	c.funcS={}
-	c.start=start or 1
-	if start~=nil and reset~=nil then
-		if start>reset then
-			think=-1
-		end
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.Reset=c.Resume
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,1,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.rest=true
-		return self
-	end
-	function c:Update(start,reset,count,skip)
-		self.start=start or self.start
-		self.endAt=reset or self.endAt
-		self.skip=skip or self.skip
-		self.count=count or self.count
-		self:Resume()
-		return self
-	end
-	c.updaterate=0
-	c.restRate=.1
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c~=nil then
-					if c.spos==0 then
-						if c.pos==c.start then
-							for fe=1,#c.funcS do
-								c.funcS[fe](c)
-							end
-						end
-						for i=1,#c.func do
-							c.func[i](c,c.pos)
-						end
-						c.pos=c.pos+c.count
-						if c.pos-c.count==c.endAt then
-							c:Pause()
-							for fe=1,#c.funcE do
-								c.funcE[fe](c)
-							end
-							c.pos=c.start
-						end
-					end
-				end
-				c.spos=c.spos+1
-				if c.spos>=c.skip then
-					c.spos=0
-				end
-				ref:sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
 function multi:newThreadedProcess(name)
 	local c = {}
+	local holding = false
+	local kill = false
 	setmetatable(c, multi)
 	function c:newBase(ins)
 		local ct = {}
@@ -1743,7 +1460,7 @@ function multi:newThreadedProcess(name)
 	c.Active=true
 	c.func={}
 	c.Id=0
-	c.Type='process'
+	c.Type='threadedprocess'
 	c.Mainloop={}
 	c.Garbage={}
 	c.Children={}
@@ -1775,109 +1492,127 @@ function multi:newThreadedProcess(name)
 		self.ref:kill()
 		return self
 	end
-	function c:kill()
-		err=coroutine.yield({"_kill_"})
-		if err then
-			error("Failed to kill a thread! Exiting...")
+	function c:Kill()
+		kill = true
+		return self
+	end
+	function c:Sleep(n)
+		holding = true
+		if type(n)=="number" then
+			multi:newAlarm(n):OnRing(function(a)
+				holding = false
+				a:Destroy()
+			end)
+		elseif type(n)=="function" then
+			multi:newEvent(n):OnEvent(function(e)
+				holding = false
+				e:Destroy()
+			end)
 		end
 		return self
 	end
-	function c:sleep(n)
-		if type(n)=="function" then
-			ret=coroutine.yield({"_hold_",n})
-		elseif type(n)=="number" then
-			n = tonumber(n) or 0
-			ret=coroutine.yield({"_sleep_",n})
-		else
-			error("Invalid Type for sleep!")
-		end
-		return self
-	end
-	c.hold=c.sleep
+	c.Hold=c.Sleep
 	multi:newThread(name,function(ref)
 		while true do
-			if c.rest then
-				ref:Sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				c:uManager()
-				ref:sleep(c.updaterate) -- lets rest a bit
-			end
+			thread.hold(function()
+				return not(holding)
+			end)
+			c:uManager()
 		end
 	end)
 	return c
 end
-function multi:newThreadedLoop(name,func)
-	local c=self:newTBase(name)
-	c.Type='loopThread'
-	c.Start=os.clock()
-	if func then
-		c.func={func}
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnLoop(func)
-		table.insert(self.func,func)
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](os.clock()-self.Start,c)
-				end
-				thread.sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedEvent(name,task)
-	local c=self:newTBase(name)
-	c.Type='eventThread'
-	c.Task=task or function() end
-	function c:OnEvent(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=1
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c.Task(self) then
-					for _E=1,#c.func do
-						c.func[_E](c)
+function multi:newHyperThreadedProcess(name)
+	if not name then error("All threads must have a name!") end
+	local c = {}
+	setmetatable(c, multi)
+	local ind = 0
+	local holding = true
+	local kill = false
+	function c:newBase(ins)
+		local ct = {}
+		ct.Active=true
+		ct.func={}
+		ct.ender={}
+		ct.Id=0
+		ct.Act=function() end
+		ct.Parent=self
+		ct.held=false
+		ct.ref=self.ref
+		ind = ind + 1
+		multi:newThread("Proc <"..name.."> #"..ind,function()
+			while true do
+				thread.hold(function()
+					return not(holding)
+				end)
+				if kill then
+					err=coroutine.yield({"_kill_"})
+					if err then
+						error("Failed to kill a thread! Exiting...")
 					end
-					c:Pause()
 				end
-				ref:sleep(c.updaterate) -- lets rest a bit
+				ct:Act()
 			end
+		end)
+		return ct
+	end
+	c.Parent=self
+	c.Active=true
+	c.func={}
+	c.Id=0
+	c.Type='hyperthreadedprocess'
+	c.Mainloop={}
+	c.Garbage={}
+	c.Children={}
+	c.Active=true
+	c.Id=-1
+	c.Rest=0
+	c.updaterate=.01
+	c.restRate=.1
+	c.Jobs={}
+	c.queue={}
+	c.jobUS=2
+	c.rest=false
+	function c:getController()
+		return nil
+	end
+	function c:Start()
+		holding = false
+		return self
+	end
+	function c:Resume()
+		holding = false
+		return self
+	end
+	function c:Pause()
+		holding = true
+		return self
+	end
+	function c:Remove()
+		self.ref:kill()
+		return self
+	end
+	function c:Kill()
+		kill = true
+		return self
+	end
+	function c:Sleep(b)
+		holding = true
+		if type(b)=="number" then
+			local t = os.clock()
+			multi:newAlarm(b):OnRing(function(a)
+				holding = false
+				a:Destroy()
+			end)
+		elseif type(b)=="function" then
+			multi:newEvent(b):OnEvent(function(e)
+				holding = false
+				e:Destroy()
+			end)
 		end
-	end)
-	self:create(c)
+		return self
+	end
+	c.Hold=c.Sleep
 	return c
 end
 -- Multi runners
