@@ -794,9 +794,65 @@ multi:mainloop()
 ```
 Same example as above, but notice how this works opposed to the non hyper version
 
-System Threads - Multi-Integration
-----------------------------------
+System Threads (ST) - Multi-Integration Getting Started
+-------------------------------------------------------
+The system threads need to be required seperatly.
+```lua
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init() -- We will talk about the global and thread interface that is returned
+GLOBAL, THREAD = require("multi.integration.loveManager").init()
+GLOBAL, THREAD = require("luvitManager")-- There is a catch to this*
+```
+Using this integration modifies some methods that the multi library has.
+`multi:canSystemThread()` -- Returns true is system threading is possible
+`multi:getPlatform()` -- Returns (for now) either "lanes", "love2d" and "luvit"
+This variable is created on the main thread only inside of the multi namespace: multi.isMainThread = true
+This is used to know which thread is the main thread. When network threads are being discussed there is a gotcha that needs to be addressed.
 
+*** GLOBAL and THREAD do not work currently when using the luvit integration
+
+ST - THREAD namespace
+---------------------
+`THREAD.set(STRING name, VALUE val)` -- Sets a value in GLOBAL
+`THREAD.get(STRING name)` -- Gets a value in GLOBAL
+`THREAD.waitFor(STRING name)` -- Waits for a value in GLOBAL to exist
+`THREAD.testFor(STRING name, VALUE val, STRING sym)` -- **NOT YET IMPLEMENTED**
+`THREAD.getCores()` -- Returns the number of actual system threads/cores
+`THREAD.kill()` -- Kills the thread
+`THREAD.getName()` -- Returns the name of the working thread
+`THREAD.sleep(NUMBER n)` -- Sleeps for an amount of time stopping the current thread
+`THREAD.hold(FUNCTION func)` -- Holds the current thread until a condition is met
+
+ST - GLOBAL namespace
+---------------------
+Treat global like a table.
+```lua
+GLOBAL["name"] = "Ryan"
+print(GLOBAL["name"])
+```
+Removes the need to use THREAD.set() and THREAD.get()
+ST - System Threads
+-------------------
+
+ST - SystemThreadedQueue
+------------------------
+
+ST - SystemThreadedConnection
+-----------------------------
+
+ST - SystemThreadedBenchmark
+----------------------------
+
+ST - SystemThreadedConsole
+--------------------------
+
+ST - SystemThreadedTable
+------------------------
+
+ST - SystemThreadedJobQueue
+---------------------------
+
+ST - SystemThreadedExecute
+--------------------------
 
 Network Threads - Multi-Integration
 -----------------------------------

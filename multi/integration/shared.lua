@@ -193,7 +193,7 @@ function multi:newSystemThreadedConnection(name,protect)
 	GLOBAL[name]=c
 	return c
 end
-function multi:systemThreadedBenchmark(n)
+function multi:SystemThreadedBenchmark(n)
 	n=n or 1
 	local cores=multi.integration.THREAD.getCores()
 	local queue=multi:newSystemThreadedQueue("THREAD_BENCH_QUEUE"):init()
