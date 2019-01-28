@@ -765,7 +765,7 @@ multi:mainloop()
 
 CBT: Hyper Threaded Process
 ---------------------------
-`process = multi:newHyperThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace. Hold/Sleep/Skip can be used in each multi obj created without stopping each other object that is running.
+`process = multi:newHyperThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace. Hold/Sleep/Skip can be used in each multi obj created without stopping each other object that is running, but allows for one to pause/halt a process and stop all objects running in that process.
 
 `nil = process:getController()` -- Returns nothing there is no "controller" when using threaded processes
 `self = process:Start()` -- Starts the processor
@@ -798,7 +798,7 @@ System Threads (ST) - Multi-Integration Getting Started
 -------------------------------------------------------
 The system threads need to be required seperatly.
 ```lua
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init() -- We will talk about the global and thread interface that is returned
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()# -- We will talk about the global and thread interface that is returned
 GLOBAL, THREAD = require("multi.integration.loveManager").init()
 GLOBAL, THREAD = require("luvitManager")-- There is a catch to this*
 ```
@@ -808,14 +808,15 @@ Using this integration modifies some methods that the multi library has.
 This variable is created on the main thread only inside of the multi namespace: multi.isMainThread = true
 This is used to know which thread is the main thread. When network threads are being discussed there is a gotcha that needs to be addressed.
 
-*** GLOBAL and THREAD do not work currently when using the luvit integration
+`*` GLOBAL and THREAD do not work currently when using the luvit integration
+`#`So you may have noticed that when using the lanes manager you need to make the global and thread local, this is due to how lanes copies local variables between states. Also love2d does not require this, actually things will break if this is done! Keep these non local since the way threading is handled at the lower level is much different anyway so GLOBAL and THREAD is automatically set up for use within a spawned thread!
 
 ST - THREAD namespace
 ---------------------
 `THREAD.set(STRING name, VALUE val)` -- Sets a value in GLOBAL
 `THREAD.get(STRING name)` -- Gets a value in GLOBAL
 `THREAD.waitFor(STRING name)` -- Waits for a value in GLOBAL to exist
-`THREAD.testFor(STRING name, VALUE val, STRING sym)` -- **NOT YET IMPLEMENTED**
+`THREAD.testFor(STRING name, VALUE val, STRING sym)` -- **NOT YET IMPLEMENTED** but planned
 `THREAD.getCores()` -- Returns the number of actual system threads/cores
 `THREAD.kill()` -- Kills the thread
 `THREAD.getName()` -- Returns the name of the working thread
@@ -832,25 +833,176 @@ print(GLOBAL["name"])
 Removes the need to use THREAD.set() and THREAD.get()
 ST - System Threads
 -------------------
+`systemThread = multi:newSystemThread(STRING thread_name,FUNCTION spawned_function,ARGUMENTS ...)` -- Spawns a thread with a certain name.
+`systemThread:kill()` -- kills a thread; can only be called in the main thread!
+
+System Threads are the feature that allows a user to interact with systen threads. It differs from regular coroutine based thread in how it can interact with variables. When using system threads the GLOBAL table is the "only way"* to send data. Spawning a System thread is really simple once all the required libraries are in place. See example below:
+
+```lua
+local multi = require("multi") -- keep this global when using lanes or implicitly define multi within the spawned thread
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+multi:newSystemThread("Example thread",function()
+	local multi = require("multi") -- we are in a thread so lets not refer to that upvalue!
+	print("We have spawned a thread!")
+	-- we could do work but theres no need to we can save that for other examples
+	print("Lets have a non ending loop!")
+	while true do
+		-- If this was not in a thread execution would halt for the entire process
+	end
+end,"A message that we are passing") -- There are restrictions on what can be passed!
+
+tloop = multi:newTLoop(function()
+	print("I'm still kicking!")
+end,1)
+multi:mainloop()
+```
+
+*This isn't entirely true, as of right now the compatiablity with the lanes library and love2d engine have their own methods to share data, but if you would like to have your code work in both enviroments then using the GLOBAL table and the data structures provided by the multi library will ensure this happens. If you do not plan on having support for both platforms then feel free to use linda's in lanes and channels in love2d.
+
+Note: luvit currently has very basic support, it only allows the spawning of system threads, but no way to send data back and forth as of yet. I do not know if this is doable or not, but I will keep looking into it. If I can somehow emulate System Threaded Queues and the GLOBAL tabke then all other datastructures will work!
+
+ST - System Threaded Objects
+----------------------------
+Great we are able to spawn threads, but unless your working with a process that works on passed data and then uses a socket or writes to the disk I can't do to much with out being able to pass data between threads. This section we will look at how we can share objects between threads. In order to keep the compatibility between both love2d and lanes I had to format the system threaded objects in a strange way, but they are consistant and should work on both enviroments.
+
+When creating objects with a name they are automatically exposed to the GLOBAL table. Which means you can retrieve them from a spawned thread. For example we have a queue object, which will be discussed in more detail next.
+
+```lua
+-- Exposing a queue
+multi = require("multi")
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init() -- The standard setup above
+queue = multi:newSystemThreadedQueue("myQueue"):init() -- We create and initiate the queue for the main thread
+queue:push("This is a test!") -- We push some data onto the queue that other threads can consume and do stuff with
+multi:newSystemThread("Example thread",function() -- Create a system thread
+	queue = THREAD.waitFor("myQueue"):init() -- Get the queue. It is good pratice to use the waitFor command when getting objects. If it doesn't exist yet we wait for it, preventing future errors. It is possible for the data to not ve present when a thread is looking for it! Especally when using the love2d module, my fault needs some rewriting data passing on the GLOBAL is quite slow, but the queue internally uses channels so after it is exposed you should have good speeds!
+    local data = queue:pop() -- Get the data
+    print(data) -- print the data
+end)
+multi:mainloop()
+```
 
 ST - SystemThreadedQueue
 ------------------------
+`queue(nonInit) = multi:newSystemThreadedQueue(STRING name)` -- You must enter a name!
+`queue = queue:init()` -- initiates the queue, without doing this it will not work
+`void = queue:push(DATA data)` -- Pushes data into a queue that all threads that have been shared have access to
+`data = queue:pop()` -- pops data from the queue removing it from all threads
+`data = queue:peek()` -- looks at data that is on the queue, but dont remove it from the queue
 
-ST - SystemThreadedConnection
------------------------------
+This object the System Threaded Queue is the basis for all other data structures that a user has access to within the "shared" objects.
 
-ST - SystemThreadedBenchmark
-----------------------------
+General tips when using a queue. You can always pop from a queue without worrying if another thread poped that same data, BUT if you are peeking at a queue there is the possibility that another thread popped the data while you are peeking and this could cause an issue, depends on what you are doing though. It's important to keep this in mind when using queues.
+
+Let's get into some examples:
+```lua
+multi = require("multi")
+thread_names = {"Thread_A","Thread_B","Thread_C","Thread_D"}
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+queue = multi:newSystemThreadedQueue("myQueue"):init()
+for _,n in pairs(thread_names) do
+	multi:newSystemThread(n,function()
+		queue = THREAD.waitFor("myQueue"):init()
+		local name = THREAD.getName()
+		local data = queue:pop()
+		while data do
+			print(name.." "..data)
+			data = queue:pop()
+		end
+	end)
+end
+for i=1,100 do
+	queue:push(math.random(1,1000))
+end
+multi:newEvent(function() -- Felt like using the event object, I hardly use them for anything non internal
+	return not queue:peek()
+end):OnEvent(function()
+	print("No more data within the queue!")
+	os.exit()
+end)
+multi:mainloop()
+```
+
+You have probable noticed that the output from this is a total mess! Well I though so too, and created the system threaded console!
 
 ST - SystemThreadedConsole
 --------------------------
+`console(nonInit) = multi:newSystemThreadedConsole(STRING name)` -- Creates a console object called name. The name is mandatory!
+`concole = console:inti()` -- initiates the console object
+`console:print(...)` -- prints to the console
+`console:write(msg)` -- writes to the console, to be fair you wouldn't want to use this one.
 
-ST - SystemThreadedTable
-------------------------
+The console makes printing from threads much cleaner. We will use the same example from above with the console implemented and compare the outputs and how readable they now are!
+
+```lua
+multi = require("multi")
+thread_names = {"Thread_A","Thread_B","Thread_C","Thread_D"}
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+multi:newSystemThreadedConsole("console"):init()
+queue = multi:newSystemThreadedQueue("myQueue"):init()
+for _,n in pairs(thread_names) do
+	multi:newSystemThread(n,function()
+		local queue = THREAD.waitFor("myQueue"):init()
+		local console = THREAD.waitFor("console"):init()
+		local name = THREAD.getName()
+		local data = queue:pop()
+		while data do
+        	--THREAD.sleep(.1) -- uncomment this to see them all work
+			console:print(name.." "..data)
+			data = queue:pop()
+		end
+	end)
+end
+for i=1,100 do
+	queue:push(math.random(1,1000))
+end
+multi:newEvent(function()
+	return not queue:peek()
+end):OnEvent(function()
+	multi:newAlarm(.1):OnRing(function() -- Well the mainthread has to read from an internal queue so we have to wait a sec
+		print("No more data within the queue!")
+		os.exit()
+	end)
+end)
+multi:mainloop()
+```
+
+As you see the output here is so much cleaner, but we have a small gotcha, you probably noticed that I used an alarm to delay the exiting of the program for a bit. This is due to how the console object works, I send all the print data into a queue that the main thread then reads and prints out when it looks at the queue. This should not be an issue since you gain so much by having clean outputs!
+
+Another thing to note, because system threads are put to work one thread at a time, really quick though, the first thread that is loaded is able to complete the tasks really fast, its just printing after all. If you want to see all the threads working uncomment the code with THREAD.sleep(.1)
 
 ST - SystemThreadedJobQueue
 ---------------------------
 
+ST - SystemThreadedConnection - WIP*
+-----------------------------
+`connection(nonInit) = multi:newSystemThreadedConnection(name,protect)` -- creates a connecion object
+`connection = connection:init()` -- initaties the connection object
+`connectionID = connection:connect(FUNCTION func)` -- works like the regular connect function
+`void = connection:holdUT(NUMBER/FUNCTION n)` -- works just like the regular holdut function
+`void = connection:Remove()` -- works the same as the default
+`voic = connection:Fire(ARGS ...)` -- works the same as the default
+
+In the current form a connection object requires that the multi:mainloop() is running on the threads that are sharing this object! By extention since SystemThreadedTables rely on SystemThreadedConnections they have the same requirements. Both objects should not be used for now. 
+
+Since the current object is not in a stable condition, I will not be providing examples of how to use it just yet!
+
+*The main issue we have with the connection objects in this form is proper comunication and memory managament between threads. For example if a thread crashes or no longer exists the current apporach to how I manage the connection objects will cause all connections to halt. This feature is still being worked on and has many bugs to be patched out. for now only use for testing purposes.
+
+ST - SystemThreadedTable - WIP*
+------------------------
+
+ST - SystemThreadedBenchmark
+----------------------------
+`bench = multi:SystemThreadedBenchmark(NUMBER seconds)` -- runs a benchmark for a certain amount of time
+`bench:OnBench(FUNCTION callback(NUMBER steps/second))`
+```lua
+multi = require("multi")
+local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+multi:SystemThreadedBenchmark(1).OnBench(function(...)
+	print(...)
+end)
+multi:mainloop()
+```
 ST - SystemThreadedExecute
 --------------------------
 

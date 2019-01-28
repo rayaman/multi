@@ -211,6 +211,7 @@ function multi:SystemThreadedBenchmark(n)
 			multi:benchMark(n):OnBench(function(self,count)
 				queue:push(count)
 				sThread.kill()
+				error("Thread was killed!")
 			end)
 			multi:mainloop()
 		end,n)
@@ -247,10 +248,10 @@ function multi:newSystemThreadedConsole(name)
 		end
 		local cc={}
 		if multi.isMainThread then
-			if GLOBAL["__SYSTEM_CONSLOE__"] then
-				cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+			if GLOBAL["__SYSTEM_CONSOLE__"] then
+				cc.stream = sThread.waitFor("__SYSTEM_CONSOLE__"):init()
 			else
-				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSLOE__"):init()
+				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSOLE__"):init()
 				multi:newLoop(function()
 					local data = cc.stream:pop()
 					if data then
@@ -264,7 +265,7 @@ function multi:newSystemThreadedConsole(name)
 				end)
 			end
 		else
-			cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+			cc.stream = sThread.waitFor("__SYSTEM_CONSOLE__"):init()
 		end
 		function cc:write(msg)
 			self.stream:push({"w",tostring(msg)})

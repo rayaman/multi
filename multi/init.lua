@@ -61,11 +61,20 @@ multi.Priority_Normal = 64
 multi.Priority_Below_Normal = 256
 multi.Priority_Low = 1024
 multi.Priority_Idle = 4096
+multi.PriorityResolve = {
+	[1]="Core",
+	[4]="High",
+	[16]="Above Normal",
+	[64]="Normal",
+	[256]="Below Normal",
+	[1024]="Low",
+	[4096]="Idle",
+}
 multi.PStep = 1
 multi.PList = {multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
 --^^^^
 multi.PriorityTick=1 -- Between 1, 2 and 4
-multi.Priority=multi.Priority_Core
+multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
 function multi.queuefinal(self)
@@ -239,6 +248,75 @@ function multi:benchMark(sec,p,pt)
 	end
 	self.tt=function() end
 	return temp
+end
+function multi.Round(num, numDecimalPlaces)
+  local mult = 10^(numDecimalPlaces or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+function multi.AlignTable(tab)
+	local longest = {}
+	local columns = #tab[1]
+	local rows = #tab
+	for i=1, columns do
+		longest[i] = -math.huge
+	end
+	for i = 1,rows do
+		for j = 1,columns do
+			tab[i][j] = tostring(tab[i][j])
+			if #tab[i][j]>longest[j] then
+				longest[j] = #tab[i][j]
+			end
+		end
+	end
+	for i = 1,rows do
+		for j = 1,columns do
+			if tab[i][j]~=nil and #tab[i][j]<longest[j] then
+				tab[i][j]=tab[i][j]..string.rep(" ",longest[j]-#tab[i][j])
+			end
+		end
+	end
+	local str = {}
+	for i = 1,rows do
+		str[#str+1] = table.concat(tab[i]," ")
+	end
+	return table.concat(str,"\n")
+end
+function multi:getTasksDetails(t)
+	if not multi.load_updater then
+		multi:enableLoadDetection()
+	end
+	if t == "string" or not t then
+		str = {
+			{"Type","Uptime","Priority","TID"}
+		}
+		for i,v in pairs(self.Mainloop) do
+			local name = v.Name or ""
+			if name~="" then
+				name = " <"..name..">"
+			end
+			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],i})
+		end
+		
+		local s = multi.AlignTable(str)
+		dat = ""
+		for i=1,#multi.scheduler.Threads do
+			dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
+		end
+		return "Load on manager: "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\n\n"..s.."\n\n"..dat
+	elseif t == "t" or t == "table" then
+		str = {ThreadCount = #multi.scheduler.Threads,MemoryUsage = math.ceil(collectgarbage("count")).." KB"}
+		str.threads = {}
+		for i,v in pairs(self.Mainloop) do
+			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
+		end
+		for i=1,#multi.scheduler.Threads do
+			str.threads[multi.scheduler.Threads[i].Name]={Uptime = os.clock()-multi.scheduler.Threads[i].creationTime}
+		end
+		return str
+	end
+end
+function multi:endTask(TID)
+	self.Mainloop[TID]:Destroy()
 end
 function multi.startFPSMonitior()
 	if not multi.runFPS then
@@ -432,6 +510,9 @@ multi.IsDone=multi.isDone
 function multi:create(ref)
 	multi.OnObjectCreated:Fire(ref,self)
 end
+function multi:setName(name)
+		self.Name = name
+	end
 --Constructors [CORE]
 function multi:newBase(ins)
 	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
@@ -451,6 +532,7 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.held=false
+	c.creationTime = os.clock()
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -469,28 +551,32 @@ function multi:newProcessor(file)
 	c.Mainloop={}
 	c.Garbage={}
 	c.Children={}
-	c.Active=true
+	c.Active=false
 	c.Id=-1
 	c.Rest=0
 	c.Jobs={}
 	c.queue={}
 	c.jobUS=2
-	c.l=self:newLoop(function(self,dt) c:uManager() end)
-	c.l:Pause()
+	c.l=self:newLoop(function(self,dt) 
+		if self.link.Active then
+			c:uManager()
+		end
+	end)
+	c.l.link = c
+	c.l.Type = "process"
 	function c:getController()
 		return c.l
 	end
 	function c:Start()
-		if self.l then
-			self.l:Resume()
-		end
+		self.Active = true
 		return self
 	end
 	function c:Resume()
-		if self.l then
-			self.l:Resume()
-		end
+		self.Active = false
 		return self
+	end
+	function c:setName(name)
+		c.Name = name
 	end
 	function c:Pause()
 		if self.l then
@@ -506,8 +592,8 @@ function multi:newProcessor(file)
 		self.Cself=c
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
-	self.__Destroy = self.Destroy
-	self.Destroy = Remove
+	c.__Destroy = self.Destroy
+	c.Destroy = c.Remove
 	self:create(c)
 --~ 	c:IngoreObject()
 	return c
@@ -962,6 +1048,7 @@ function multi:newTLoop(func,set)
 	c.set=set or 0
 	c.timer=self:newTimer()
 	c.life=0
+	c:setPriority("Low")
 	if func then
 		c.func={func}
 	end
@@ -1305,20 +1392,9 @@ function thread.testFor(name,_val,sym)
 	end)
 	return thread.get(name)
 end
-function multi:newTBase(name)
-	local c = {}
-	c.name=name
-	c.Active=true
-	c.func={}
-	c.ender={}
-	c.Id=0
-	c.Parent=self
-	c.important={}
-	c.held=false
-	c.ToString=multi.ToString
-	c.ToFile=multi.ToFile
-	return c
-end
+multi:setDomainName("Threads")
+multi:setDomainName("Globals")
+local initT = false
 function multi:newThread(name,func)
 	local c={}
 	c.ref={}
@@ -1327,7 +1403,7 @@ function multi:newThread(name,func)
 	c.sleep=1
 	c.Type="thread"
 	c.firstRunDone=false
-	c.timer=multi.scheduler:newTimer()
+	c.timer=multi:newTimer()
 	c.ref.Globals=self:linkDomain("Globals")
 	function c.ref:send(name,val)
 		ret=coroutine.yield({Name=name,Value=val})
@@ -1358,85 +1434,90 @@ function multi:newThread(name,func)
 		self.Globals=v
 	end
 	table.insert(self:linkDomain("Threads"),c)
-	if not multi.scheduler:isActive() then
-		multi.scheduler:Resume()
+	if initT==false then
+		multi.initThreads()
 	end
+	c.creationTime = os.clock()
 end
-multi:setDomainName("Threads")
-multi:setDomainName("Globals")
-multi.scheduler=multi:newLoop()
-multi.scheduler.Type="scheduler"
-function multi.scheduler:setStep(n)
-	self.skip=tonumber(n) or 24
-end
-multi.scheduler.skip=0
-multi.scheduler.counter=0
-multi.scheduler.Threads=multi:linkDomain("Threads")
-multi.scheduler.Globals=multi:linkDomain("Globals")
-multi.scheduler:OnLoop(function(self)
-	self.counter=self.counter+1
-	for i=#self.Threads,1,-1 do
-		ret={}
-		if coroutine.status(self.Threads[i].thread)=="dead" then
-			table.remove(self.Threads,i)
-		else
-			if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
-				if self.Threads[i].firstRunDone==false then
-					self.Threads[i].firstRunDone=true
-					self.Threads[i].timer:Start()
-					if unpack(self.Threads[i].returns or {}) then
-						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+function multi.initThreads()
+	initT = true
+	multi.scheduler=multi:newLoop()
+	multi.scheduler.Type="scheduler"
+	function multi.scheduler:setStep(n)
+		self.skip=tonumber(n) or 24
+	end
+	multi.scheduler.skip=0
+	multi.scheduler.counter=0
+	multi.scheduler.Threads=multi:linkDomain("Threads")
+	multi.scheduler.Globals=multi:linkDomain("Globals")
+	multi.scheduler:OnLoop(function(self)
+		self.counter=self.counter+1
+		for i=#self.Threads,1,-1 do
+			ret={}
+			if coroutine.status(self.Threads[i].thread)=="dead" then
+				table.remove(self.Threads,i)
+			else
+				if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
+					if self.Threads[i].firstRunDone==false then
+						self.Threads[i].firstRunDone=true
+						self.Threads[i].timer:Start()
+						if unpack(self.Threads[i].returns or {}) then
+							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+						else
+							_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+						end
 					else
-						_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+						if unpack(self.Threads[i].returns or {}) then
+							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+						else
+							_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+						end
 					end
-				else
-					if unpack(self.Threads[i].returns or {}) then
-						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
-					else
-						_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+					if _==false then
+						self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
+					end
+					if ret==true or ret==false then
+						print("Thread Ended!!!")
+						ret={}
 					end
 				end
-				if _==false then
-					self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
-				end
-				if ret==true or ret==false then
-					print("Thread Ended!!!")
-					ret={}
-				end
-			end
-			if ret then
-				if ret[1]=="_kill_" then
-					table.remove(self.Threads,i)
-				elseif ret[1]=="_sleep_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=ret[2]
-				elseif ret[1]=="_skip_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=math.huge
-					local event=multi:newEvent(function(evnt) return multi.scheduler.counter>=evnt.counter end)
-					event.link=self.Threads[i]
-					event.counter=self.counter+ret[2]
-					event:OnEvent(function(evnt)
-						evnt.link.sleep=0
-					end)
-				elseif ret[1]=="_hold_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=math.huge
-					local event=multi:newEvent(ret[2])
-					event.returns = nil
-					event.link=self.Threads[i]
-					event:OnEvent(function(evnt)
-						evnt.link.sleep=0
-						evnt.link.returns = evnt.returns
-					end)
-				elseif ret.Name then
-					self.Globals[ret.Name]=ret.Value
+				if ret then
+					if ret[1]=="_kill_" then
+						table.remove(self.Threads,i)
+					elseif ret[1]=="_sleep_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=ret[2]
+					elseif ret[1]=="_skip_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=math.huge
+						local event=multi:newEvent(function(evnt) return multi.scheduler.counter>=evnt.counter end)
+						event.link=self.Threads[i]
+						event.counter=self.counter+ret[2]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+							evnt:Destroy()
+						end)
+					elseif ret[1]=="_hold_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=math.huge
+						local event=multi:newEvent(ret[2])
+						event.returns = nil
+						event.link=self.Threads[i]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+							evnt.link.returns = evnt.returns
+							multi.nextStep(function()
+								evnt:Destroy()
+							end)
+						end)
+					elseif ret.Name then
+						self.Globals[ret.Name]=ret.Value
+					end
 				end
 			end
 		end
-	end
-end)
-multi.scheduler:Pause()
+	end)
+end
 multi.OnError=multi:newConnection()
 function multi:newThreadedProcess(name)
 	local c = {}
@@ -1663,6 +1744,7 @@ function multi:threadloop(settings)
 						event.counter=counter+ret[2]
 						event:OnEvent(function(evnt)
 							evnt.link.sleep=0
+							evnt:Destroy()
 						end)
 					elseif ret[1]=="_hold_" then
 						Threads[i].timer:Reset()
@@ -1671,6 +1753,7 @@ function multi:threadloop(settings)
 						event.link=Threads[i]
 						event:OnEvent(function(evnt)
 							evnt.link.sleep=0
+							evnt:Destroy()
 						end)
 					elseif ret.Name then
 						Globals[ret.Name]=ret.Value
@@ -2087,7 +2170,6 @@ function multi:IngoreObject()
 	self.Ingore=true
 	return self
 end
-multi.scheduler:IngoreObject()
 function multi:ToString()
 	if self.Ingore then return end
 	local t=self.Type
@@ -2268,34 +2350,6 @@ function multi:newFromString(str)
 		local item=self:newLoop()
 		table.merge(item,data)
 		return item
-	elseif t=="eventThread" then -- GOOD
-		local item=self:newThreadedEvent(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="loopThread" then -- GOOD
-		local item=self:newThreadedLoop(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="stepThread" then -- GOOD
-		local item=self:newThreadedStep(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="tloopThread" then -- GOOD
-		local item=self:newThreadedTLoop(data.name,nil,data.restN)
-		table.merge(item,data)
-		return item
-	elseif t=="tstepThread" then -- GOOD
-		local item=self:newThreadedTStep(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="updaterThread" then -- GOOD
-		local item=self:newThreadedUpdater(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="alarmThread" then -- GOOD
-		local item=self:newThreadedAlarm(data.name)
-		table.merge(item,data)
-		return item
 	end
 end
 function multi:Important(varname)
@@ -2322,19 +2376,22 @@ end
 function multi:setDefualtStateFlag(opt)
 	--
 end
-multi.dStepA = 0
-multi.dStepB = 0
-multi.dSwap = 0
-multi.deltaTarget = .05
-multi.load_updater = multi:newUpdater(2)
-multi.load_updater:Pause()
-multi.load_updater:OnUpdate(function(self)
-	if self.Parent.dSwap == 0 then
-		self.Parent.dStepA = os.clock()
-		self.Parent.dSwap = 1
-	else
-		self.Parent.dSwap = 0
-		self.Parent.dStepB = os.clock()
-	end
-end)
+function multi:enableLoadDetection()
+	if multi.load_updater then return end
+	multi.dStepA = 0
+	multi.dStepB = 0
+	multi.dSwap = 0
+	multi.deltaTarget = .05
+	multi.load_updater = multi:newUpdater(2)
+	multi.load_updater:setName("LoadDetector")
+	multi.load_updater:OnUpdate(function(self)
+		if self.Parent.dSwap == 0 then
+			self.Parent.dStepA = os.clock()
+			self.Parent.dSwap = 1
+		else
+			self.Parent.dSwap = 0
+			self.Parent.dStepB = os.clock()
+		end
+	end)
+end
 return multi

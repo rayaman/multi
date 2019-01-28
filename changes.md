@@ -1,10 +1,10 @@
 #Changes
 [TOC]
-Update 13.0.0 So you documented it, finally, but it's sad to see some things go isn't it?
+Update 13.0.0 So you documented it, finally! New additions/changes/ and fixes
 -------------
 Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
 Changed: 
-- A few things, to make concepts in the library more clear
+- A few things, to make concepts in the library more clear.
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
 - Modified the connection object to allow for some more syntaxial suger!
 
@@ -20,8 +20,18 @@ end)
 multi:mainloop()
 ```
 
+Function Example:
+```lua
+func = multi:newFunction(function(self,a,b)
+	self:Pause()
+	return 1,2,3
+end)
+print(func()) -- returns: 1, 2, 3
+print(func()) -- nil, true
+```
+
 Removed:
-- Ranges and conditions -- corutine based threads can dmulate what these objects did and much better!
+- Ranges and conditions -- corutine based threads can emulate what these objects did and much better!
 - Due to the creation of hyper threaded processes the following objects are no more!
 -- ~~multi:newThreadedEvent()~~
 -- ~~multi:newThreadedLoop()~~
@@ -30,15 +40,22 @@ Removed:
 -- ~~multi:newThreadedTStep()~~
 -- ~~multi:newThreadedAlarm()~~
 -- ~~multi:newThreadedUpdater()~~
+-- ~~multi:newTBase()~~ -- Acted as the base for creating the other objects
 
 These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
 
 Fixed:
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
+- Massive object management bugs which caused performance to drop like a rock. Remember to Destroy objects when no longer using them. I should probably start working on a garbage collector for these objects!
+- Found a bug with processors not having the Destroy() function implemented properly.
 
 Added:
 - multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes.
-- multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj
+- multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
+- multi:purge() -- Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
+- multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
+- multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
+- multi:enableLoadDetection() -- Since load detection puts some strain on the system (very little) I decided to make it something that has to be enabled. Once on it cant be turned off!
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -54,7 +71,7 @@ test:newTLoop(function()
 	conn:OnTest()
 end,1)
 test:newLoop(function()
-	print("HI2!")
+	print("HEY!")
 	thread.sleep(.5)
 end)
 multi:newAlarm(3):OnRing(function()
@@ -63,7 +80,22 @@ end)
 test:Start()
 multi:mainloop()
 ```
-
+Table format for getTasksDetails(STRING format)
+```lua
+{
+	{TID = 1,Type="",Priority="",Uptime=0}
+	{TID = 2,Type="",Priority="",Uptime=0}
+	...
+    {TID = n,Type="",Priority="",Uptime=0}
+	ThreadCount = 0
+	threads={
+    	[Thread_Name]={
+        	Uptime = 0
+        }
+    }
+}
+```
+**Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a signifacant increase in performance.
 Update 12.2.2 Time for some more bug fixes!
 -------------
 Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
