@@ -33,8 +33,3 @@ end)
 multi:mainloop{
 	protect = false
 }
---~ print(multi.AlignTable{
---~ 	{"Name","Type","Number"},
---~ 	{"Test","This is a type","1.34"},
---~ 	{"Test Hello","This is another type","143.43"},
---~ })
