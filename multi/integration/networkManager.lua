@@ -287,7 +287,7 @@ function multi:newNode(settings)
 			local temp = bin.new(dat)
 			local len = temp:getBlock("n",1)
 			local name = temp:getBlock("s",len)
-			len = temp:getBlock("n",2)
+			len = temp:getBlock("n",4)
 			local args = temp:getBlock("s",len)
 			_G[name](unpack(resolveData(args)))
 		elseif cmd == CMD_TASK then
@@ -356,7 +356,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	if settings.managerDetails then
 		local client = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
 		if not client then
-			print("Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
+			print("Warning: Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
 		else
 			client.OnDataRecieved(function(client,data)
 				local cmd = data:sub(1,1)
@@ -406,7 +406,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		temp:addBlock(CMD_CALL,1)
 		temp:addBlock(#name,1)
 		temp:addBlock(name,#name)
-		temp:addBlock(#args,2)
+		temp:addBlock(#args,4)
 		temp:addBlock(args,#args)
 		master:sendTo(node,temp.data)
 	end

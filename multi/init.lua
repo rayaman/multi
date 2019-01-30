@@ -1808,6 +1808,7 @@ function multi:mainloop(settings)
 		local solid
 		local sRef
 		while mainloopActive do
+			--print(mainloopActive)
 			if ncount ~= 0 then
 				for i = 1, ncount do
 					next[i]()

@@ -1,6 +1,6 @@
 #Changes
 [TOC]
-Update 13.0.0 So you documented it, finally! New additions/changes/ and fixes
+Update 13.0.0 So you documented it, finally! If I had a dollar for each time I found a bug working on 13.0.0 I'd be quite wealthy by now. How much lag could one expect when I've been coding with my own library wrong this entire time?
 -------------
 Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
 Changed: 
@@ -48,6 +48,9 @@ Fixed:
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 - Massive object management bugs which caused performance to drop like a rock. Remember to Destroy objects when no longer using them. I should probably start working on a garbage collector for these objects!
 - Found a bug with processors not having the Destroy() function implemented properly.
+- Found an issue with the rockspec which is due to the networkManager additon. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
+- Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes futhur than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release
+- Fixed an issue where any argument greater than 256^2/65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4/4294967296 bytes. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
 
 Added:
 - multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes.

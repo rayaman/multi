@@ -14,18 +14,22 @@ end
 master = multi:newMaster{
 	name = "Main", -- the name of the master
 	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
-	managerDetails = {"192.168.1.4",12345}, -- the details to connect to the node manager (ip,port)
+--~ 	managerDetails = {"192.168.1.4",12345}, -- the details to connect to the node manager (ip,port)
 }
 master.OnError(function(name,err)
 	print(name.." has encountered an error: "..err)
 end)
-master.OnNodeConnected(function(name)
-	multi:newThread("Main Thread Data Sender",function()
-		while true do
-			thread.sleep(.5)
-			conn = master:execute("TASK_MAN",name, multi:getTasksDetails())
+local connlist = {}
+multi:newThread("NodeUpdater",function()
+	while true do
+		thread.sleep(1)
+		for i=1,#connlist do
+			conn = master:execute("TASK_MAN",connlist[i], multi:getTasksDetails())
 		end
-	end,5)
+	end
+end)
+master.OnNodeConnected(function(name)
+	table.insert(connlist,name)
 end)
 multi.OnError(function(...)
 	print(...)
