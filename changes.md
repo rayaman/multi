@@ -2,6 +2,9 @@
 [TOC]
 Update 13.0.0 So you documented it, finally! If I had a dollar for each time I found a bug working on 13.0.0 I'd be quite wealthy by now. How much lag could one expect when I've been coding with my own library wrong this entire time?
 -------------
+**Quick note** on the 13.0.0 update:
+This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
+
 Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
 Changed: 
 - A few things, to make concepts in the library more clear.
@@ -53,12 +56,13 @@ Fixed:
 - Fixed an issue where any argument greater than 256^2/65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4/4294967296 bytes. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
 
 Added:
-- multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes.
+- Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features I added couldn't become that. I actually still did my tests in the 12.2.3 branch in github.
+- multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
 - multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
 - multi:purge() -- Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
 - multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
 - multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
-- multi:enableLoadDetection() -- Since load detection puts some strain on the system (very little) I decided to make it something that has to be enabled. Once on it cant be turned off!
+- multi:enableLoadDetection() -- Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -99,6 +103,11 @@ Table format for getTasksDetails(STRING format)
 }
 ```
 **Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a signifacant increase in performance.
+
+**Going forward:**
+- Add something
+
+
 Update 12.2.2 Time for some more bug fixes!
 -------------
 Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.

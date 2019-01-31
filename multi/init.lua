@@ -125,10 +125,59 @@ end
 function multi:setThrestimed(n)
 	self.deltaTarget=n or .1
 end
+function multi:enableLoadDetection()
+	if multi.maxSpd then return end
+	-- here we are going to run a quick benchMark solo
+	local temp = multi:newProcessor()
+	temp:Start()
+	local t = os.clock()
+	local stop = false
+	temp:benchMark(.01):OnBench(function(time,steps)
+		stop = steps*1.1
+	end)
+	while not stop do
+		temp:uManager()
+	end
+	temp:__Destroy()
+	multi.maxSpd = stop
+end
+local MaxLoad = nil
+function multi:setLoad(n)
+	MaxLoad = n
+end
+local busy = false
+local lastVal = 0
 function multi:getLoad()
-	if multi.load_updater:isPaused() then multi.load_updater:Resume() return 0 end
-	local val = math.abs(self.dStepA-self.dStepB)/multi.deltaTarget*100
-	if val > 100 then return 100 else return val end
+	if not multi.maxSpd then multi:enableLoadDetection() end
+	if busy then return lastVal end
+	local val = nil
+	if thread.isThread() then
+		local bench
+		multi:benchMark(.01):OnBench(function(time,steps)
+			bench = steps
+		end)
+		thread.hold(function()
+			return bench
+		end)
+		bench = bench^1.5
+		val = math.ceil((1-(bench/(multi.maxSpd/1.5)))*100)
+	else
+		busy = true
+		local bench
+		multi:benchMark(.01):OnBench(function(time,steps)
+			bench = steps
+		end)
+		while not bench do 
+			multi:uManager()
+		end
+		bench = bench^1.5
+		val = math.ceil((1-(bench/(multi.maxSpd/1.5)))*100)
+		busy = false
+	end
+	if val<0 then val = 0 end
+	if val > 100 then val = 100 end
+	lastVal = val
+	return val
 end
 function multi:setDomainName(name)
 	self[name]={}
@@ -282,9 +331,6 @@ function multi.AlignTable(tab)
 	return table.concat(str,"\n")
 end
 function multi:getTasksDetails(t)
-	if not multi.load_updater then
-		multi:enableLoadDetection()
-	end
 	if t == "string" or not t then
 		str = {
 			{"Type","Uptime","Priority","TID"}
@@ -296,7 +342,6 @@ function multi:getTasksDetails(t)
 			end
 			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],i})
 		end
-		
 		local s = multi.AlignTable(str)
 		dat = ""
 		for i=1,#multi.scheduler.Threads do
@@ -563,7 +608,7 @@ function multi:newProcessor(file)
 		end
 	end)
 	c.l.link = c
-	c.l.Type = "process"
+	c.l.Type = "processor"
 	function c:getController()
 		return c.l
 	end
@@ -585,15 +630,19 @@ function multi:newProcessor(file)
 		return self
 	end
 	function c:Remove()
-		self:__Destroy()
-		self.l:Destroy()
+		if self.Type == "process" then
+			self:__Destroy()
+			self.l:Destroy()
+		else
+			self:__Destroy()
+		end
 	end
 	if file then
 		self.Cself=c
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
-	c.__Destroy = self.Destroy
-	c.Destroy = c.Remove
+	-- c.__Destroy = self.Destroy
+	-- c.Destroy = c.Remove
 	self:create(c)
 --~ 	c:IngoreObject()
 	return c
@@ -813,7 +862,7 @@ function multi.nextStep(func)
 	if not next then
 		next = {func}
 	else
-		next[#self.next+1] = func
+		next[#next+1] = func
 	end
 end
 multi.OnPreLoad=multi:newConnection()
@@ -1808,12 +1857,12 @@ function multi:mainloop(settings)
 		local solid
 		local sRef
 		while mainloopActive do
-			--print(mainloopActive)
-			if ncount ~= 0 then
-				for i = 1, ncount do
-					next[i]()
+			if next then
+				local DD = table.remove(next,1)
+				while DD do
+					DD()
+					DD = table.remove(next,1)
 				end
-				ncount = 0
 			end
 			if priority == 1 then
 				for _D=#Loop,1,-1 do
@@ -2313,7 +2362,7 @@ function multi:newFromString(str)
 		end
 		return self
 	elseif  t=="process" then
-		local temp=multi:newProcess()
+		local temp=multi:newProcessor()
 		local objs=handle:getBlock("n",4)
 		for i=1,objs do
 			temp:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
@@ -2376,23 +2425,5 @@ function multi:loadState(path)
 end
 function multi:setDefualtStateFlag(opt)
 	--
-end
-function multi:enableLoadDetection()
-	if multi.load_updater then return end
-	multi.dStepA = 0
-	multi.dStepB = 0
-	multi.dSwap = 0
-	multi.deltaTarget = .05
-	multi.load_updater = multi:newUpdater(2)
-	multi.load_updater:setName("LoadDetector")
-	multi.load_updater:OnUpdate(function(self)
-		if self.Parent.dSwap == 0 then
-			self.Parent.dStepA = os.clock()
-			self.Parent.dSwap = 1
-		else
-			self.Parent.dSwap = 0
-			self.Parent.dStepB = os.clock()
-		end
-	end)
 end
 return multi

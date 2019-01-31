@@ -633,9 +633,9 @@ Coroutine based Threading (CBT)
 This was made due to the limitations of multiObj:hold(), which no longer exists. When this library was in its infancy and before I knew about coroutines, I actually tried to emulate what coroutines did in pure lua.
 The threaded bariants of the non threaded objects do exist, but there isn't too much of a need to use them.
 
-The main benefits of using the coroutine based threads it the thread.* namespace which gives you the ability to easily run code side by side.
+The main benefits of using the coroutine based threads is the thread.* namespace which gives you the ability to easily run code side by side.
 
-A quick not on how threads are managed in the library. The library contains a scheduler which keeps track of coroutines and manages them. Coroutines take some time then give off processing to another coroutine. Which means there are some methods that you need to use in order to hand off cpu time to other coroutines or the main thread.
+A quick note on how threads are managed in the library. The library contains a scheduler which keeps track of coroutines and manages them. Coroutines take some time then give off processing to another coroutine. Which means there are some methods that you need to use in order to hand off cpu time to other coroutines or the main thread. You must hand off cpu time when inside of a non ending loop or your code will hang. Threads also have a slight delay before starting, about 3 seconds.
 
 threads.*
 ---------
