@@ -42,6 +42,7 @@ local CMD_CONSOLE		= 0x0B
 
 local char = string.char
 local byte = string.byte
+-- Process to hold all of the networkManager's muilt objects
 
 -- Helper for piecing commands
 local function pieceCommand(cmd,...)
@@ -440,14 +441,11 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 				name = self:getRandomNode()
 			end
 			if name==nil then
-				multi:newThread("Network Thread Manager",function(loop)
-					while true do
-						if name~=nil then
-							self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
-							thread.kill()
-						end
-						thread.sleep(.1)
-					end
+				multi:newEvent(function() return name~=nil end):OnEvent(function(evnt)
+					self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
+					evnt:Destroy()
+				end):SetName("DelayedSendTask"):SetName("DelayedSendTask"):SetTime(8):OnTimedOut(function(self)
+					self:Destroy()
 				end)
 			else
 				self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
@@ -462,14 +460,11 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			name = "NODE_"..name
 		end
 		if self.connections[name]==nil then
-			multi:newThread("Node Data Link Controller",function(loop)
-				while true do
-					if self.connections[name]~=nil then
-						self.connections[name]:send(data)
-						thread.kill()
-					end
-					thread.sleep(.1)
-				end
+			multi:newEvent(function() return self.connections[name]~=nil end):OnEvent(function(evnt)
+				self.connections[name]:send(data)
+				evnt:Destroy()
+			end):SetName("DelayedSendTask"):SetTime(8):OnTimedOut(function(self)
+				self:Destroy()
 			end)
 		else
 			self.connections[name]:send(data)

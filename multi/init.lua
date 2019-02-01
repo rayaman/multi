@@ -34,7 +34,6 @@ multi.ender = {}
 multi.Children = {}
 multi.Active = true
 multi.fps = 60
-multi.Id = -1
 multi.Type = "mainprocess"
 multi.Rest = 0
 multi._type = type
@@ -138,7 +137,7 @@ function multi:enableLoadDetection()
 	while not stop do
 		temp:uManager()
 	end
-	temp:__Destroy()
+	temp:Destroy()
 	multi.maxSpd = stop
 end
 local MaxLoad = nil
@@ -335,19 +334,28 @@ function multi:getTasksDetails(t)
 		str = {
 			{"Type","Uptime","Priority","TID"}
 		}
+		local count = 0
 		for i,v in pairs(self.Mainloop) do
 			local name = v.Name or ""
 			if name~="" then
 				name = " <"..name..">"
 			end
+			count = count + 1
 			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],i})
+		end
+		if count == 0 then
+			table.insert(str,{"Currently no processes running!","","",""})
 		end
 		local s = multi.AlignTable(str)
 		dat = ""
-		for i=1,#multi.scheduler.Threads do
-			dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
+		if multi.scheduler then
+			for i=1,#multi.scheduler.Threads do
+				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
+			end
+			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\n\n"..s.."\n\n"..dat
+		else
+			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\n\n"..s
 		end
-		return "Load on manager: "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\n\n"..s.."\n\n"..dat
 	elseif t == "t" or t == "table" then
 		str = {ThreadCount = #multi.scheduler.Threads,MemoryUsage = math.ceil(collectgarbage("count")).." KB"}
 		str.threads = {}
@@ -503,8 +511,12 @@ function multi:Pause()
 		print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
-		if self.Parent.Mainloop[self.Id]~=nil then
-			table.remove(self.Parent.Mainloop,self.Id)
+		local loop = self.Parent.Mainloop
+		for i=1,#loop do
+			if loop[i] == self then
+				table.remove(loop,i)
+				break
+			end
 		end
 	end
 	return self
@@ -517,9 +529,8 @@ function multi:Resume()
 			c[i]:Resume()
 		end
 	else
-		if self:isPaused() then
+		if self.Active==false then
 			table.insert(self.Parent.Mainloop,self)
-			self.Id=#self.Parent.Mainloop
 			self.Active=true
 		end
 	end
@@ -556,8 +567,10 @@ function multi:create(ref)
 	multi.OnObjectCreated:Fire(ref,self)
 end
 function multi:setName(name)
-		self.Name = name
-	end
+	self.Name = name
+	return self
+end
+multi.SetName = multi.setName
 --Constructors [CORE]
 function multi:newBase(ins)
 	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
@@ -573,7 +586,6 @@ function multi:newBase(ins)
 	c.funcTMR={}
 	c.ender={}
 	c.important={}
-	c.Id=0
 	c.Act=function() end
 	c.Parent=self
 	c.held=false
@@ -597,7 +609,6 @@ function multi:newProcessor(file)
 	c.Garbage={}
 	c.Children={}
 	c.Active=false
-	c.Id=-1
 	c.Rest=0
 	c.Jobs={}
 	c.queue={}
@@ -621,7 +632,8 @@ function multi:newProcessor(file)
 		return self
 	end
 	function c:setName(name)
-		c.Name = name
+		c.l.Name = name
+		return self
 	end
 	function c:Pause()
 		if self.l then
@@ -635,6 +647,18 @@ function multi:newProcessor(file)
 			self.l:Destroy()
 		else
 			self:__Destroy()
+		end
+	end
+	function c:Destroy()
+		if self == c then
+			self.l:Destroy()
+		else
+			for i = #c.Mainloop,1,-1 do
+				if c.Mainloop[i] == self then
+					table.remove(c.Mainloop,i)
+					break
+				end
+			end
 		end
 	end
 	if file then
@@ -836,7 +860,6 @@ function multi:newJob(func,name)
 	end
 	c.Active=true
 	c.func={}
-	c.Id=0
 	c.Parent=self
 	c.Type='job'
 	c.trigfunc=func or function() end
@@ -1578,7 +1601,6 @@ function multi:newThreadedProcess(name)
 		ct.Active=true
 		ct.func={}
 		ct.ender={}
-		ct.Id=0
 		ct.Act=function() end
 		ct.Parent=self
 		ct.held=false
@@ -1589,13 +1611,11 @@ function multi:newThreadedProcess(name)
 	c.Parent=self
 	c.Active=true
 	c.func={}
-	c.Id=0
 	c.Type='threadedprocess'
 	c.Mainloop={}
 	c.Garbage={}
 	c.Children={}
 	c.Active=true
-	c.Id=-1
 	c.Rest=0
 	c.updaterate=.01
 	c.restRate=.1
@@ -1664,7 +1684,6 @@ function multi:newHyperThreadedProcess(name)
 		ct.Active=true
 		ct.func={}
 		ct.ender={}
-		ct.Id=0
 		ct.Act=function() end
 		ct.Parent=self
 		ct.held=false
@@ -1689,13 +1708,11 @@ function multi:newHyperThreadedProcess(name)
 	c.Parent=self
 	c.Active=true
 	c.func={}
-	c.Id=0
 	c.Type='hyperthreadedprocess'
 	c.Mainloop={}
 	c.Garbage={}
 	c.Children={}
 	c.Active=true
-	c.Id=-1
 	c.Rest=0
 	c.updaterate=.01
 	c.restRate=.1
@@ -2052,11 +2069,12 @@ function multi:uManager(settings)
 end
 function multi:uManagerRef(settings)
 	if self.Active then
-		if ncount ~= 0 then
-			for i = 1, ncount do
-				next[i]()
+		if next then
+			local DD = table.remove(next,1)
+			while DD do
+				DD()
+				DD = table.remove(next,1)
 			end
-			ncount = 0
 		end
 		local Loop=self.Mainloop
 		local PS=self
@@ -2236,8 +2254,6 @@ function multi:ToString()
 			important=self.important,
 			Active=self.Active,
 			ender=self.ender,
-			-- IDK if these need to be present...
-			-- Id=self.Id,
 			held=self.held,
 		}
 	else
@@ -2248,8 +2264,6 @@ function multi:ToString()
 			funcTMR=self.funcTMR,
 			important=self.important,
 			ender=self.ender,
-			-- IDK if these need to be present...
-			-- Id=self.Id,
 			held=self.held,
 		}
 	end
