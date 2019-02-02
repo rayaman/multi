@@ -329,6 +329,8 @@ function multi.AlignTable(tab)
 	end
 	return table.concat(str,"\n")
 end
+local priorityTable = {[0]="Round-Robin",[1]="Just-Right",[2]="Top-heavy",[3]="Timed-Based-Balancer"}
+local ProcessName = {[true]="SubProcess",[false]="MainProcess"}
 function multi:getTasksDetails(t)
 	if t == "string" or not t then
 		str = {
@@ -352,12 +354,17 @@ function multi:getTasksDetails(t)
 			for i=1,#multi.scheduler.Threads do
 				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
 			end
-			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\n\n"..s.."\n\n"..dat
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat
 		else
-			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\n\n"..s
+			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s
 		end
 	elseif t == "t" or t == "table" then
-		str = {ThreadCount = #multi.scheduler.Threads,MemoryUsage = math.ceil(collectgarbage("count")).." KB"}
+		str = {
+			ThreadCount = #multi.scheduler.Threads,
+			MemoryUsage = math.ceil(collectgarbage("count")).." KB",
+			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
+			SystemLoad = multi.Round(multi:getLoad(),2)
+		}
 		str.threads = {}
 		for i,v in pairs(self.Mainloop) do
 			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
@@ -868,7 +875,7 @@ function multi:newJob(func,name)
 	end
 	table.insert(self.Jobs,{c,name})
 	if self.JobRunner==nil then
-		self.JobRunner=self:newAlarm(self.jobUS)
+		self.JobRunner=self:newAlarm(self.jobUS):setName("multi.jobHandler")
 		self.JobRunner:OnRing(function(self)
 			if #self.Parent.Jobs>0 then
 				if self.Parent.Jobs[1] then
@@ -933,6 +940,7 @@ function multi:newEvent(task)
 		table.insert(self.func,func)
 		return self
 	end
+	self:setPriority("core")
 	self:create(c)
 	return c
 end
@@ -1513,7 +1521,7 @@ function multi:newThread(name,func)
 end
 function multi.initThreads()
 	initT = true
-	multi.scheduler=multi:newLoop()
+	multi.scheduler=multi:newLoop():setName("multi.thread")
 	multi.scheduler.Type="scheduler"
 	function multi.scheduler:setStep(n)
 		self.skip=tonumber(n) or 24
@@ -1652,12 +1660,12 @@ function multi:newThreadedProcess(name)
 			multi:newAlarm(n):OnRing(function(a)
 				holding = false
 				a:Destroy()
-			end)
+			end):setName("multi.TPSleep")
 		elseif type(n)=="function" then
 			multi:newEvent(n):OnEvent(function(e)
 				holding = false
 				e:Destroy()
-			end)
+			end):setName("multi.TPHold")
 		end
 		return self
 	end
@@ -1750,12 +1758,12 @@ function multi:newHyperThreadedProcess(name)
 			multi:newAlarm(b):OnRing(function(a)
 				holding = false
 				a:Destroy()
-			end)
+			end):setName("multi.HTPSleep")
 		elseif type(b)=="function" then
 			multi:newEvent(b):OnEvent(function(e)
 				holding = false
 				e:Destroy()
-			end)
+			end):setName("multi.HTPHold")
 		end
 		return self
 	end
