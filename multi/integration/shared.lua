@@ -123,6 +123,7 @@ function multi:newSystemThreadedConnection(name,protect)
 	local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
 	local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
 	function c:init()
+		_G.__Needs_Multi = true
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
@@ -241,6 +242,7 @@ function multi:newSystemThreadedConsole(name)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init()
+		_G.__Needs_Multi = true
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
@@ -288,6 +290,7 @@ function multi:newSystemThreadedTable(name)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init() -- create an init function so we can mimic on both love2d and lanes
+		_G.__Needs_Multi = true
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL

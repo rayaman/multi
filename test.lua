@@ -5,12 +5,12 @@ nGLOBAL = require("multi.integration.networkManager").init()
 local a
 local clock = os.clock
 function sleep(n)  -- seconds
-  local t0 = clock()
-  while clock() - t0 <= n do end
+	local t0 = clock()
+	while clock() - t0 <= n do end
 end
 master = multi:newMaster{
 	name = "Main", -- the name of the master
-	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+--~ 	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
 	managerDetails = {"192.168.1.4",12345}, -- the details to connect to the node manager (ip,port)
 }
 master.OnError(function(name,err)
@@ -28,9 +28,20 @@ end)
 master.OnNodeConnected(function(name)
 	table.insert(connlist,name)
 end)
-multi.OnError(function(...)
-	print(...)
+--~ multi:newThread("TaskView",function()
+--~ 	while true do
+--~ 		thread.sleep(1)
+--~ 		print(multi:getTasksDetails())
+--~ 	end
+--~ end)
+multi:newSystemThread("SystemThread",function()
+	local multi = require("multi")
+	print(THREAD.getName(),THREAD.getID())
+	THREAD.sleep(8)
+end).OnError(function(a,b,c)
+	print("ERROR:",b)
 end)
+--~ print(multi:getTasksDetails())
 multi:mainloop{
 	protect = false
 }

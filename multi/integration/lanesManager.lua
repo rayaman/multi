@@ -32,6 +32,8 @@ end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
 local multi = require("multi") -- get it all and have it on all lanes
+multi.SystemThreads = {}
+local thread = thread
 multi.isMainThread=true
 function multi:canSystemThread()
 	return true
@@ -93,6 +95,9 @@ end
 function THREAD.getName()
 	return THREAD_NAME
 end
+function THREAD.getID()
+	return THREAD_ID
+end
 --[[ Step 4 We need to get sleeping working to handle timing... We want idle wait, not busy wait
 Idle wait keeps the CPU running better where busy wait wastes CPU cycles... Lanes does not have a sleep method
 however, a linda recieve will in fact be a idle wait! So we use that and wrap it in a nice package]]
@@ -109,17 +114,32 @@ function THREAD.hold(n)
 end
 local rand = math.random(1,10000000)
 -- Step 5 Basic Threads!
+-- local threads = {}
+local count = 0
+local started
 function multi:newSystemThread(name,func,...)
+	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1,10000000)
     local c={}
     local __self=c
     c.name=name
+	c.Name = name
+	c.Id = count
+	local THREAD_ID = count
+	count = count + 1
 	c.Type="sthread"
+	c.creationTime = os.clock()
 	local THREAD_NAME=name
 	local function func2(...)
+		local multi = require("multi")
 		_G["THREAD_NAME"]=THREAD_NAME
+		_G["THREAD_ID"]=THREAD_ID
 		math.randomseed(rand)
 		func(...)
+		if _G.__Needs_Multi then
+			multi:mainloop()
+		end
+		THREAD.kill()
 	end
     c.thread=lanes.gen("*", func2)(...)
 	function c:kill()
@@ -127,16 +147,32 @@ function multi:newSystemThread(name,func,...)
 		self.thread:cancel()
 		print("Thread: '"..self.name.."' has been stopped!")
 	end
-	c.status=multi:newUpdater(multi.Priority_IDLE)
-	c.status.link=c
-	c.status:OnUpdate(function(self)
-		local v,err,t=self.link.thread:join(.001)
-		if err then
-			multi.OnError:Fire(self.link,err,"Error in systemThread: '"..self.link.name.."' <"..err..">")
-			self:Destroy()
+	table.insert(multi.SystemThreads,c)
+	c.OnError = multi:newConnection()
+    return c
+end
+function multi.InitSystemThreadErrorHandler()
+	if started then return end
+	multi:newThread("ThreadErrorHandler",function()
+		local deadThreads = {}
+		local threads = multi.SystemThreads
+		while true do
+			thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough. 
+			for i=#threads,1,-1 do
+				local v,err,t=threads[i].thread:join(.001)
+				if err then
+					if err:find("Thread was killed!") then
+						table.remove(threads,i)
+					else
+						threads[i].OnError:Fire(threads[i],err,"Error in systemThread: '"..threads[i].name.."' <"..err..">")
+						table.remove(threads,i)
+						table.insert(deadThreads,threads[i].Id)
+						GLOBAL["__DEAD_THREADS__"]=deadThreads
+					end
+				end
+			end
 		end
 	end)
-    return c
 end
 print("Integrated Lanes!")
 multi.integration={} -- for module creators

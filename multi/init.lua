@@ -28,6 +28,7 @@ multi.Version = "13.0.0"
 multi._VERSION = "13.0.0"
 multi.stage = "stable"
 multi.__index = multi
+multi.Name = "multi.Root"
 multi.Mainloop = {}
 multi.Garbage = {}
 multi.ender = {}
@@ -159,7 +160,7 @@ function multi:getLoad()
 			return bench
 		end)
 		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/1.5)))*100)
+		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
 	else
 		busy = true
 		local bench
@@ -170,7 +171,7 @@ function multi:getLoad()
 			multi:uManager()
 		end
 		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/1.5)))*100)
+		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
 		busy = false
 	end
 	if val<0 then val = 0 end
@@ -330,11 +331,11 @@ function multi.AlignTable(tab)
 	return table.concat(str,"\n")
 end
 local priorityTable = {[0]="Round-Robin",[1]="Just-Right",[2]="Top-heavy",[3]="Timed-Based-Balancer"}
-local ProcessName = {[true]="SubProcess",[false]="MainProcess"}
+local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
 function multi:getTasksDetails(t)
 	if t == "string" or not t then
 		str = {
-			{"Type","Uptime","Priority","TID"}
+			{"Type <Identifier","Uptime","Priority","TID"}
 		}
 		local count = 0
 		for i,v in pairs(self.Mainloop) do
@@ -350,13 +351,19 @@ function multi:getTasksDetails(t)
 		end
 		local s = multi.AlignTable(str)
 		dat = ""
+		dat2 = ""
+		if multi.SystemThreads then
+			for i = 1,#multi.SystemThreads do
+				dat2 = dat2.."<SystemThread: "..multi.SystemThreads[i].Name.." | "..os.clock()-multi.SystemThreads[i].creationTime..">\n"
+			end
+		end
 		if multi.scheduler then
 			for i=1,#multi.scheduler.Threads do
 				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
 			end
-			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat..dat2
 		else
-			return "Load on "..({[true]="SubProcess<"..(self.Name or "Unnamed")..">",[false]="MainProcess"})[self.Type=="process"]..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(multi:getLoad(),2).."%\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s..dat2
 		end
 	elseif t == "t" or t == "table" then
 		str = {
@@ -366,11 +373,17 @@ function multi:getTasksDetails(t)
 			SystemLoad = multi.Round(multi:getLoad(),2)
 		}
 		str.threads = {}
+		str.systemthreads = {}
 		for i,v in pairs(self.Mainloop) do
 			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
 		end
 		for i=1,#multi.scheduler.Threads do
 			str.threads[multi.scheduler.Threads[i].Name]={Uptime = os.clock()-multi.scheduler.Threads[i].creationTime}
+		end
+		if multi.canSystemThread then
+			for i=1,#multi.SystemThreads do
+				str.systemthreads[multi.SystemThreads[i].Name]={Uptime = os.clock()-multi.SystemThreads[i].creationTime}
+			end
 		end
 		return str
 	end
@@ -1576,7 +1589,7 @@ function multi.initThreads()
 						event:OnEvent(function(evnt)
 							evnt.link.sleep=0
 							evnt:Destroy()
-						end)
+						end):setName("multi.thread.skip")
 					elseif ret[1]=="_hold_" then
 						self.Threads[i].timer:Reset()
 						self.Threads[i].sleep=math.huge
@@ -1589,7 +1602,7 @@ function multi.initThreads()
 							multi.nextStep(function()
 								evnt:Destroy()
 							end)
-						end)
+						end):setName("multi.thread.hold")
 					elseif ret.Name then
 						self.Globals[ret.Name]=ret.Value
 					end

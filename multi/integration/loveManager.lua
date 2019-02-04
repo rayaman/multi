@@ -34,6 +34,7 @@ multi.integration.love2d.ThreadBase=[[
 tab={...}
 __THREADID__=table.remove(tab,1)
 __THREADNAME__=table.remove(tab,1)
+THREAD_ID=table.remove(tab,1)
 require("love.filesystem")
 require("love.system")
 require("love.timer")
@@ -217,6 +218,9 @@ isMainThread=true
 function THREAD.getName()
 	return __THREADNAME__
 end
+function THREAD.getID()
+	return THREAD_ID
+end
 function ToStr(val, name, skipnewlines, depth)
     skipnewlines = skipnewlines or false
     depth = depth or 0
@@ -295,12 +299,16 @@ local function randomString(n)
 	end
 	return str
 end
+local count = 0
 function multi:newSystemThread(name,func,...) -- the main method
     local c={}
     c.name=name
+	c.Name = name
 	c.ID=c.name.."<ID|"..randomString(8)..">"
+	c.Id=count
+	count = count + 1
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
-	c.thread:start(c.ID,c.name,...)
+	c.thread:start(c.ID,c.name,,...)
 	function c:kill()
 		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
 	end

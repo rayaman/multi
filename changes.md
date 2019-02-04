@@ -1,6 +1,6 @@
 #Changes
 [TOC]
-Update 13.0.0 So you documented it, finally! If I had a dollar for each time I found a bug working on 13.0.0 I'd be quite wealthy by now. How much lag could one expect when I've been coding with my own library wrong this entire time?
+Update 13.0.0 So you documented it, finally! If I had a dollar for each time I found a bug working on 13.0.0 I'd be quite wealthy by now. 
 -------------
 **Quick note** on the 13.0.0 update:
 This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
@@ -10,6 +10,7 @@ Changed:
 - A few things, to make concepts in the library more clear.
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
 - Modified the connection object to allow for some more syntaxial suger!
+- System threads now trigger an OnError connection that is a member of the object itself. multi.OnError() is no longer triggered for a system thread that crashes!
 
 Connection Example:
 ```lua
@@ -65,6 +66,7 @@ Added:
 - multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
 - multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
 - multi:enableLoadDetection() -- Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
+- THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -108,7 +110,6 @@ Table format for getTasksDetails(STRING format)
 
 **Going forward:**
 - Add something
-
 
 Update 12.2.2 Time for some more bug fixes!
 -------------

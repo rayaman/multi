@@ -316,6 +316,7 @@ All of these functions are found on actors
 `self = multiObj:OnTimedOut(func)` -- If ResolveTimer was not called in time this event will be triggered. The function connected to it get a refrence of the original object that the timer was created on as the first argument.
 `self = multiObj:OnTimerResolved(func)` -- This event is triggered when the timer gets resolved. Same argument as above is passed, but the variable arguments that are accepted in resolvetimer are also passed as well.
 `self = multiObj:Reset(n)` -- In the cases where it isn't obvious what it does, it acts as Resume()
+`self = multiObj:SetName(STRING name)`
 
 Actor: Events
 ------
@@ -822,6 +823,7 @@ ST - THREAD namespace
 `THREAD.getName()` -- Returns the name of the working thread
 `THREAD.sleep(NUMBER n)` -- Sleeps for an amount of time stopping the current thread
 `THREAD.hold(FUNCTION func)` -- Holds the current thread until a condition is met
+`THREAD.getID()` -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id
 
 ST - GLOBAL namespace
 ---------------------
@@ -835,6 +837,7 @@ ST - System Threads
 -------------------
 `systemThread = multi:newSystemThread(STRING thread_name,FUNCTION spawned_function,ARGUMENTS ...)` -- Spawns a thread with a certain name.
 `systemThread:kill()` -- kills a thread; can only be called in the main thread!
+`systemThread.OnError(FUNCTION(systemthread,errMsg,errorMsgWithThreadName))`
 
 System Threads are the feature that allows a user to interact with systen threads. It differs from regular coroutine based thread in how it can interact with variables. When using system threads the GLOBAL table is the "only way"* to send data. Spawning a System thread is really simple once all the required libraries are in place. See example below:
 
