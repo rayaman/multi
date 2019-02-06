@@ -57,6 +57,7 @@ Fixed:
 - Fixed an issue where any argument greater than 256^2/65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4/4294967296 bytes. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
 - Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
 - Fixed a bug where pause and resume would duplicate objects! Not good
+- Noticed that the switching of lua states, corutine based threading, is slow when done often. Code your threads to have an idler of .5 seconds between sleep states. After doing this to a few built in threads I've seen a nice drop in performance. 68%-100% to 0%-40% when using the jobqueue. If you dont need the hold feature then use a multi object! Sleeping can be done in a multi object using timers and alarms. Though if your aim is speed timers are a bit faster than alarms, if you really want to boost speed then local clock = os.clock and use the clock function to do your timings yourself
 
 Added:
 - Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features I added couldn't become that. I actually still did my tests in the 12.2.3 branch in github.

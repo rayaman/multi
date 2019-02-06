@@ -335,7 +335,7 @@ local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
 function multi:getTasksDetails(t)
 	if t == "string" or not t then
 		str = {
-			{"Type <Identifier","Uptime","Priority","TID"}
+			{"Type <Identifier>","Uptime","Priority","TID"}
 		}
 		local count = 0
 		for i,v in pairs(self.Mainloop) do
@@ -1489,6 +1489,7 @@ multi:setDomainName("Threads")
 multi:setDomainName("Globals")
 local initT = false
 function multi:newThread(name,func)
+	if not func then return end
 	local c={}
 	c.ref={}
 	c.Name=name

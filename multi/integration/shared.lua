@@ -112,6 +112,7 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 	end
 	return c
 end
+-- NEEDS WORK
 function multi:newSystemThreadedConnection(name,protect)
 	local c={}
 	local sThread=multi.integration.THREAD
@@ -284,6 +285,7 @@ function multi:newSystemThreadedConsole(name)
 	GLOBAL[c.name]=c
 	return c
 end
+-- NEEDS WORK
 function multi:newSystemThreadedTable(name)
 	local c={}
 	c.name=name -- set the name this is important for identifying what is what
@@ -334,8 +336,9 @@ function multi:newSystemThreadedJobQueue(a,b)
 	local sThread=multi.integration.THREAD
 	local c = {}
 	c.numberofcores = 4
+	c.idle = nil
 	c.name = "SYSTEM_THREADED_JOBQUEUE_"..jobqueuecount
-	-- This is done to keep backwards compatability for older code
+	-- This is done to keep backwards compatibility for older code
 	if type(a)=="string" and not(b) then
 		c.name = a
 	elseif type(a)=="number" and not (b) then
@@ -363,6 +366,7 @@ function multi:newSystemThreadedJobQueue(a,b)
 	end
 	c.tempQueue = {}
 	function c:pushJob(name,...)
+		c.idle = os.clock()
 		if not self.isReady then
 			table.insert(c.tempQueue,{self.jobnum,name,...})
 			self.jobnum=self.jobnum+1
@@ -429,12 +433,9 @@ function multi:newSystemThreadedJobQueue(a,b)
 					end
 				end
 			end)
-			multi:newThread("Idler",function()
-				while true do
-					if os.clock()-lastjob>1 then
-						sThread.sleep(.1)
-					end
-					thread.sleep(.001)
+			multi:newLoop(function()
+				if os.clock()-lastjob>1 then
+					sThread.sleep(.1)
 				end
 			end)
 			setmetatable(_G,{
@@ -447,11 +448,12 @@ function multi:newSystemThreadedJobQueue(a,b)
 			end
 		end,c.name)
 	end
-	multi:newThread("counter",function()
+	local clock = os.clock
+	multi:newThread("JQ-"..c.name.." Manager",function()
 		print("thread started")
 		local _count = 0
 		while _count<c.numberofcores do
-			thread.skip(1)
+			thread.skip()
 			if queueCC:pop() then
 				_count = _count + 1
 			end
@@ -464,11 +466,19 @@ function multi:newSystemThreadedJobQueue(a,b)
 		c.OnReady:Fire(c)
 		local dat
 		while true do
-			thread.skip(1)
+			if not c.idle then
+				thread.sleep(.5)
+			else
+				if clock() - c.idle >= 15 then
+					c.idle = nil
+				end
+			end
 			dat = queueJD:pop()
 			if dat then
+				c.idle = clock()
 				c.OnJobCompleted:Fire(unpack(dat))
 			end
+			thread.skip()
 		end
 	end)
 	return c

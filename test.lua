@@ -10,7 +10,7 @@ function sleep(n)  -- seconds
 end
 master = multi:newMaster{
 	name = "Main", -- the name of the master
---~ 	--noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
+	noBroadCast = true, -- if using the node manager, set this to true to avoid double connections
 	managerDetails = {"192.168.1.4",12345}, -- the details to connect to the node manager (ip,port)
 }
 master.OnError(function(name,err)
@@ -28,20 +28,21 @@ end)
 master.OnNodeConnected(function(name)
 	table.insert(connlist,name)
 end)
---~ multi:newThread("TaskView",function()
---~ 	while true do
---~ 		thread.sleep(1)
---~ 		print(multi:getTasksDetails())
---~ 	end
---~ end)
-multi:newSystemThread("SystemThread",function()
-	local multi = require("multi")
-	print(THREAD.getName(),THREAD.getID())
-	THREAD.sleep(8)
-end).OnError(function(a,b,c)
-	print("ERROR:",b)
+multi.OnError(function(...)
+	print(...)
 end)
---~ print(multi:getTasksDetails())
+multi:newSystemThreadedConsole("console"):init()
+jQueue = multi:newSystemThreadedJobQueue("MainJobQueue")
+jQueue.OnReady:holdUT()
+jQueue:doToAll(function()
+	console = THREAD.waitFor("console"):init()
+end)
+jQueue:registerJob("TEST",function(a,b,c)
+	console:print(a,b,c)
+	return "This is a test"
+end)
+jQueue:pushJob("TEST",123,"Hello",false)
+--~ multi:benchMark(1,nil,"Bench:")
 multi:mainloop{
 	protect = false
 }

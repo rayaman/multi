@@ -116,7 +116,7 @@ local rand = math.random(1,10000000)
 -- Step 5 Basic Threads!
 -- local threads = {}
 local count = 0
-local started
+local started = false
 function multi:newSystemThread(name,func,...)
 	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1,10000000)
@@ -152,7 +152,8 @@ function multi:newSystemThread(name,func,...)
     return c
 end
 function multi.InitSystemThreadErrorHandler()
-	if started then return end
+	if started==true then return end
+	started = true
 	multi:newThread("ThreadErrorHandler",function()
 		local deadThreads = {}
 		local threads = multi.SystemThreads
