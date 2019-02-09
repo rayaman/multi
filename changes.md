@@ -50,7 +50,7 @@ These didn't have much use in their previous form, but with the addition of hype
 
 Fixed:
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
-- Massive object management bugs which caused performance to drop like a rock. Remember to Destroy objects when no longer using them. I should probably start working on a garbage collector for these objects!
+- Massive object management bugs which caused performance to drop like a rock.
 - Found a bug with processors not having the Destroy() function implemented properly.
 - Found an issue with the rockspec which is due to the networkManager additon. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
 - Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes futhur than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release
@@ -58,16 +58,21 @@ Fixed:
 - Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
 - Fixed a bug where pause and resume would duplicate objects! Not good
 - Noticed that the switching of lua states, corutine based threading, is slow when done often. Code your threads to have an idler of .5 seconds between sleep states. After doing this to a few built in threads I've seen a nice drop in performance. 68%-100% to 0%-40% when using the jobqueue. If you dont need the hold feature then use a multi object! Sleeping can be done in a multi object using timers and alarms. Though if your aim is speed timers are a bit faster than alarms, if you really want to boost speed then local clock = os.clock and use the clock function to do your timings yourself
+- multi:newSystemThreadedConnection(name,protect) -- I did it! It works and I believe all the gotchas are fixed as well.
+-- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
+-- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
 
 Added:
-- Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features I added couldn't become that. I actually still did my tests in the 12.2.3 branch in github.
+- Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
 - multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
 - multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
 - multi:purge() -- Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
 - multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
 - multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
 - multi:enableLoadDetection() -- Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
-- THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface
+- THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
+- multi.print(...) works like normal print, but only prints if the setting print is set to true
+- setting: `print` enables multi.print() to work
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path

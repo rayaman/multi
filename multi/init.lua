@@ -110,18 +110,6 @@ function table.merge(t1, t2)
     end
     return t1
 end
-_print=print
-function print(...)
-	if not __SUPPRESSPRINTS then
-		_print(...)
-	end
-end
-_write=io.write
-function io.write(...)
-	if not __SUPPRESSWRITES then
-		_write(...)
-	end
-end
 function multi:setThrestimed(n)
 	self.deltaTarget=n or .1
 end
@@ -251,7 +239,7 @@ function multi.executeFunction(name,...)
 	if type(_G[name])=='function' then
 		_G[name](...)
 	else
-		print('Error: Not a function')
+		multi.print('Error: Not a function')
 	end
 end
 function multi:getChildren()
@@ -283,7 +271,7 @@ function multi:benchMark(sec,p,pt)
 	local temp=self:newLoop(function(self,t)
 		if t>sec then
 			if pt then
-				print(pt.." "..c.." Steps in "..sec.." second(s)!")
+				multi.print(pt.." "..c.." Steps in "..sec.." second(s)!")
 			end
 			self.tt(sec,c)
 			self:Destroy()
@@ -458,7 +446,7 @@ function multi:connectFinal(func)
 	elseif self.Type=='step' or self.Type=='tstep' then
 		self:OnEnd(func)
 	else
-		print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
+		multi.print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
 		self:OnBreak(func)
 	end
 end
@@ -528,7 +516,7 @@ end
 -- Timer stuff done
 function multi:Pause()
 	if self.Type=='mainprocess' then
-		print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
+		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
 		local loop = self.Parent.Mainloop
@@ -795,7 +783,7 @@ function multi:newConnection(protect,func)
 					table.remove(temp,1)
 					table.insert(ret,temp)
 				else
-					print(temp[2])
+					multi.print(temp[2])
 				end
 			else
 				table.insert(ret,{self.func[i][1](...)})
@@ -1395,7 +1383,7 @@ end
 function multi:newWatcher(namespace,name)
 	local function WatcherObj(ns,n)
 		if self.Type=='queue' then
-			print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
+			multi.print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
 			self=multi
 		end
 		local c=self:newBase()
@@ -1423,7 +1411,7 @@ function multi:newWatcher(namespace,name)
 	elseif type(namespace)=='table' and (type(name)=='string' or 'number') then
 		return WatcherObj(namespace,name)
 	else
-		print('Warning, invalid arguments! Nothing returned!')
+		multi.print('Warning, invalid arguments! Nothing returned!')
 	end
 end
 -- Threading stuff
@@ -1484,6 +1472,11 @@ function thread.testFor(name,_val,sym)
 		end
 	end)
 	return thread.get(name)
+end
+function multi.print(...)
+	if multi.defaultSettings.print then
+		print(...)
+	end
 end
 multi:setDomainName("Threads")
 multi:setDomainName("Globals")
@@ -1571,7 +1564,7 @@ function multi.initThreads()
 						self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
 					end
 					if ret==true or ret==false then
-						print("Thread Ended!!!")
+						multi.print("Thread Ended!!!")
 						ret={}
 					end
 				end
@@ -2264,7 +2257,7 @@ function multi:ToString()
 	if self.Ingore then return end
 	local t=self.Type
 	local data;
-	print(t)
+	multi.print(t)
 	if t:sub(-6)=="Thread" then
 		data={
 			Type=t,
@@ -2341,7 +2334,7 @@ function multi:ToString()
 			set=self.set,
 		})
 	elseif t=="watcher" then
-		print("Currently cannot sterilize a watcher object!")
+		multi.print("Currently cannot sterilize a watcher object!")
 		-- needs testing
 		-- table.merge(data,{
 			-- ns=self.ns,

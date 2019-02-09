@@ -194,21 +194,21 @@ function multi:newNode(settings)
 	node.hasFuncs = {}
 	node.OnError = multi:newConnection()
 	node.OnError(function(node,err,master)
-		print("ERROR",err,node.name)
+		multi.print("ERROR",err,node.name)
 		local temp = bin.new()
 		temp:addBlock(#node.name,2)
 		temp:addBlock(node.name)
 		temp:addBlock(#err,2)
 		temp:addBlock(err)
 		for i,v in pairs(node.connections) do
-			print(i)
+			multi.print(i)
 			v[1]:send(v[2],char(CMD_ERROR)..temp.data,v[3])
 		end
 	end)
 	if settings.managerDetails then
 		local c = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
 		if not c then
-			print("Cannot connect to the node manager! Ensuring broadcast is enabled!") settings.noBroadCast = false
+			multi.print("Cannot connect to the node manager! Ensuring broadcast is enabled!") settings.noBroadCast = false
 		else
 			c.OnDataRecieved(function(self,data)
 				if data == "ping" then
@@ -220,7 +220,7 @@ function multi:newNode(settings)
 	end
 	if not settings.preload then
 		if node.functions:getSize()~=0 then
-			print("We have function(s) to preload!")
+			multi.print("We have function(s) to preload!")
 			local len = node.functions:getBlock("n",1)
 			local name,func
 			while len do
@@ -270,14 +270,14 @@ function multi:newNode(settings)
 			node.queue:push(resolveData(dat))
 		elseif cmd == CMD_REG then
 			if not settings.allowRemoteRegistering then
-				print(ip..": has attempted to register a function when it is currently not allowed!")
+				multi.print(ip..": has attempted to register a function when it is currently not allowed!")
 				return
 			end
 			local temp = bin.new(dat)
 			local len = temp:getBlock("n",1)
 			local name = temp:getBlock("s",len)
 			if node.hasFuncs[name] then
-				print("Function already preloaded onto the node!")
+				multi.print("Function already preloaded onto the node!")
 				return
 			end
 			len = temp:getBlock("n",2)
@@ -304,13 +304,13 @@ function multi:newNode(settings)
 				node.OnError:Fire(node,err,server)
 			end
 		elseif cmd == CMD_INITNODE then
-			print("Connected with another node!")
+			multi.print("Connected with another node!")
 			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
 			end)-- set this up
 		elseif cmd == CMD_INITMASTER then
-			print("Connected to the master!",dat)
+			multi.print("Connected to the master!",dat)
 			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
@@ -357,7 +357,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	if settings.managerDetails then
 		local client = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
 		if not client then
-			print("Warning: Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
+			multi.print("Warning: Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
 		else
 			client.OnDataRecieved(function(client,data)
 				local cmd = data:sub(1,1)
@@ -550,7 +550,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	return master
 end
 -- The init function that gets returned
-print("Integrated Network Parallelism")
+multi.print("Integrated Network Parallelism")
 return {init = function()
 	return GLOBAL
 end}

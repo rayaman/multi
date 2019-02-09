@@ -113,88 +113,88 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 	return c
 end
 -- NEEDS WORK
-function multi:newSystemThreadedConnection(name,protect)
-	local c={}
-	local sThread=multi.integration.THREAD
-	local GLOBAL=multi.integration.GLOBAL
-	c.name = name or error("You must supply a name for this object!")
-	c.protect = protect or false
-	c.count = 0
-	multi:newSystemThreadedQueue(name.."THREADED_CALLFIRE"):init()
-	local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
-	local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
-	function c:init()
-		_G.__Needs_Multi = true
-		local multi = require("multi")
-		if multi:getPlatform()=="love2d" then
-			GLOBAL=_G.GLOBAL
-			sThread=_G.sThread
-		end
-		local conns = 0
-		local qF = sThread.waitFor(self.name.."THREADED_CALLFIRE"):init()
-		local qSM = sThread.waitFor(self.name.."THREADED_CALLSYNCM"):init()
-		local qS = sThread.waitFor(self.name.."THREADED_CALLSYNC"):init()
-		qSM:push("OK")
-		local conn = {}
-		conn.obj = multi:newConnection(self.protect)
-		setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
-		function conn:connect(func)
-			return self.obj(func)
-		end
-		function conn:holdUT(n)
-			self.obj:holdUT(n)
-		end
-		function conn:Remove()
-			self.obj:Remove()
-		end
-		function conn:Fire(...)
-			local args = {multi.randomString(8),...}
-			for i = 1, conns do
-				qF:push(args)
-			end
-		end
-		local lastID = ""
-		local lastCount = 0
-		multi:newThread("syncer",function()
-			while true do
-				thread.skip(1)
-				local fire = qF:peek()
-				local count = qS:peek()
-				if fire and fire[1]~=lastID then
-					lastID = fire[1]
-					qF:pop()
-					table.remove(fire,1)
-					conn.obj:Fire(unpack(fire))
-				end
-				if count and count[1]~=lastCount then
-					conns = count[2]
-					lastCount = count[1]
-					qs:pop()
-				end
-			end
-		end)
-		return conn
-	end
-	multi:newThread("connSync",function()
-		while true do
-			thread.skip(1)
-			local syncIN = qsm:pop()
-			if syncIN then
-				if syncIN=="OK" then
-					c.count = c.count + 1
-				else
-					c.count = c.count - 1
-				end
-				local rand = math.random(1,1000000)
-				for i = 1, c.count do
-					qs:push({rand,c.count})
-				end
-			end
-		end
-	end)
-	GLOBAL[name]=c
-	return c
-end
+-- function multi:newSystemThreadedConnection(name,protect)
+	-- local c={}
+	-- local sThread=multi.integration.THREAD
+	-- local GLOBAL=multi.integration.GLOBAL
+	-- c.name = name or error("You must supply a name for this object!")
+	-- c.protect = protect or false
+	-- c.count = 0
+	-- multi:newSystemThreadedQueue(name.."THREADED_CALLFIRE"):init()
+	-- local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
+	-- local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
+	-- function c:init()
+		-- _G.__Needs_Multi = true
+		-- local multi = require("multi")
+		-- if multi:getPlatform()=="love2d" then
+			-- GLOBAL=_G.GLOBAL
+			-- sThread=_G.sThread
+		-- end
+		-- local conns = 0
+		-- local qF = sThread.waitFor(self.name.."THREADED_CALLFIRE"):init()
+		-- local qSM = sThread.waitFor(self.name.."THREADED_CALLSYNCM"):init()
+		-- local qS = sThread.waitFor(self.name.."THREADED_CALLSYNC"):init()
+		-- qSM:push("OK")
+		-- local conn = {}
+		-- conn.obj = multi:newConnection(self.protect)
+		-- setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
+		-- function conn:connect(func)
+			-- return self.obj(func)
+		-- end
+		-- function conn:holdUT(n)
+			-- self.obj:holdUT(n)
+		-- end
+		-- function conn:Remove()
+			-- self.obj:Remove()
+		-- end
+		-- function conn:Fire(...)
+			-- local args = {multi.randomString(8),...}
+			-- for i = 1, conns do
+				-- qF:push(args)
+			-- end
+		-- end
+		-- local lastID = ""
+		-- local lastCount = 0
+		-- multi:newThread("syncer",function()
+			-- while true do
+				-- thread.skip(1)
+				-- local fire = qF:peek()
+				-- local count = qS:peek()
+				-- if fire and fire[1]~=lastID then
+					-- lastID = fire[1]
+					-- qF:pop()
+					-- table.remove(fire,1)
+					-- conn.obj:Fire(unpack(fire))
+				-- end
+				-- if count and count[1]~=lastCount then
+					-- conns = count[2]
+					-- lastCount = count[1]
+					-- qs:pop()
+				-- end
+			-- end
+		-- end)
+		-- return conn
+	-- end
+	-- multi:newThread("connSync",function()
+		-- while true do
+			-- thread.skip(1)
+			-- local syncIN = qsm:pop()
+			-- if syncIN then
+				-- if syncIN=="OK" then
+					-- c.count = c.count + 1
+				-- else
+					-- c.count = c.count - 1
+				-- end
+				-- local rand = math.random(1,1000000)
+				-- for i = 1, c.count do
+					-- qs:push({rand,c.count})
+				-- end
+			-- end
+		-- end
+	-- end)
+	-- GLOBAL[name]=c
+	-- return c
+-- end
 function multi:SystemThreadedBenchmark(n)
 	n=n or 1
 	local cores=multi.integration.THREAD.getCores()
@@ -265,7 +265,7 @@ function multi:newSystemThreadedConsole(name)
 							print(unpack(data))
 						end
 					end
-				end)
+				end):setName("ST.consoleSyncer")
 			end
 		else
 			cc.stream = sThread.waitFor("__SYSTEM_CONSOLE__"):init()
@@ -330,6 +330,7 @@ function multi:newSystemThreadedTable(name)
 	return c
 end
 local jobqueuecount = 0
+local jqueues = {}
 function multi:newSystemThreadedJobQueue(a,b)
 	jobqueuecount=jobqueuecount+1
 	local GLOBAL=multi.integration.GLOBAL
@@ -350,6 +351,10 @@ function multi:newSystemThreadedJobQueue(a,b)
 		c.name = b
 		c.numberofcores = a
 	end
+	if jqueues[c.name] then
+		error("A job queue by the name: "..c.name.." already exists!")
+	end
+	jqueues[c.name] = true
 	c.isReady = false
 	c.jobnum=1
 	c.OnJobCompleted = multi:newConnection()
@@ -378,8 +383,9 @@ function multi:newSystemThreadedJobQueue(a,b)
 		end
 	end
 	function c:doToAll(func)
+		local r = multi.randomString(12)
 		for i = 1, self.numberofcores do
-			queueDA:push{multi.randomString(12),func}
+			queueDA:push{r,func}
 		end
 	end
 	for i=1,c.numberofcores do
@@ -450,7 +456,6 @@ function multi:newSystemThreadedJobQueue(a,b)
 	end
 	local clock = os.clock
 	multi:newThread("JQ-"..c.name.." Manager",function()
-		print("thread started")
 		local _count = 0
 		while _count<c.numberofcores do
 			thread.skip()
@@ -472,13 +477,13 @@ function multi:newSystemThreadedJobQueue(a,b)
 				if clock() - c.idle >= 15 then
 					c.idle = nil
 				end
+				thread.skip()
 			end
 			dat = queueJD:pop()
 			if dat then
 				c.idle = clock()
 				c.OnJobCompleted:Fire(unpack(dat))
 			end
-			thread.skip()
 		end
 	end)
 	return c

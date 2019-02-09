@@ -316,7 +316,7 @@ function multi:newSystemThread(name,func,...) -- the main method
 end
 function love.threaderror( thread, errorstr )
 	multi.OnError:Fire(thread,errorstr)
-	print("Error in systemThread: "..tostring(thread)..": "..errorstr)
+	multi.print("Error in systemThread: "..tostring(thread)..": "..errorstr)
 end
 local THREAD={}
 function THREAD.set(name,val)
@@ -374,7 +374,7 @@ updater:OnUpdate(function(self)
 	end
 end)
 require("multi.integration.shared")
-print("Integrated Love2d!")
+multi.print("Integrated Love2d!")
 return {
 	init=function(t)
 		if t then
