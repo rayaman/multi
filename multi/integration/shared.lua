@@ -112,89 +112,138 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 	end
 	return c
 end
--- NEEDS WORK
--- function multi:newSystemThreadedConnection(name,protect)
-	-- local c={}
-	-- local sThread=multi.integration.THREAD
-	-- local GLOBAL=multi.integration.GLOBAL
-	-- c.name = name or error("You must supply a name for this object!")
-	-- c.protect = protect or false
-	-- c.count = 0
-	-- multi:newSystemThreadedQueue(name.."THREADED_CALLFIRE"):init()
-	-- local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
-	-- local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
-	-- function c:init()
-		-- _G.__Needs_Multi = true
-		-- local multi = require("multi")
-		-- if multi:getPlatform()=="love2d" then
-			-- GLOBAL=_G.GLOBAL
-			-- sThread=_G.sThread
-		-- end
-		-- local conns = 0
-		-- local qF = sThread.waitFor(self.name.."THREADED_CALLFIRE"):init()
-		-- local qSM = sThread.waitFor(self.name.."THREADED_CALLSYNCM"):init()
-		-- local qS = sThread.waitFor(self.name.."THREADED_CALLSYNC"):init()
-		-- qSM:push("OK")
-		-- local conn = {}
-		-- conn.obj = multi:newConnection(self.protect)
-		-- setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
-		-- function conn:connect(func)
-			-- return self.obj(func)
-		-- end
-		-- function conn:holdUT(n)
-			-- self.obj:holdUT(n)
-		-- end
-		-- function conn:Remove()
-			-- self.obj:Remove()
-		-- end
-		-- function conn:Fire(...)
-			-- local args = {multi.randomString(8),...}
-			-- for i = 1, conns do
-				-- qF:push(args)
-			-- end
-		-- end
-		-- local lastID = ""
-		-- local lastCount = 0
-		-- multi:newThread("syncer",function()
-			-- while true do
-				-- thread.skip(1)
-				-- local fire = qF:peek()
-				-- local count = qS:peek()
-				-- if fire and fire[1]~=lastID then
-					-- lastID = fire[1]
-					-- qF:pop()
-					-- table.remove(fire,1)
-					-- conn.obj:Fire(unpack(fire))
-				-- end
-				-- if count and count[1]~=lastCount then
-					-- conns = count[2]
-					-- lastCount = count[1]
-					-- qs:pop()
-				-- end
-			-- end
-		-- end)
-		-- return conn
-	-- end
-	-- multi:newThread("connSync",function()
-		-- while true do
-			-- thread.skip(1)
-			-- local syncIN = qsm:pop()
-			-- if syncIN then
-				-- if syncIN=="OK" then
-					-- c.count = c.count + 1
-				-- else
-					-- c.count = c.count - 1
-				-- end
-				-- local rand = math.random(1,1000000)
-				-- for i = 1, c.count do
-					-- qs:push({rand,c.count})
-				-- end
-			-- end
-		-- end
-	-- end)
-	-- GLOBAL[name]=c
-	-- return c
--- end
+
+function multi:newSystemThreadedConnection(name,protect)
+	local c={}
+	c.name = name or error("You must provide a name for the connection object!")
+	c.protect = protect or false
+	c.idle = nil
+	local sThread=multi.integration.THREAD
+	local GLOBAL=multi.integration.GLOBAL
+	local connSync = multi:newSystemThreadedQueue(c.name.."_CONN_SYNC")
+	local connFire = multi:newSystemThreadedQueue(c.name.."_CONN_FIRE")
+	function c:init()
+		local multi = require("multi")
+		if love then -- lets make sure we don't reference up-values if using love2d
+			GLOBAL=_G.GLOBAL
+			sThread=_G.sThread
+		end
+		local conn = {}
+		conn.obj = multi:newConnection()
+		setmetatable(conn,{
+			__call=function(self,...)
+				return self:connect(...)
+			end
+		})
+		local ID = sThread.getID()
+		local sync = sThread.waitFor(self.name.."_CONN_SYNC"):init()
+		local fire = sThread.waitFor(self.name.."_CONN_FIRE"):init()
+		local connections = {}
+		if not multi.isMainThread then
+			connections = {0}
+		end
+		sync:push{"INIT",ID} -- Register this as an active connection!
+		function conn:connect(func)
+			return self.obj(func)
+		end
+		function conn:holdUT(n)
+			self.obj:holdUT(n)
+		end
+		function conn:Remove()
+			self.obj:Remove()
+		end
+		function conn:Fire(...)
+			for i = 1,#connections do
+				fire:push{connections[i],ID,{...}}
+			end
+		end
+		function conn:FireTo(to,...)
+			local good = false
+			for i = 1,#connections do
+				if connections[i]==to then
+					good = true
+					break
+				end
+			end
+			if not good then return multi.print("NonExisting Connection!") end
+			fire:push{to,ID,{...}}
+		end
+		-- FIRE {TO,FROM,{ARGS}}
+		local data
+		local clock = os.clock
+		conn.OnConnectionAdded = multi:newConnection()
+		multi:newLoop(function()
+			data = fire:peek()
+			if type(data)=="table" and data[1]==ID then
+				if data[2]==ID and conn.IgnoreSelf then
+					fire:pop()
+					return
+				end
+				fire:pop()
+				conn.obj:Fire(unpack(data[3]))
+			end
+			data = sync:peek()
+			if data~=nil and data[1]=="SYNCA" and data[2]==ID then
+				sync:pop()
+				multi.nextStep(function()
+					conn.OnConnectionAdded:Fire(data[3])
+				end)
+				table.insert(connections,data[3])
+			end
+			if type(data)=="table" and data[1]=="SYNCR" and data[2]==ID then
+				sync:pop()
+				for i=1,#connections do
+					if connections[i] == data[3] then
+						table.remove(connections,i)
+					end
+				end
+			end
+		end):setName("STConn.syncer")
+		return conn
+	end
+	local cleanUp = {}
+	multi.OnSystemThreadDied(function(ThreadID)
+		for i=1,#syncs do
+			connSync:push{"SYNCR",syncs[i],ThreadID}
+		end
+		cleanUp[ThreadID] = true
+	end)
+	multi:newThread(c.name.." Connection-Handler",function()
+		local data
+		local clock = os.clock
+		local syncs = {}
+		while true do
+			if not c.idle then
+				thread.sleep(.5)
+			else
+				if clock() - c.idle >= 15 then
+					c.idle = nil
+				end
+				thread.skip()
+			end
+			data = connSync:peek()
+			if data~= nil and data[1]=="INIT" then
+				connSync:pop()
+				c.idle = clock()
+				table.insert(syncs,data[2])
+				for i=1,#syncs do
+					connSync:push{"SYNCA",syncs[i],data[2]}
+				end
+			end
+			data = connFire:peek()
+			if data~=nil and cleanUp[data[1]] then
+				local meh = data[1]
+				connFire:pop() -- lets remove dead thread stuff
+				multi:newAlarm(15):OnRing(function(a)
+					cleanUp[meh] = nil
+				end)
+			end
+		end
+	end)
+	GLOBAL[c.name]=c
+	return c
+end
+
 function multi:SystemThreadedBenchmark(n)
 	n=n or 1
 	local cores=multi.integration.THREAD.getCores()

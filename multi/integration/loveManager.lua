@@ -168,6 +168,9 @@ end
 function sThread.getName()
 	return __THREADNAME__
 end
+function sThread.getID()
+	return THREAD_ID
+end
 function sThread.kill()
 	error("Thread was killed!")
 end
@@ -196,6 +199,7 @@ func=loadDump([=[INSERT_USER_CODE]=])(unpack(tab))
 multi:mainloop()
 ]]
 GLOBAL={} -- Allow main thread to interact with these objects as well
+_G.THREAD_ID = 0
 __proxy__={}
 setmetatable(GLOBAL,{
 	__index=function(t,k)
@@ -215,6 +219,7 @@ setmetatable(GLOBAL,{
 THREAD={} -- Allow main thread to interact with these objects as well
 multi.integration.love2d.mainChannel=love.thread.getChannel("__MainChan__")
 isMainThread=true
+multi.SystemThreads = {}
 function THREAD.getName()
 	return __THREADNAME__
 end
@@ -299,16 +304,19 @@ local function randomString(n)
 	end
 	return str
 end
-local count = 0
+local count = 1
+local livingThreads = {}
 function multi:newSystemThread(name,func,...) -- the main method
+	multi.InitSystemThreadErrorHandler()
     local c={}
     c.name=name
 	c.Name = name
 	c.ID=c.name.."<ID|"..randomString(8)..">"
 	c.Id=count
 	count = count + 1
+	livingThreads[count] = {true,name}
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
-	c.thread:start(c.ID,c.name,,...)
+	c.thread:start(c.ID,c.name,THREAD_ID,...)
 	function c:kill()
 		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
 	end
@@ -341,8 +349,7 @@ end
 __channels__={}
 multi.integration.GLOBAL=GLOBAL
 multi.integration.THREAD=THREAD
-updater=multi:newUpdater()
-updater:OnUpdate(function(self)
+updater=multi:newLoop(function(self)
 	local data=multi.integration.love2d.mainChannel:pop()
 	while data do
 		if type(data)=="string" then
@@ -373,6 +380,35 @@ updater:OnUpdate(function(self)
 		data=multi.integration.love2d.mainChannel:pop()
 	end
 end)
+multi.OnSystemThreadDied = multi:newConnection()
+local started = false
+function multi.InitSystemThreadErrorHandler()
+	if started==true then return end
+	started = true
+	multi:newThread("ThreadErrorHandler",function()
+		local threads = multi.SystemThreads
+		while true do
+			thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough. 
+			for i=#threads,1,-1 do
+				local v,err,t=threads[i].thread:join(.001)
+				if err then
+					if err:find("Thread was killed!") then
+						livingThreads[threads[i].Id] = {false,threads[i].Name}
+						multi.OnSystemThreadDied:Fire(threads[i].Id)
+						GLOBAL["__THREADS__"]=livingThreads
+						table.remove(threads,i)
+					else
+						threads[i].OnError:Fire(threads[i],err,"Error in systemThread: '"..threads[i].name.."' <"..err..">")
+						livingThreads[threads[i].Id] = {false,threads[i].Name}
+						multi.OnSystemThreadDied:Fire(threads[i].Id)
+						GLOBAL["__THREADS__"]=livingThreads
+						table.remove(threads,i)
+					end
+				end
+			end
+		end
+	end)
+end
 require("multi.integration.shared")
 multi.print("Integrated Love2d!")
 return {

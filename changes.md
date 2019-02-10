@@ -73,6 +73,9 @@ Added:
 - THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
 - multi.print(...) works like normal print, but only prints if the setting print is set to true
 - setting: `print` enables multi.print() to work
+- STC: IgnoreSelf defaults to false, if true a Fire command will not be sent to the self
+- STC: OnConnectionAdded(function(connID)) -- Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are genereated for you.
+- STC: FireTo(id,...) -- Described above.
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
