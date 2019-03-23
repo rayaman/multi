@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -24,17 +24,17 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "12.2.2"
-multi._VERSION = "12.2.2"
+multi.Version = "13.0.0"
+multi._VERSION = "13.0.0"
 multi.stage = "stable"
 multi.__index = multi
+multi.Name = "multi.root"
 multi.Mainloop = {}
 multi.Garbage = {}
 multi.ender = {}
 multi.Children = {}
 multi.Active = true
 multi.fps = 60
-multi.Id = -1
 multi.Type = "mainprocess"
 multi.Rest = 0
 multi._type = type
@@ -61,11 +61,20 @@ multi.Priority_Normal = 64
 multi.Priority_Below_Normal = 256
 multi.Priority_Low = 1024
 multi.Priority_Idle = 4096
+multi.PriorityResolve = {
+	[1]="Core",
+	[4]="High",
+	[16]="Above Normal",
+	[64]="Normal",
+	[256]="Below Normal",
+	[1024]="Low",
+	[4096]="Idle",
+}
 multi.PStep = 1
 multi.PList = {multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
 --^^^^
 multi.PriorityTick=1 -- Between 1, 2 and 4
-multi.Priority=multi.Priority_Core
+multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
 function multi.queuefinal(self)
@@ -101,25 +110,65 @@ function table.merge(t1, t2)
     end
     return t1
 end
-_print=print
-function print(...)
-	if not __SUPPRESSPRINTS then
-		_print(...)
-	end
-end
-_write=io.write
-function io.write(...)
-	if not __SUPPRESSWRITES then
-		_write(...)
-	end
-end
 function multi:setThrestimed(n)
 	self.deltaTarget=n or .1
 end
+function multi:enableLoadDetection()
+	if multi.maxSpd then return end
+	-- here we are going to run a quick benchMark solo
+	local temp = multi:newProcessor()
+	temp:Start()
+	local t = os.clock()
+	local stop = false
+	temp:benchMark(.01):OnBench(function(time,steps)
+		stop = steps
+	end)
+	while not stop do
+		temp:uManager()
+	end
+	temp:Destroy()
+	multi.maxSpd = stop
+end
+local MaxLoad = nil
+function multi:setLoad(n)
+	MaxLoad = n
+end
+local busy = false
+local lastVal = 0
+local bb = 0
 function multi:getLoad()
-	if multi.load_updater:isPaused() then multi.load_updater:Resume() return 0 end
-	local val = math.abs(self.dStepA-self.dStepB)/multi.deltaTarget*100
-	if val > 100 then return 100 else return val end
+	if not multi.maxSpd then multi:enableLoadDetection() end
+	if busy then return lastVal end
+	local val = nil
+	if thread.isThread() then
+		local bench
+		multi:benchMark(.01):OnBench(function(time,steps)
+			bench = steps
+			bb = steps
+		end)
+		thread.hold(function()
+			return bench
+		end)
+		bench = bench^1.5
+		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
+	else
+		busy = true
+		local bench
+		multi:benchMark(.01):OnBench(function(time,steps)
+			bench = steps
+			bb = steps
+		end)
+		while not bench do 
+			multi:uManager()
+		end
+		bench = bench^1.5
+		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
+		busy = false
+	end
+	if val<0 then val = 0 end
+	if val > 100 then val = 100 end
+	lastVal = val
+	return val,bb*100
 end
 function multi:setDomainName(name)
 	self[name]={}
@@ -151,6 +200,13 @@ function multi:setPriority(s)
 		end
 		self.solid = true
 	end
+	if not self.PrioritySet then
+		self.defPriority = self.Priority
+		self.PrioritySet = true
+	end
+end
+function multi:ResetPriority()
+	self.Priority = self.defPriority
 end
 -- System
 function os.getOS()
@@ -184,21 +240,6 @@ multi.GetParentProcess=multi.getParentProcess
 function multi.Stop()
 	mainloopActive=false
 end
-function multi:condition(cond)
-	if not self.CD then
-		self:Pause()
-		self.held=true
-		self.CD=cond.condition
-	elseif not(cond.condition()) then
-		self.held=false
-		self:Resume()
-		self.CD=nil
-		return false
-	end
-	self.Parent:Do_Order()
-	return true
-end
-multi.Condition=multi.condition
 function multi:isHeld()
 	return self.held
 end
@@ -208,7 +249,7 @@ function multi.executeFunction(name,...)
 	if type(_G[name])=='function' then
 		_G[name](...)
 	else
-		print('Error: Not a function')
+		multi.print('Error: Not a function')
 	end
 end
 function multi:getChildren()
@@ -240,7 +281,7 @@ function multi:benchMark(sec,p,pt)
 	local temp=self:newLoop(function(self,t)
 		if t>sec then
 			if pt then
-				print(pt.." "..c.." Steps in "..sec.." second(s)!")
+				multi.print(pt.." "..c.." Steps in "..sec.." second(s)!")
 			end
 			self.tt(sec,c)
 			self:Destroy()
@@ -254,6 +295,103 @@ function multi:benchMark(sec,p,pt)
 	end
 	self.tt=function() end
 	return temp
+end
+function multi.Round(num, numDecimalPlaces)
+  local mult = 10^(numDecimalPlaces or 0)
+  return math.floor(num * mult + 0.5) / mult
+end
+function multi.AlignTable(tab)
+	local longest = {}
+	local columns = #tab[1]
+	local rows = #tab
+	for i=1, columns do
+		longest[i] = -math.huge
+	end
+	for i = 1,rows do
+		for j = 1,columns do
+			tab[i][j] = tostring(tab[i][j])
+			if #tab[i][j]>longest[j] then
+				longest[j] = #tab[i][j]
+			end
+		end
+	end
+	for i = 1,rows do
+		for j = 1,columns do
+			if tab[i][j]~=nil and #tab[i][j]<longest[j] then
+				tab[i][j]=tab[i][j]..string.rep(" ",longest[j]-#tab[i][j])
+			end
+		end
+	end
+	local str = {}
+	for i = 1,rows do
+		str[#str+1] = table.concat(tab[i]," ")
+	end
+	return table.concat(str,"\n")
+end
+local priorityTable = {[0]="Round-Robin",[1]="Just-Right",[2]="Top-heavy",[3]="Timed-Based-Balancer"}
+local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
+function multi:getTasksDetails(t)
+	if t == "string" or not t then
+		str = {
+			{"Type <Identifier>","Uptime","Priority","TID"}
+		}
+		local count = 0
+		for i,v in pairs(self.Mainloop) do
+			local name = v.Name or ""
+			if name~="" then
+				name = " <"..name..">"
+			end
+			count = count + 1
+			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],i})
+		end
+		if count == 0 then
+			table.insert(str,{"Currently no processes running!","","",""})
+		end
+		local s = multi.AlignTable(str)
+		dat = ""
+		dat2 = ""
+		if multi.SystemThreads then
+			for i = 1,#multi.SystemThreads do
+				dat2 = dat2.."<SystemThread: "..multi.SystemThreads[i].Name.." | "..os.clock()-multi.SystemThreads[i].creationTime..">\n"
+			end
+		end
+		local load,steps = multi:getLoad()
+		if multi.scheduler then
+			for i=1,#multi.scheduler.Threads do
+				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
+			end
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat..dat2
+		else
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s..dat2
+		end
+	elseif t == "t" or t == "table" then
+		local load,steps = multi:getLoad()
+		str = {
+			ProcessName = (self.Name or "Unnamed"),
+			ThreadCount = #multi.scheduler.Threads,
+			MemoryUsage = math.ceil(collectgarbage("count")).." KB",
+			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
+			SystemLoad = multi.Round(load,2),
+			CyclesPerSecondPerTask = steps,
+		}
+		str.threads = {}
+		str.systemthreads = {}
+		for i,v in pairs(self.Mainloop) do
+			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
+		end
+		for i=1,#multi.scheduler.Threads do
+			str.threads[multi.scheduler.Threads[i].Name]={Uptime = os.clock()-multi.scheduler.Threads[i].creationTime}
+		end
+		if multi.canSystemThread then
+			for i=1,#multi.SystemThreads do
+				str.systemthreads[multi.SystemThreads[i].Name]={Uptime = os.clock()-multi.SystemThreads[i].creationTime}
+			end
+		end
+		return str
+	end
+end
+function multi:endTask(TID)
+	self.Mainloop[TID]:Destroy()
 end
 function multi.startFPSMonitior()
 	if not multi.runFPS then
@@ -277,10 +415,11 @@ function multi.timer(func,...)
 	return t,unpack(args)
 end
 function multi:IsAnActor()
-	return ({watcher=true,tstep=true,step=true,updater=true,loop=true,alarm=true,event=true})[self.Type]
+	return self.Act~=nil
 end
 function multi:OnMainConnect(func)
 	table.insert(self.func,func)
+	return self
 end
 function multi:reallocate(o,n)
 	n=n or #o.Mainloop+1
@@ -301,11 +440,14 @@ function multi:getJobs()
 	return #self.Jobs
 end
 function multi:removeJob(name)
+	local count = 0
 	for i=#self.Jobs,1,-1 do
 		if self.Jobs[i][2]==name then
 			table.remove(self.Jobs,i)
+			count = count + 1
 		end
 	end
+	return count
 end
 function multi:FreeMainEvent()
 	self.func={}
@@ -318,7 +460,7 @@ function multi:connectFinal(func)
 	elseif self.Type=='step' or self.Type=='tstep' then
 		self:OnEnd(func)
 	else
-		print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(function) to trigger it's final event!")
+		multi.print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
 		self:OnBreak(func)
 	end
 end
@@ -366,7 +508,7 @@ function multi:SetTime(n)
 			self:Destroy()
 		end
 	end
-	return c
+	return self
 end
 multi.ResetTime=multi.SetTime
 function multi:ResolveTimer(...)
@@ -388,11 +530,15 @@ end
 -- Timer stuff done
 function multi:Pause()
 	if self.Type=='mainprocess' then
-		print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
+		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
-		if self.Parent.Mainloop[self.Id]~=nil then
-			table.remove(self.Parent.Mainloop,self.Id)
+		local loop = self.Parent.Mainloop
+		for i=1,#loop do
+			if loop[i] == self then
+				table.remove(loop,i)
+				break
+			end
 		end
 	end
 	return self
@@ -405,9 +551,8 @@ function multi:Resume()
 			c[i]:Resume()
 		end
 	else
-		if self:isPaused() then
+		if self.Active==false then
 			table.insert(self.Parent.Mainloop,self)
-			self.Id=#self.Parent.Mainloop
 			self.Active=true
 		end
 	end
@@ -441,8 +586,13 @@ function multi:isDone()
 end
 multi.IsDone=multi.isDone
 function multi:create(ref)
-	multi.OnObjectCreated:Fire(ref)
+	multi.OnObjectCreated:Fire(ref,self)
 end
+function multi:setName(name)
+	self.Name = name
+	return self
+end
+multi.SetName = multi.setName
 --Constructors [CORE]
 function multi:newBase(ins)
 	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
@@ -458,10 +608,10 @@ function multi:newBase(ins)
 	c.funcTMR={}
 	c.ender={}
 	c.important={}
-	c.Id=0
 	c.Act=function() end
 	c.Parent=self
 	c.held=false
+	c.creationTime = os.clock()
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -469,7 +619,7 @@ function multi:newBase(ins)
 	end
 	return c
 end
-function multi:newProcess(file)
+function multi:newProcessor(file)
 	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
 	local c = {}
 	setmetatable(c, self)
@@ -480,27 +630,31 @@ function multi:newProcess(file)
 	c.Mainloop={}
 	c.Garbage={}
 	c.Children={}
-	c.Active=true
-	c.Id=-1
+	c.Active=false
 	c.Rest=0
 	c.Jobs={}
 	c.queue={}
 	c.jobUS=2
-	c.l=self:newLoop(function(self,dt) c:uManager() end)
-	c.l:Pause()
+	c.l=self:newLoop(function(self,dt) 
+		if self.link.Active then
+			c:uManager()
+		end
+	end)
+	c.l.link = c
+	c.l.Type = "processor"
 	function c:getController()
 		return c.l
 	end
 	function c:Start()
-		if self.l then
-			self.l:Resume()
-		end
+		self.Active = true
 		return self
 	end
 	function c:Resume()
-		if self.l then
-			self.l:Resume()
-		end
+		self.Active = false
+		return self
+	end
+	function c:setName(name)
+		c.l.Name = name
 		return self
 	end
 	function c:Pause()
@@ -510,14 +664,31 @@ function multi:newProcess(file)
 		return self
 	end
 	function c:Remove()
-		self:Destroy()
-		self.l:Destroy()
-		return self
+		if self.Type == "process" then
+			self:__Destroy()
+			self.l:Destroy()
+		else
+			self:__Destroy()
+		end
+	end
+	function c:Destroy()
+		if self == c then
+			self.l:Destroy()
+		else
+			for i = #c.Mainloop,1,-1 do
+				if c.Mainloop[i] == self then
+					table.remove(c.Mainloop,i)
+					break
+				end
+			end
+		end
 	end
 	if file then
 		self.Cself=c
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
+	-- c.__Destroy = self.Destroy
+	-- c.Destroy = c.Remove
 	self:create(c)
 --~ 	c:IngoreObject()
 	return c
@@ -561,10 +732,22 @@ function multi:newTimer()
 	self:create(c)
 	return c
 end
-function multi:newConnection(protect)
+function multi:newConnector()
+	local c = {Type = "connector"}
+	return c
+end
+function multi:newConnection(protect,func)
 	local c={}
+	c.callback = func
 	c.Parent=self
-	setmetatable(c,{__call=function(self,...) return self:connect(...) end})
+	setmetatable(c,{__call=function(self,...)
+		local t = ...
+		if type(t)=="table" and t.Type ~= nil then
+			return self:Fire(args,select(2,...))
+		else
+			return self:connect(...)
+		end
+	end})
 	c.Type='connector'
 	c.func={}
 	c.ID=0
@@ -599,7 +782,7 @@ function multi:newConnection(protect)
 	function c:getConnection(name,ingore)
 		if ingore then
 			return self.connections[name] or {
-				Fire=function() end -- if the connection doesn't exist lets call all of them or silently ignore
+				Fire=function() return end -- if the connection doesn't exist lets call all of them or silently ignore
 			}
 		else
 			return self.connections[name] or self
@@ -614,7 +797,7 @@ function multi:newConnection(protect)
 					table.remove(temp,1)
 					table.insert(ret,temp)
 				else
-					print(temp[2])
+					multi.print(temp[2])
 				end
 			else
 				table.insert(ret,{self.func[i][1](...)})
@@ -671,6 +854,9 @@ function multi:newConnection(protect)
 		if name then
 			self.connections[name]=temp
 		end
+		if self.callback then
+			self.callback(temp)
+		end
 		return temp
 	end
 	c.Connect=c.connect
@@ -696,7 +882,6 @@ function multi:newJob(func,name)
 	end
 	c.Active=true
 	c.func={}
-	c.Id=0
 	c.Parent=self
 	c.Type='job'
 	c.trigfunc=func or function() end
@@ -705,7 +890,7 @@ function multi:newJob(func,name)
 	end
 	table.insert(self.Jobs,{c,name})
 	if self.JobRunner==nil then
-		self.JobRunner=self:newAlarm(self.jobUS)
+		self.JobRunner=self:newAlarm(self.jobUS):setName("multi.jobHandler")
 		self.JobRunner:OnRing(function(self)
 			if #self.Parent.Jobs>0 then
 				if self.Parent.Jobs[1] then
@@ -722,37 +907,891 @@ function multi.nextStep(func)
 	if not next then
 		next = {func}
 	else
-		next[#self.next+1] = func
+		next[#next+1] = func
 	end
 end
-function multi:newRange()
-	local selflink=self
-	local temp={
-		getN = function(self) selflink:Do_Order() self.n=self.n+self.c if self.n>self.b then self.Link.held=false self.Link:Resume() return nil end return self.n end,
-	}
-	setmetatable(temp,{
-		__call=function(self,a,b,c)
-			self.c=c or 1
-			self.n=a-self.c
-			self.a=a
-			self.b=b
-			self.Link=selflink--.Parent.Mainloop[selflink.CID] or
-			self.Link:Pause()
-			self.Link.held=true
-			return function() return self:getN() end
+multi.OnPreLoad=multi:newConnection()
+--Core Actors
+function multi:newCustomObject(objRef,isActor)
+	local c={}
+	if isActor then
+		c=self:newBase()
+		if type(objRef)=='table' then
+			table.merge(c,objRef)
 		end
-	})
-	self:create(temp)
-	return temp
-end
-multi.NewRange=multi.newRange
-function multi:newCondition(func)
-	local c={['condition']=func,Type="condition"}
+		if not c.Act then
+			function c:Act()
+				-- Empty function
+			end
+		end
+	else
+		c=objRef or {}
+	end
+	if not c.Type then
+		c.Type='coustomObject'
+	end
 	self:create(c)
 	return c
 end
-multi.OnPreLoad=multi:newConnection()
-multi.NewCondition=multi.newCondition
+function multi:newEvent(task)
+	local c=self:newBase()
+	c.Type='event'
+	c.Task=task or function() end
+	function c:Act()
+		local t = {self.Task(self)}
+		if t[1] then
+			self:Pause()
+			self.returns = t
+			for _E=1,#self.func do
+				self.func[_E](self)
+			end
+		end
+	end
+	function c:SetTask(func)
+		self.Task=func
+		return self
+	end
+	function c:OnEvent(func)
+		table.insert(self.func,func)
+		return self
+	end
+	self:setPriority("core")
+	self:create(c)
+	return c
+end
+function multi:newUpdater(skip)
+	local c=self:newBase()
+	c.Type='updater'
+	c.pos=1
+	c.skip=skip or 1
+	function c:Act()
+		if self.pos>=self.skip then
+			self.pos=0
+			for i=1,#self.func do
+				self.func[i](self)
+			end
+		end
+		self.pos=self.pos+1
+	end
+	function c:SetSkip(n)
+		self.skip=n
+		return self
+	end
+	c.OnUpdate=self.OnMainConnect
+	self:create(c)
+	return c
+end
+function multi:newAlarm(set)
+	local c=self:newBase()
+	c.Type='alarm'
+	c:setPriority("Low")
+	c.set=set or 0
+	local count = 0
+	local t = clock()
+	function c:Act()
+		if clock()-t>=self.set then
+			self:Pause()
+			self.Active=false
+			for i=1,#self.func do
+				self.func[i](self)
+			end
+			t = clock()
+		end
+	end
+	function c:Resume()
+		self.Parent.Resume(self)
+		t = count + t
+		return self
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self:Resume()
+		t = clock()
+		return self
+	end
+	function c:OnRing(func)
+		table.insert(self.func,func)
+		return self
+	end
+	function c:Pause()
+		count = clock()
+		self.Parent.Pause(self)
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newLoop(func)
+	local c=self:newBase()
+	c.Type='loop'
+	local start=self.clock()
+	local funcs = {}
+	if func then
+		funcs={func}
+	end
+	function c:Act()
+		for i=1,#funcs do
+			funcs[i](self,clock()-start)
+		end
+	end
+	function c:OnLoop(func)
+		table.insert(funcs,func)
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newFunction(func)
+	local c={}
+	c.func=func
+	mt={
+		__index=multi,
+		__call=function(self,...) 
+			if self.Active then 
+				return self:func(...) 
+			end
+			return nil,true
+		end
+	}
+	c.Parent=self
+	function c:Pause()
+		self.Active=false
+		return self
+	end
+	function c:Resume()
+		self.Active=true
+		return self
+	end
+	setmetatable(c,mt)
+	self:create(c)
+	return c
+end
+function multi:newStep(start,reset,count,skip)
+	local c=self:newBase()
+	think=1
+	c.Type='step'
+	c.pos=start or 1
+	c.endAt=reset or math.huge
+	c.skip=skip or 0
+	c.spos=0
+	c.count=count or 1*think
+	c.funcE={}
+	c.funcS={}
+	c.start=start or 1
+	if start~=nil and reset~=nil then
+		if start>reset then
+			think=-1
+		end
+	end
+	function c:Act()
+		if self~=nil then
+			if self.spos==0 then
+				if self.pos==self.start then
+					for fe=1,#self.funcS do
+						self.funcS[fe](self)
+					end
+				end
+				for i=1,#self.func do
+					self.func[i](self,self.pos)
+				end
+				self.pos=self.pos+self.count
+				if self.pos-self.count==self.endAt then
+					self:Pause()
+					for fe=1,#self.funcE do
+						self.funcE[fe](self)
+					end
+					self.pos=self.start
+				end
+			end
+		end
+		self.spos=self.spos+1
+		if self.spos>=self.skip then
+			self.spos=0
+		end
+	end
+	c.Reset=c.Resume
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+		return self
+	end
+	function c:OnStep(func)
+		table.insert(self.func,1,func)
+		return self
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+		return self
+	end
+	function c:Break()
+		self.Active=nil
+		return self
+	end
+	function c:Update(start,reset,count,skip)
+		self.start=start or self.start
+		self.endAt=reset or self.endAt
+		self.skip=skip or self.skip
+		self.count=count or self.count
+		self:Resume()
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newTLoop(func,set)
+	local c=self:newBase()
+	c.Type='tloop'
+	c.set=set or 0
+	c.timer=self:newTimer()
+	c.life=0
+	c:setPriority("Low")
+	if func then
+		c.func={func}
+	end
+	function c:Act()
+		if self.timer:Get()>=self.set then
+			self.life=self.life+1
+			for i=1,#self.func do
+				self.func[i](self,self.life)
+			end
+			self.timer:Reset()
+		end
+	end
+	function c:Resume()
+		self.Parent.Resume(self)
+		self.timer:Resume()
+		return self
+	end
+	function c:Pause()
+		self.timer:Pause()
+		self.Parent.Pause(self)
+		return self
+	end
+	function c:OnLoop(func)
+		table.insert(self.func,func)
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newTrigger(func)
+	local c={}
+	c.Type='trigger'
+	c.trigfunc=func or function() end
+	function c:Fire(...)
+		self:trigfunc(...)
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newTStep(start,reset,count,set)
+	local c=self:newBase()
+	think=1
+	c.Type='tstep'
+	c:setPriority("Low")
+	c.start=start or 1
+	local reset = reset or math.huge
+	c.endAt=reset
+	c.pos=start or 1
+	c.skip=skip or 0
+	c.count=count or 1*think
+	c.funcE={}
+	c.timer=self.clock()
+	c.set=set or 1
+	c.funcS={}
+	function c:Update(start,reset,count,set)
+		self.start=start or self.start
+		self.pos=self.start
+		self.endAt=reset or self.endAt
+		self.set=set or self.set
+		self.count=count or self.count or 1
+		self.timer=self.clock()
+		self:Resume()
+		return self
+	end
+	function c:Act()
+		if self.clock()-self.timer>=self.set then
+			self:Reset()
+			if self.pos==self.start then
+				for fe=1,#self.funcS do
+					self.funcS[fe](self)
+				end
+			end
+			for i=1,#self.func do
+				self.func[i](self,self.pos)
+			end
+			self.pos=self.pos+self.count
+			if self.pos-self.count==self.endAt then
+				self:Pause()
+				for fe=1,#self.funcE do
+					self.funcE[fe](self)
+				end
+				self.pos=self.start
+			end
+		end
+	end
+	function c:OnStart(func)
+		table.insert(self.funcS,func)
+		return self
+	end
+	function c:OnStep(func)
+		table.insert(self.func,func)
+		return self
+	end
+	function c:OnEnd(func)
+		table.insert(self.funcE,func)
+		return self
+	end
+	function c:Break()
+		self.Active=nil
+		return self
+	end
+	function c:Reset(n)
+		if n then self.set=n end
+		self.timer=self.clock()
+		self:Resume()
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newTimeStamper()
+	local c=self:newUpdater(self.Priority_Idle)
+	c:OnUpdate(function()
+		c:Run()
+	end)
+	local feb = 28
+	local leap = tonumber(os.date("%Y"))%4==0 and (tonumber(os.date("%Y"))%100~=0 or tonumber(os.date("%Y"))%400==0)
+	if leap then
+		feb = 29
+	end
+	local dInM = {
+		["01"] = 31,
+		["02"] = feb,
+		["03"] = 31,
+		["04"] = 30,
+		["05"] = 31,
+		["06"] = 30,
+		["07"] = 31, -- This is dumb, why do we still follow this double 31 days!?
+		["08"] = 31,
+		["09"] = 30,
+		["10"] = 31,
+		["11"] = 30,
+		["12"] = 31,
+	}
+	c.Type='timestamper'
+	c:setPriority("Idle")
+	c.hour = {}
+	c.minute = {}
+	c.second = {}
+	c.time = {}
+	c.day = {}
+	c.month = {}
+	c.year = {}
+	function c:Run()
+		for i=1,#self.hour do
+			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
+				self.hour[i][2](self)
+				self.hour[i][3]=false
+			elseif self.hour[i][1]~=os.date("%H") and not self.hour[i][3] then
+				self.hour[i][3]=true
+			end
+		end
+		for i=1,#self.minute do
+			if self.minute[i][1]==os.date("%M") and self.minute[i][3] then
+				self.minute[i][2](self)
+				self.minute[i][3]=false
+			elseif self.minute[i][1]~=os.date("%M") and not self.minute[i][3] then
+				self.minute[i][3]=true
+			end
+		end
+		for i=1,#self.second do
+			if self.second[i][1]==os.date("%S") and self.second[i][3] then
+				self.second[i][2](self)
+				self.second[i][3]=false
+			elseif self.second[i][1]~=os.date("%S") and not self.second[i][3] then
+				self.second[i][3]=true
+			end
+		end
+		for i=1,#self.day do
+			if type(self.day[i][1])=="string" then
+				if self.day[i][1]==os.date("%a") and self.day[i][3] then
+					self.day[i][2](self)
+					self.day[i][3]=false
+				elseif self.day[i][1]~=os.date("%a") and not self.day[i][3] then
+					self.day[i][3]=true
+				end
+			else
+				local dday = self.day[i][1]
+				if dday < 0 then
+					dday = dInM[os.date("%m")]+(dday+1)
+				end
+				if string.format("%02d",dday)==os.date("%d") and self.day[i][3] then
+					self.day[i][2](self)
+					self.day[i][3]=false
+				elseif string.format("%02d",dday)~=os.date("%d") and not self.day[i][3] then
+					self.day[i][3]=true
+				end
+			end
+		end
+		for i=1,#self.month do
+			if self.month[i][1]==os.date("%m") and self.month[i][3] then
+				self.month[i][2](self)
+				self.month[i][3]=false
+			elseif self.month[i][1]~=os.date("%m") and not self.month[i][3] then
+				self.month[i][3]=true
+			end
+		end
+		for i=1,#self.time do
+			if self.time[i][1]==os.date("%X") and self.time[i][3] then
+				self.time[i][2](self)
+				self.time[i][3]=false
+			elseif self.time[i][1]~=os.date("%X") and not self.time[i][3] then
+				self.time[i][3]=true
+			end
+		end
+		for i=1,#self.year do
+			if self.year[i][1]==os.date("%y") and self.year[i][3] then
+				self.year[i][2](self)
+				self.year[i][3]=false
+			elseif self.year[i][1]~=os.date("%y") and not self.year[i][3] then
+				self.year[i][3]=true
+			end
+		end
+	end
+	function c:OnTime(hour,minute,second,func)
+		if type(hour)=="number" then
+			self.time[#self.time+1]={string.format("%02d:%02d:%02d",hour,minute,second),func,true}
+		else
+			self.time[#self.time+1]={hour,minute,true}
+		end
+		return self
+	end
+	function c:OnHour(hour,func)
+		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
+		return self
+	end
+	function c:OnMinute(minute,func)
+		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
+		return self
+	end
+	function c:OnSecond(second,func)
+		self.second[#self.second+1]={string.format("%02d",second),func,true}
+		return self
+	end
+	function c:OnDay(day,func)
+		self.day[#self.day+1]={day,func,true}
+		return self
+	end
+	function c:OnMonth(month,func)
+		self.month[#self.month+1]={string.format("%02d",month),func,true}
+		return self
+	end
+	function c:OnYear(year,func)
+		self.year[#self.year+1]={string.format("%02d",year),func,true}
+		return self
+	end
+	self:create(c)
+	return c
+end
+function multi:newWatcher(namespace,name)
+	local function WatcherObj(ns,n)
+		if self.Type=='queue' then
+			multi.print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
+			self=multi
+		end
+		local c=self:newBase()
+		c.Type='watcher'
+		c.ns=ns
+		c.n=n
+		c.cv=ns[n]
+		function c:OnValueChanged(func)
+			table.insert(self.func,func)
+			return self
+		end
+		function c:Act()
+			if self.cv~=self.ns[self.n] then
+				for i=1,#self.func do
+					self.func[i](self,self.cv,self.ns[self.n])
+				end
+				self.cv=self.ns[self.n]
+			end
+		end
+		self:create(c)
+		return c
+	end
+	if type(namespace)~='table' and type(namespace)=='string' then
+		return WatcherObj(_G,namespace)
+	elseif type(namespace)=='table' and (type(name)=='string' or 'number') then
+		return WatcherObj(namespace,name)
+	else
+		multi.print('Warning, invalid arguments! Nothing returned!')
+	end
+end
+-- Threading stuff
+thread={}
+multi.GlobalVariables={}
+if os.getOS()=="windows" then
+	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
+else
+	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
+end
+function thread.sleep(n)
+	coroutine.yield({"_sleep_",n or 0})
+end
+function thread.hold(n)
+	return coroutine.yield({"_hold_",n or function() return true end})
+end
+function thread.skip(n)
+	coroutine.yield({"_skip_",n or 0})
+end
+function thread.kill()
+	coroutine.yield({"_kill_",":)"})
+end
+function thread.yeild()
+	coroutine.yield({"_sleep_",0})
+end
+function thread.isThread()
+	return coroutine.running()~=nil
+end
+function thread.getCores()
+	return thread.__CORES
+end
+function thread.set(name,val)
+	multi.GlobalVariables[name]=val
+	return true
+end
+function thread.get(name)
+	return multi.GlobalVariables[name]
+end
+function thread.waitFor(name)
+	thread.hold(function() return thread.get(name)~=nil end)
+	return thread.get(name)
+end
+function thread.testFor(name,_val,sym)
+	thread.hold(function() 
+		local val = thread.get(name)~=nil 
+		if val then
+			if sym == "==" or sym == "=" then
+				return _val==val
+			elseif sym == ">" then
+				return _val>val
+			elseif sym == "<" then
+				return _val<val
+			elseif sym == "<=" then
+				return _val<=val
+			elseif sym == ">=" then
+				return _val>=val
+			end
+		end
+	end)
+	return thread.get(name)
+end
+function multi.print(...)
+	if multi.defaultSettings.print then
+		print(...)
+	end
+end
+multi:setDomainName("Threads")
+multi:setDomainName("Globals")
+local initT = false
+function multi:newThread(name,func)
+	if not func then return end
+	local c={}
+	c.ref={}
+	c.Name=name
+	c.thread=coroutine.create(func)
+	c.sleep=1
+	c.Type="thread"
+	c.firstRunDone=false
+	c.timer=multi:newTimer()
+	c.ref.Globals=self:linkDomain("Globals")
+	function c.ref:send(name,val)
+		ret=coroutine.yield({Name=name,Value=val})
+		self:syncGlobals(ret)
+	end
+	function c.ref:get(name)
+		return self.Globals[name]
+	end
+	function c.ref:kill()
+		err=coroutine.yield({"_kill_"})
+		if err then
+			error("Failed to kill a thread! Exiting...")
+		end
+	end
+	function c.ref:sleep(n)
+		if type(n)=="function" then
+			ret=coroutine.yield({"_hold_",n})
+			self:syncGlobals(ret)
+		elseif type(n)=="number" then
+			n = tonumber(n) or 0
+			ret=coroutine.yield({"_sleep_",n})
+			self:syncGlobals(ret)
+		else
+			error("Invalid Type for sleep!")
+		end
+	end
+	function c.ref:syncGlobals(v)
+		self.Globals=v
+	end
+	table.insert(self:linkDomain("Threads"),c)
+	if initT==false then
+		multi.initThreads()
+	end
+	c.creationTime = os.clock()
+end
+function multi.initThreads()
+	initT = true
+	multi.scheduler=multi:newLoop():setName("multi.thread")
+	multi.scheduler.Type="scheduler"
+	function multi.scheduler:setStep(n)
+		self.skip=tonumber(n) or 24
+	end
+	multi.scheduler.skip=0
+	multi.scheduler.counter=0
+	multi.scheduler.Threads=multi:linkDomain("Threads")
+	multi.scheduler.Globals=multi:linkDomain("Globals")
+	multi.scheduler:OnLoop(function(self)
+		self.counter=self.counter+1
+		for i=#self.Threads,1,-1 do
+			ret={}
+			if coroutine.status(self.Threads[i].thread)=="dead" then
+				table.remove(self.Threads,i)
+			else
+				if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
+					if self.Threads[i].firstRunDone==false then
+						self.Threads[i].firstRunDone=true
+						self.Threads[i].timer:Start()
+						if unpack(self.Threads[i].returns or {}) then
+							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+						else
+							_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
+						end
+					else
+						if unpack(self.Threads[i].returns or {}) then
+							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
+						else
+							_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
+						end
+					end
+					if _==false then
+						self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
+					end
+					if ret==true or ret==false then
+						multi.print("Thread Ended!!!")
+						ret={}
+					end
+				end
+				if ret then
+					if ret[1]=="_kill_" then
+						table.remove(self.Threads,i)
+					elseif ret[1]=="_sleep_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=ret[2]
+					elseif ret[1]=="_skip_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=math.huge
+						local event=multi:newEvent(function(evnt) return multi.scheduler.counter>=evnt.counter end)
+						event.link=self.Threads[i]
+						event.counter=self.counter+ret[2]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+							evnt:Destroy()
+						end):setName("multi.thread.skip")
+					elseif ret[1]=="_hold_" then
+						self.Threads[i].timer:Reset()
+						self.Threads[i].sleep=math.huge
+						local event=multi:newEvent(ret[2])
+						event.returns = nil
+						event.link=self.Threads[i]
+						event:OnEvent(function(evnt)
+							evnt.link.sleep=0
+							evnt.link.returns = evnt.returns
+							multi.nextStep(function()
+								evnt:Destroy()
+							end)
+						end):setName("multi.thread.hold")
+					elseif ret.Name then
+						self.Globals[ret.Name]=ret.Value
+					end
+				end
+			end
+		end
+	end)
+end
+multi.OnError=multi:newConnection()
+function multi:newThreadedProcess(name)
+	local c = {}
+	local holding = false
+	local kill = false
+	setmetatable(c, multi)
+	function c:newBase(ins)
+		local ct = {}
+		ct.Active=true
+		ct.func={}
+		ct.ender={}
+		ct.Act=function() end
+		ct.Parent=self
+		ct.held=false
+		ct.ref=self.ref
+		table.insert(self.Mainloop,ct)
+		return ct
+	end
+	c.Parent=self
+	c.Active=true
+	c.func={}
+	c.Type='threadedprocess'
+	c.Mainloop={}
+	c.Garbage={}
+	c.Children={}
+	c.Active=true
+	c.Rest=0
+	c.updaterate=.01
+	c.restRate=.1
+	c.Jobs={}
+	c.queue={}
+	c.jobUS=2
+	c.rest=false
+	function c:getController()
+		return nil
+	end
+	function c:Start()
+		self.rest=false
+		return self
+	end
+	function c:Resume()
+		self.rest=false
+		return self
+	end
+	function c:Pause()
+		self.rest=true
+		return self
+	end
+	function c:Remove()
+		self.ref:kill()
+		return self
+	end
+	function c:Kill()
+		kill = true
+		return self
+	end
+	function c:Sleep(n)
+		holding = true
+		if type(n)=="number" then
+			multi:newAlarm(n):OnRing(function(a)
+				holding = false
+				a:Destroy()
+			end):setName("multi.TPSleep")
+		elseif type(n)=="function" then
+			multi:newEvent(n):OnEvent(function(e)
+				holding = false
+				e:Destroy()
+			end):setName("multi.TPHold")
+		end
+		return self
+	end
+	c.Hold=c.Sleep
+	multi:newThread(name,function(ref)
+		while true do
+			thread.hold(function()
+				return not(holding)
+			end)
+			c:uManager()
+		end
+	end)
+	return c
+end
+function multi:newHyperThreadedProcess(name)
+	if not name then error("All threads must have a name!") end
+	local c = {}
+	setmetatable(c, multi)
+	local ind = 0
+	local holding = true
+	local kill = false
+	function c:newBase(ins)
+		local ct = {}
+		ct.Active=true
+		ct.func={}
+		ct.ender={}
+		ct.Act=function() end
+		ct.Parent=self
+		ct.held=false
+		ct.ref=self.ref
+		ind = ind + 1
+		multi:newThread("Proc <"..name.."> #"..ind,function()
+			while true do
+				thread.hold(function()
+					return not(holding)
+				end)
+				if kill then
+					err=coroutine.yield({"_kill_"})
+					if err then
+						error("Failed to kill a thread! Exiting...")
+					end
+				end
+				ct:Act()
+			end
+		end)
+		return ct
+	end
+	c.Parent=self
+	c.Active=true
+	c.func={}
+	c.Type='hyperthreadedprocess'
+	c.Mainloop={}
+	c.Garbage={}
+	c.Children={}
+	c.Active=true
+	c.Rest=0
+	c.updaterate=.01
+	c.restRate=.1
+	c.Jobs={}
+	c.queue={}
+	c.jobUS=2
+	c.rest=false
+	function c:getController()
+		return nil
+	end
+	function c:Start()
+		holding = false
+		return self
+	end
+	function c:Resume()
+		holding = false
+		return self
+	end
+	function c:Pause()
+		holding = true
+		return self
+	end
+	function c:Remove()
+		self.ref:kill()
+		return self
+	end
+	function c:Kill()
+		kill = true
+		return self
+	end
+	function c:Sleep(b)
+		holding = true
+		if type(b)=="number" then
+			local t = os.clock()
+			multi:newAlarm(b):OnRing(function(a)
+				holding = false
+				a:Destroy()
+			end):setName("multi.HTPSleep")
+		elseif type(b)=="function" then
+			multi:newEvent(b):OnEvent(function(e)
+				holding = false
+				e:Destroy()
+			end):setName("multi.HTPHold")
+		end
+		return self
+	end
+	c.Hold=c.Sleep
+	return c
+end
+-- Multi runners
 function multi:threadloop(settings)
 	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
 	local Threads=multi:linkDomain("Threads")
@@ -800,6 +1839,7 @@ function multi:threadloop(settings)
 						event.counter=counter+ret[2]
 						event:OnEvent(function(evnt)
 							evnt.link.sleep=0
+							evnt:Destroy()
 						end)
 					elseif ret[1]=="_hold_" then
 						Threads[i].timer:Reset()
@@ -808,6 +1848,7 @@ function multi:threadloop(settings)
 						event.link=Threads[i]
 						event:OnEvent(function(evnt)
 							evnt.link.sleep=0
+							evnt:Destroy()
 						end)
 					elseif ret.Name then
 						Globals[ret.Name]=ret.Value
@@ -859,14 +1900,15 @@ function multi:mainloop(settings)
 		local PS=self
 		local PStep = 1
 		local autoP = 0
-		local solid
-		local sRef
+		local solid,sRef
+		local cc=0
 		while mainloopActive do
-			if ncount ~= 0 then
-				for i = 1, ncount do
-					next[i]()
+			if next then
+				local DD = table.remove(next,1)
+				while DD do
+					DD()
+					DD = table.remove(next,1)
 				end
-				ncount = 0
 			end
 			if priority == 1 then
 				for _D=#Loop,1,-1 do
@@ -919,8 +1961,12 @@ function multi:mainloop(settings)
 					PStep=0
 				end
 			elseif priority == 3 then
-				tt = clock()-t
-				t = clock()
+				cc=cc+1
+				if cc == 1000 then
+					tt = clock()-t
+					t = clock()
+					cc=0
+				end
 				for _D=#Loop,1,-1 do
 					if Loop[_D] then
 						if Loop[_D].Priority == p_c or (Loop[_D].Priority == p_h and tt<.5) or (Loop[_D].Priority == p_an and tt<.125) or (Loop[_D].Priority == p_n and tt<.063) or (Loop[_D].Priority == p_bn and tt<.016) or (Loop[_D].Priority == p_l and tt<.003) or (Loop[_D].Priority == p_i and tt<.001) then
@@ -1056,11 +2102,12 @@ function multi:uManager(settings)
 end
 function multi:uManagerRef(settings)
 	if self.Active then
-		if ncount ~= 0 then
-			for i = 1, ncount do
-				next[i]()
+		if next then
+			local DD = table.remove(next,1)
+			while DD do
+				DD()
+				DD = table.remove(next,1)
 			end
-			ncount = 0
 		end
 		local Loop=self.Mainloop
 		local PS=self
@@ -1219,1125 +2266,16 @@ function multi:uManagerRef(settings)
 		end
 	end
 end
---Core Actors
-function multi:newCustomObject(objRef,t)
-	local c={}
-	if t=='process' then
-		c=self:newBase()
-		if type(objRef)=='table' then
-			table.merge(c,objRef)
-		end
-		if not c.Act then
-			function c:Act()
-				-- Empty function
-			end
-		end
-	else
-		c=objRef or {}
-	end
-	if not c.Type then
-		c.Type='coustomObject'
-	end
-	self:create(c)
-	return c
-end
-function multi:newEvent(task)
-	local c=self:newBase()
-	c.Type='event'
-	c.Task=task or function() end
-	function c:Act()
-		local t = {self.Task(self)}
-		if t[1] then
-			self:Pause()
-			self.returns = t
-			for _E=1,#self.func do
-				self.func[_E](self)
-			end
-		end
-	end
-	function c:SetTask(func)
-		self.Task=func
-		return self
-	end
-	function c:OnEvent(func)
-		table.insert(self.func,func)
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newUpdater(skip)
-	local c=self:newBase()
-	c.Type='updater'
-	c.pos=1
-	c.skip=skip or 1
-	function c:Act()
-		if self.pos>=self.skip then
-			self.pos=0
-			for i=1,#self.func do
-				self.func[i](self)
-			end
-		end
-		self.pos=self.pos+1
-	end
-	function c:SetSkip(n)
-		self.skip=n
-		return self
-	end
-	c.OnUpdate=self.OnMainConnect
-	self:create(c)
-	return c
-end
-function multi:newAlarm(set)
-	local c=self:newBase()
-	c.Type='alarm'
-	c.Priority=self.Priority_Low
-	c.timer=self:newTimer()
-	c.set=set or 0
-	function c:Act()
-		if self.timer:Get()>=self.set then
-			self:Pause()
-			self.Active=false
-			for i=1,#self.func do
-				self.func[i](self)
-			end
-		end
-	end
-	function c:Resume()
-		self.Parent.Resume(self)
-		self.timer:Resume()
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self:Resume()
-		self.timer:Reset()
-		return self
-	end
-	function c:OnRing(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:Pause()
-		self.timer:Pause()
-		self.Parent.Pause(self)
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newLoop(func)
-	local c=self:newBase()
-	c.Type='loop'
-	local start=self.clock()
-	local funcs = {}
-	if func then
-		funcs={func}
-	end
-	function c:Act()
-		for i=1,#funcs do
-			funcs[i](self,clock()-start)
-		end
-	end
-	function c:OnLoop(func)
-		table.insert(funcs,func)
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newFunction(func)
-	local c={}
-	c.func=func
-	mt={
-		__index=multi,
-		__call=function(self,...) if self.Active then return self:func(...) end local t={...} return "PAUSED" end
-	}
-	c.Parent=self
-	function c:Pause()
-		self.Active=false
-		return self
-	end
-	function c:Resume()
-		self.Active=true
-		return self
-	end
-	setmetatable(c,mt)
-	self:create(c)
-	return c
-end
-function multi:newStep(start,reset,count,skip)
-	local c=self:newBase()
-	think=1
-	c.Type='step'
-	c.pos=start or 1
-	c.endAt=reset or math.huge
-	c.skip=skip or 0
-	c.spos=0
-	c.count=count or 1*think
-	c.funcE={}
-	c.funcS={}
-	c.start=start or 1
-	if start~=nil and reset~=nil then
-		if start>reset then
-			think=-1
-		end
-	end
-	function c:Act()
-		if self~=nil then
-			if self.spos==0 then
-				if self.pos==self.start then
-					for fe=1,#self.funcS do
-						self.funcS[fe](self)
-					end
-				end
-				for i=1,#self.func do
-					self.func[i](self,self.pos)
-				end
-				self.pos=self.pos+self.count
-				if self.pos-self.count==self.endAt then
-					self:Pause()
-					for fe=1,#self.funcE do
-						self.funcE[fe](self)
-					end
-					self.pos=self.start
-				end
-			end
-		end
-		self.spos=self.spos+1
-		if self.spos>=self.skip then
-			self.spos=0
-		end
-	end
-	c.Reset=c.Resume
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,1,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.Active=nil
-		return self
-	end
-	function c:Update(start,reset,count,skip)
-		self.start=start or self.start
-		self.endAt=reset or self.endAt
-		self.skip=skip or self.skip
-		self.count=count or self.count
-		self:Resume()
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newTLoop(func,set)
-	local c=self:newBase()
-	c.Type='tloop'
-	c.set=set or 0
-	c.timer=self:newTimer()
-	c.life=0
-	if func then
-		c.func={func}
-	end
-	function c:Act()
-		if self.timer:Get()>=self.set then
-			self.life=self.life+1
-			for i=1,#self.func do
-				self.func[i](self,self.life)
-			end
-			self.timer:Reset()
-		end
-	end
-	function c:Resume()
-		self.Parent.Resume(self)
-		self.timer:Resume()
-		return self
-	end
-	function c:Pause()
-		self.timer:Pause()
-		self.Parent.Pause(self)
-		return self
-	end
-	function c:OnLoop(func)
-		table.insert(self.func,func)
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newTrigger(func)
-	local c={}
-	c.Type='trigger'
-	c.trigfunc=func or function() end
-	function c:Fire(...)
-		self:trigfunc(...)
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newTStep(start,reset,count,set)
-	local c=self:newBase()
-	think=1
-	c.Type='tstep'
-	c.Priority=self.Priority_Low
-	c.start=start or 1
-	local reset = reset or math.huge
-	c.endAt=reset
-	c.pos=start or 1
-	c.skip=skip or 0
-	c.count=count or 1*think
-	c.funcE={}
-	c.timer=self.clock()
-	c.set=set or 1
-	c.funcS={}
-	function c:Update(start,reset,count,set)
-		self.start=start or self.start
-		self.pos=self.start
-		self.endAt=reset or self.endAt
-		self.set=set or self.set
-		self.count=count or self.count or 1
-		self.timer=self.clock()
-		self:Resume()
-		return self
-	end
-	function c:Act()
-		if self.clock()-self.timer>=self.set then
-			self:Reset()
-			if self.pos==self.start then
-				for fe=1,#self.funcS do
-					self.funcS[fe](self)
-				end
-			end
-			for i=1,#self.func do
-				self.func[i](self,self.pos)
-			end
-			self.pos=self.pos+self.count
-			if self.pos-self.count==self.endAt then
-				self:Pause()
-				for fe=1,#self.funcE do
-					self.funcE[fe](self)
-				end
-				self.pos=self.start
-			end
-		end
-	end
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.Active=nil
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self.timer=self.clock()
-		self:Resume()
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newTimeStamper()
-	local c=self:newBase()
-	c.Type='timestamper'
-	c.Priority=self.Priority_Idle
-	c.hour = {}
-	c.minute = {}
-	c.second = {}
-	c.time = {}
-	c.day = {}
-	c.month = {}
-	c.year = {}
-	function c:Act()
-		for i=1,#self.hour do
-			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
-				self.hour[i][2](self)
-				self.hour[i][3]=false
-			elseif self.hour[i][1]~=os.date("%H") and not self.hour[i][3] then
-				self.hour[i][3]=true
-			end
-		end
-		for i=1,#self.minute do
-			if self.minute[i][1]==os.date("%M") and self.minute[i][3] then
-				self.minute[i][2](self)
-				self.minute[i][3]=false
-			elseif self.minute[i][1]~=os.date("%M") and not self.minute[i][3] then
-				self.minute[i][3]=true
-			end
-		end
-		for i=1,#self.second do
-			if self.second[i][1]==os.date("%S") and self.second[i][3] then
-				self.second[i][2](self)
-				self.second[i][3]=false
-			elseif self.second[i][1]~=os.date("%S") and not self.second[i][3] then
-				self.second[i][3]=true
-			end
-		end
-		for i=1,#self.day do
-			if type(self.day[i][1])=="string" then
-				if self.day[i][1]==os.date("%a") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif self.day[i][1]~=os.date("%a") and not self.day[i][3] then
-					self.day[i][3]=true
-				end
-			else
-				if string.format("%02d",self.day[i][1])==os.date("%d") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif string.format("%02d",self.day[i][1])~=os.date("%d") and not self.day[i][3] then
-					self.day[i][3]=true
-				end
-			end
-		end
-		for i=1,#self.month do
-			if self.month[i][1]==os.date("%m") and self.month[i][3] then
-				self.month[i][2](self)
-				self.month[i][3]=false
-			elseif self.month[i][1]~=os.date("%m") and not self.month[i][3] then
-				self.month[i][3]=true
-			end
-		end
-		for i=1,#self.time do
-			if self.time[i][1]==os.date("%X") and self.time[i][3] then
-				self.time[i][2](self)
-				self.time[i][3]=false
-			elseif self.time[i][1]~=os.date("%X") and not self.time[i][3] then
-				self.time[i][3]=true
-			end
-		end
-		for i=1,#self.year do
-			if self.year[i][1]==os.date("%y") and self.year[i][3] then
-				self.year[i][2](self)
-				self.year[i][3]=false
-			elseif self.year[i][1]~=os.date("%y") and not self.year[i][3] then
-				self.year[i][3]=true
-			end
-		end
-	end
-	function c:OnTime(hour,minute,second,func)
-		if type(hour)=="number" then
-			self.time[#self.time+1]={string.format("%02d:%02d:%02d",hour,minute,second),func,true}
-		else
-			self.time[#self.time+1]={hour,minute,true}
-		end
-		return self
-	end
-	function c:OnHour(hour,func)
-		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
-		return self
-	end
-	function c:OnMinute(minute,func)
-		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
-		return self
-	end
-	function c:OnSecond(second,func)
-		self.second[#self.second+1]={string.format("%02d",second),func,true}
-		return self
-	end
-	function c:OnDay(day,func)
-		self.day[#self.day+1]={day,func,true}
-		return self
-	end
-	function c:OnMonth(month,func)
-		self.month[#self.month+1]={string.format("%02d",month),func,true}
-		return self
-	end
-	function c:OnYear(year,func)
-		self.year[#self.year+1]={string.format("%02d",year),func,true}
-		return self
-	end
-	self:create(c)
-	return c
-end
-function multi:newWatcher(namespace,name)
-	local function WatcherObj(ns,n)
-		if self.Type=='queue' then
-			print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
-			self=multi
-		end
-		local c=self:newBase()
-		c.Type='watcher'
-		c.ns=ns
-		c.n=n
-		c.cv=ns[n]
-		function c:OnValueChanged(func)
-			table.insert(self.func,func)
-			return self
-		end
-		function c:Act()
-			if self.cv~=self.ns[self.n] then
-				for i=1,#self.func do
-					self.func[i](self,self.cv,self.ns[self.n])
-				end
-				self.cv=self.ns[self.n]
-			end
-		end
-		self:create(c)
-		return c
-	end
-	if type(namespace)~='table' and type(namespace)=='string' then
-		return WatcherObj(_G,namespace)
-	elseif type(namespace)=='table' and (type(name)=='string' or 'number') then
-		return WatcherObj(namespace,name)
-	else
-		print('Warning, invalid arguments! Nothing returned!')
-	end
-end
--- Threading stuff
-thread={}
-multi.GlobalVariables={}
-if os.getOS()=="windows" then
-	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-else
-	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
-end
-function thread.sleep(n)
-	coroutine.yield({"_sleep_",n or 0})
-end
-function thread.hold(n)
-	return coroutine.yield({"_hold_",n or function() return true end})
-end
-function thread.skip(n)
-	coroutine.yield({"_skip_",n or 0})
-end
-function thread.kill()
-	coroutine.yield({"_kill_",":)"})
-end
-function thread.yeild()
-	coroutine.yield({"_sleep_",0})
-end
-function thread.isThread()
-	return coroutine.running()~=nil
-end
-function thread.getCores()
-	return thread.__CORES
-end
-function thread.set(name,val)
-	multi.GlobalVariables[name]=val
-	return true
-end
-function thread.get(name)
-	return multi.GlobalVariables[name]
-end
-function thread.waitFor(name)
-	thread.hold(function() return thread.get(name)~=nil end)
-	return thread.get(name)
-end
-function thread.testFor(name,val,sym)
-	thread.hold(function() return thread.get(name)~=nil end)
-	return thread.get(name)
-end
-function multi:newTBase(name)
-	local c = {}
-	c.name=name
-	c.Active=true
-	c.func={}
-	c.ender={}
-	c.Id=0
-	c.Parent=self
-	c.important={}
-	c.held=false
-	c.ToString=multi.ToString
-	c.ToFile=multi.ToFile
-	return c
-end
-function multi:newThread(name,func)
-	local c={}
-	c.ref={}
-	c.Name=name
-	c.thread=coroutine.create(func)
-	c.sleep=1
-	c.Type="thread"
-	c.firstRunDone=false
-	c.timer=multi.scheduler:newTimer()
-	c.ref.Globals=self:linkDomain("Globals")
-	function c.ref:send(name,val)
-		ret=coroutine.yield({Name=name,Value=val})
-		self:syncGlobals(ret)
-	end
-	function c.ref:get(name)
-		return self.Globals[name]
-	end
-	function c.ref:kill()
-		err=coroutine.yield({"_kill_"})
-		if err then
-			error("Failed to kill a thread! Exiting...")
-		end
-	end
-	function c.ref:sleep(n)
-		if type(n)=="function" then
-			ret=coroutine.yield({"_hold_",n})
-			self:syncGlobals(ret)
-		elseif type(n)=="number" then
-			n = tonumber(n) or 0
-			ret=coroutine.yield({"_sleep_",n})
-			self:syncGlobals(ret)
-		else
-			error("Invalid Type for sleep!")
-		end
-	end
-	function c.ref:syncGlobals(v)
-		self.Globals=v
-	end
-	table.insert(self:linkDomain("Threads"),c)
-	if not multi.scheduler:isActive() then
-		multi.scheduler:Resume()
-	end
-end
-multi:setDomainName("Threads")
-multi:setDomainName("Globals")
-multi.scheduler=multi:newLoop()
-multi.scheduler.Type="scheduler"
-function multi.scheduler:setStep(n)
-	self.skip=tonumber(n) or 24
-end
-multi.scheduler.skip=0
-multi.scheduler.counter=0
-multi.scheduler.Threads=multi:linkDomain("Threads")
-multi.scheduler.Globals=multi:linkDomain("Globals")
-multi.scheduler:OnLoop(function(self)
-	self.counter=self.counter+1
-	for i=#self.Threads,1,-1 do
-		ret={}
-		if coroutine.status(self.Threads[i].thread)=="dead" then
-			table.remove(self.Threads,i)
-		else
-			if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
-				if self.Threads[i].firstRunDone==false then
-					self.Threads[i].firstRunDone=true
-					self.Threads[i].timer:Start()
-					if unpack(self.Threads[i].returns or {}) then
-						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
-					else
-						_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
-					end
-				else
-					if unpack(self.Threads[i].returns or {}) then
-						_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
-					else
-						_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
-					end
-				end
-				if _==false then
-					self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
-				end
-				if ret==true or ret==false then
-					print("Thread Ended!!!")
-					ret={}
-				end
-			end
-			if ret then
-				if ret[1]=="_kill_" then
-					table.remove(self.Threads,i)
-				elseif ret[1]=="_sleep_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=ret[2]
-				elseif ret[1]=="_skip_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=math.huge
-					local event=multi:newEvent(function(evnt) return multi.scheduler.counter>=evnt.counter end)
-					event.link=self.Threads[i]
-					event.counter=self.counter+ret[2]
-					event:OnEvent(function(evnt)
-						evnt.link.sleep=0
-					end)
-				elseif ret[1]=="_hold_" then
-					self.Threads[i].timer:Reset()
-					self.Threads[i].sleep=math.huge
-					local event=multi:newEvent(ret[2])
-					event.returns = nil
-					event.link=self.Threads[i]
-					event:OnEvent(function(evnt)
-						evnt.link.sleep=0
-						evnt.link.returns = evnt.returns
-					end)
-				elseif ret.Name then
-					self.Globals[ret.Name]=ret.Value
-				end
-			end
-		end
-	end
-end)
-multi.scheduler:Pause()
-multi.OnError=multi:newConnection()
-function multi:newThreadedAlarm(name,set)
-	local c=self:newTBase(name)
-	c.Type='alarmThread'
-	c.timer=self:newTimer()
-	c.set=set or 0
-	function c:Resume()
-		self.rest=false
-		self.timer:Resume()
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self.rest=false
-		self.timer:Reset(n)
-		return self
-	end
-	function c:OnRing(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:Pause()
-		self.timer:Pause()
-		self.rest=true
-		return self
-	end
-	c.rest=false
-	c.updaterate=multi.Priority_Low -- skips
-	c.restRate=0 -- secs
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c.timer:Get()>=c.set then
-					c:Pause()
-					for i=1,#c.func do
-						c.func[i](c)
-					end
-				end
-				thread.skip(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedUpdater(name,skip)
-	local c=self:newTBase(name)
-	c.Type='updaterThread'
-	c.pos=1
-	c.skip=skip or 1
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.OnUpdate=self.OnMainConnect
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](c)
-				end
-				c.pos=c.pos+1
-				thread.skip(c.skip)
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedTStep(name,start,reset,count,set)
-	local c=self:newTBase(name)
-	local think=1
-	c.Type='tstepThread'
-	c.start=start or 1
-	local reset = reset or math.huge
-	c.endAt=reset
-	c.pos=start or 1
-	c.skip=skip or 0
-	c.count=count or 1*think
-	c.funcE={}
-	c.timer=os.clock()
-	c.set=set or 1
-	c.funcS={}
-	function c:Update(start,reset,count,set)
-		self.start=start or self.start
-		self.pos=self.start
-		self.endAt=reset or self.endAt
-		self.set=set or self.set
-		self.count=count or self.count or 1
-		self.timer=os.clock()
-		self:Resume()
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.Active=nil
-		return self
-	end
-	function c:Reset(n)
-		if n then self.set=n end
-		self.timer=os.clock()
-		self:Resume()
-		return self
-	end
-	c.updaterate=0--multi.Priority_Low -- skips
-	c.restRate=0
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if os.clock()-c.timer>=c.set then
-					c:Reset()
-					if c.pos==c.start then
-						for fe=1,#c.funcS do
-							c.funcS[fe](c)
-						end
-					end
-					for i=1,#c.func do
-						c.func[i](c,c.pos)
-					end
-					c.pos=c.pos+c.count
-					if c.pos-c.count==c.endAt then
-						c:Pause()
-						for fe=1,#c.funcE do
-							c.funcE[fe](c)
-						end
-						c.pos=c.start
-					end
-				end
-				thread.skip(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedTLoop(name,func,n)
-	local c=self:newTBase(name)
-	c.Type='tloopThread'
-	c.restN=n or 1
-	if func then
-		c.func={func}
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnLoop(func)
-		table.insert(self.func,func)
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](c)
-				end
-				thread.sleep(c.restN) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedStep(name,start,reset,count,skip)
-	local c=self:newTBase(name)
-	local think=1
-	c.Type='stepThread'
-	c.pos=start or 1
-	c.endAt=reset or math.huge
-	c.skip=skip or 0
-	c.spos=0
-	c.count=count or 1*think
-	c.funcE={}
-	c.funcS={}
-	c.start=start or 1
-	if start~=nil and reset~=nil then
-		if start>reset then
-			think=-1
-		end
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.Reset=c.Resume
-	function c:OnStart(func)
-		table.insert(self.funcS,func)
-		return self
-	end
-	function c:OnStep(func)
-		table.insert(self.func,1,func)
-		return self
-	end
-	function c:OnEnd(func)
-		table.insert(self.funcE,func)
-		return self
-	end
-	function c:Break()
-		self.rest=true
-		return self
-	end
-	function c:Update(start,reset,count,skip)
-		self.start=start or self.start
-		self.endAt=reset or self.endAt
-		self.skip=skip or self.skip
-		self.count=count or self.count
-		self:Resume()
-		return self
-	end
-	c.updaterate=0
-	c.restRate=.1
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c~=nil then
-					if c.spos==0 then
-						if c.pos==c.start then
-							for fe=1,#c.funcS do
-								c.funcS[fe](c)
-							end
-						end
-						for i=1,#c.func do
-							c.func[i](c,c.pos)
-						end
-						c.pos=c.pos+c.count
-						if c.pos-c.count==c.endAt then
-							c:Pause()
-							for fe=1,#c.funcE do
-								c.funcE[fe](c)
-							end
-							c.pos=c.start
-						end
-					end
-				end
-				c.spos=c.spos+1
-				if c.spos>=c.skip then
-					c.spos=0
-				end
-				ref:sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedProcess(name)
-	local c = {}
-	setmetatable(c, multi)
-	function c:newBase(ins)
-		local ct = {}
-		setmetatable(ct, self.Parent)
-		ct.Active=true
-		ct.func={}
-		ct.ender={}
-		ct.Id=0
-		ct.Act=function() end
-		ct.Parent=self
-		ct.held=false
-		ct.ref=self.ref
-		table.insert(self.Mainloop,ct)
-		return ct
-	end
-	c.Parent=self
-	c.Active=true
-	c.func={}
-	c.Id=0
-	c.Type='process'
-	c.Mainloop={}
-	c.Garbage={}
-	c.Children={}
-	c.Active=true
-	c.Id=-1
-	c.Rest=0
-	c.updaterate=.01
-	c.restRate=.1
-	c.Jobs={}
-	c.queue={}
-	c.jobUS=2
-	c.rest=false
-	function c:getController()
-		return nil
-	end
-	function c:Start()
-		self.rest=false
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:Remove()
-		self.ref:kill()
-		return self
-	end
-	function c:kill()
-		err=coroutine.yield({"_kill_"})
-		if err then
-			error("Failed to kill a thread! Exiting...")
-		end
-		return self
-	end
-	function c:sleep(n)
-		if type(n)=="function" then
-			ret=coroutine.yield({"_hold_",n})
-		elseif type(n)=="number" then
-			n = tonumber(n) or 0
-			ret=coroutine.yield({"_sleep_",n})
-		else
-			error("Invalid Type for sleep!")
-		end
-		return self
-	end
-	c.hold=c.sleep
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				ref:Sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				c:uManager()
-				ref:sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	return c
-end
-function multi:newThreadedLoop(name,func)
-	local c=self:newTBase(name)
-	c.Type='loopThread'
-	c.Start=os.clock()
-	if func then
-		c.func={func}
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:OnLoop(func)
-		table.insert(self.func,func)
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=.75
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				thread.sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				for i=1,#c.func do
-					c.func[i](os.clock()-self.Start,c)
-				end
-				thread.sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
-function multi:newThreadedEvent(name,task)
-	local c=self:newTBase(name)
-	c.Type='eventThread'
-	c.Task=task or function() end
-	function c:OnEvent(func)
-		table.insert(self.func,func)
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	c.rest=false
-	c.updaterate=0
-	c.restRate=1
-	multi:newThread(name,function(ref)
-		while true do
-			if c.rest then
-				ref:sleep(c.restRate) -- rest a bit more when a thread is paused
-			else
-				if c.Task(self) then
-					for _E=1,#c.func do
-						c.func[_E](c)
-					end
-					c:Pause()
-				end
-				ref:sleep(c.updaterate) -- lets rest a bit
-			end
-		end
-	end)
-	self:create(c)
-	return c
-end
 -- State Saving Stuff
 function multi:IngoreObject()
 	self.Ingore=true
 	return self
 end
-multi.scheduler:IngoreObject()
 function multi:ToString()
 	if self.Ingore then return end
 	local t=self.Type
 	local data;
-	print(t)
+	multi.print(t)
 	if t:sub(-6)=="Thread" then
 		data={
 			Type=t,
@@ -2349,8 +2287,6 @@ function multi:ToString()
 			important=self.important,
 			Active=self.Active,
 			ender=self.ender,
-			-- IDK if these need to be present...
-			-- Id=self.Id,
 			held=self.held,
 		}
 	else
@@ -2361,8 +2297,6 @@ function multi:ToString()
 			funcTMR=self.funcTMR,
 			important=self.important,
 			ender=self.ender,
-			-- IDK if these need to be present...
-			-- Id=self.Id,
 			held=self.held,
 		}
 	end
@@ -2418,7 +2352,7 @@ function multi:ToString()
 			set=self.set,
 		})
 	elseif t=="watcher" then
-		print("Currently cannot sterilize a watcher object!")
+		multi.print("Currently cannot sterilize a watcher object!")
 		-- needs testing
 		-- table.merge(data,{
 			-- ns=self.ns,
@@ -2475,7 +2409,7 @@ function multi:newFromString(str)
 		end
 		return self
 	elseif  t=="process" then
-		local temp=multi:newProcess()
+		local temp=multi:newProcessor()
 		local objs=handle:getBlock("n",4)
 		for i=1,objs do
 			temp:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
@@ -2513,34 +2447,6 @@ function multi:newFromString(str)
 		local item=self:newLoop()
 		table.merge(item,data)
 		return item
-	elseif t=="eventThread" then -- GOOD
-		local item=self:newThreadedEvent(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="loopThread" then -- GOOD
-		local item=self:newThreadedLoop(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="stepThread" then -- GOOD
-		local item=self:newThreadedStep(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="tloopThread" then -- GOOD
-		local item=self:newThreadedTLoop(data.name,nil,data.restN)
-		table.merge(item,data)
-		return item
-	elseif t=="tstepThread" then -- GOOD
-		local item=self:newThreadedTStep(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="updaterThread" then -- GOOD
-		local item=self:newThreadedUpdater(data.name)
-		table.merge(item,data)
-		return item
-	elseif t=="alarmThread" then -- GOOD
-		local item=self:newThreadedAlarm(data.name)
-		table.merge(item,data)
-		return item
 	end
 end
 function multi:Important(varname)
@@ -2567,19 +2473,4 @@ end
 function multi:setDefualtStateFlag(opt)
 	--
 end
-multi.dStepA = 0
-multi.dStepB = 0
-multi.dSwap = 0
-multi.deltaTarget = .05
-multi.load_updater = multi:newUpdater(2)
-multi.load_updater:Pause()
-multi.load_updater:OnUpdate(function(self)
-	if self.Parent.dSwap == 0 then
-		self.Parent.dStepA = os.clock()
-		self.Parent.dSwap = 1
-	else
-		self.Parent.dSwap = 0
-		self.Parent.dStepB = os.clock()
-	end
-end)
 return multi

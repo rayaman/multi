@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -112,30 +112,37 @@ function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a chann
 	end
 	return c
 end
+
 function multi:newSystemThreadedConnection(name,protect)
 	local c={}
+	c.name = name or error("You must provide a name for the connection object!")
+	c.protect = protect or false
+	c.idle = nil
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
-	c.name = name or error("You must supply a name for this object!")
-	c.protect = protect or false
-	c.count = 0
-	multi:newSystemThreadedQueue(name.."THREADED_CALLFIRE"):init()
-	local qsm = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNCM"):init()
-	local qs = multi:newSystemThreadedQueue(name.."THREADED_CALLSYNC"):init()
+	local connSync = multi:newSystemThreadedQueue(c.name.."_CONN_SYNC")
+	local connFire = multi:newSystemThreadedQueue(c.name.."_CONN_FIRE")
 	function c:init()
 		local multi = require("multi")
-		if multi:getPlatform()=="love2d" then
+		if love then -- lets make sure we don't reference up-values if using love2d
 			GLOBAL=_G.GLOBAL
 			sThread=_G.sThread
 		end
-		local conns = 0
-		local qF = sThread.waitFor(self.name.."THREADED_CALLFIRE"):init()
-		local qSM = sThread.waitFor(self.name.."THREADED_CALLSYNCM"):init()
-		local qS = sThread.waitFor(self.name.."THREADED_CALLSYNC"):init()
-		qSM:push("OK")
 		local conn = {}
-		conn.obj = multi:newConnection(self.protect)
-		setmetatable(conn,{__call=function(self,...) return self:connect(...) end})
+		conn.obj = multi:newConnection()
+		setmetatable(conn,{
+			__call=function(self,...)
+				return self:connect(...)
+			end
+		})
+		local ID = sThread.getID()
+		local sync = sThread.waitFor(self.name.."_CONN_SYNC"):init()
+		local fire = sThread.waitFor(self.name.."_CONN_FIRE"):init()
+		local connections = {}
+		if not multi.isMainThread then
+			connections = {0}
+		end
+		sync:push{"INIT",ID} -- Register this as an active connection!
 		function conn:connect(func)
 			return self.obj(func)
 		end
@@ -146,54 +153,98 @@ function multi:newSystemThreadedConnection(name,protect)
 			self.obj:Remove()
 		end
 		function conn:Fire(...)
-			local args = {multi.randomString(8),...}
-			for i = 1, conns do
-				qF:push(args)
+			for i = 1,#connections do
+				fire:push{connections[i],ID,{...}}
 			end
 		end
-		local lastID = ""
-		local lastCount = 0
-		multi:newThread("syncer",function()
-			while true do
-				thread.skip(1)
-				local fire = qF:peek()
-				local count = qS:peek()
-				if fire and fire[1]~=lastID then
-					lastID = fire[1]
-					qF:pop()
-					table.remove(fire,1)
-					conn.obj:Fire(unpack(fire))
-				end
-				if count and count[1]~=lastCount then
-					conns = count[2]
-					lastCount = count[1]
-					qs:pop()
+		function conn:FireTo(to,...)
+			local good = false
+			for i = 1,#connections do
+				if connections[i]==to then
+					good = true
+					break
 				end
 			end
-		end)
+			if not good then return multi.print("NonExisting Connection!") end
+			fire:push{to,ID,{...}}
+		end
+		-- FIRE {TO,FROM,{ARGS}}
+		local data
+		local clock = os.clock
+		conn.OnConnectionAdded = multi:newConnection()
+		multi:newLoop(function()
+			data = fire:peek()
+			if type(data)=="table" and data[1]==ID then
+				if data[2]==ID and conn.IgnoreSelf then
+					fire:pop()
+					return
+				end
+				fire:pop()
+				conn.obj:Fire(unpack(data[3]))
+			end
+			data = sync:peek()
+			if data~=nil and data[1]=="SYNCA" and data[2]==ID then
+				sync:pop()
+				multi.nextStep(function()
+					conn.OnConnectionAdded:Fire(data[3])
+				end)
+				table.insert(connections,data[3])
+			end
+			if type(data)=="table" and data[1]=="SYNCR" and data[2]==ID then
+				sync:pop()
+				for i=1,#connections do
+					if connections[i] == data[3] then
+						table.remove(connections,i)
+					end
+				end
+			end
+		end):setName("STConn.syncer")
 		return conn
 	end
-	multi:newThread("connSync",function()
+	local cleanUp = {}
+	multi.OnSystemThreadDied(function(ThreadID)
+		for i=1,#syncs do
+			connSync:push{"SYNCR",syncs[i],ThreadID}
+		end
+		cleanUp[ThreadID] = true
+	end)
+	multi:newThread(c.name.." Connection-Handler",function()
+		local data
+		local clock = os.clock
+		local syncs = {}
 		while true do
-			thread.skip(1)
-			local syncIN = qsm:pop()
-			if syncIN then
-				if syncIN=="OK" then
-					c.count = c.count + 1
-				else
-					c.count = c.count - 1
+			if not c.idle then
+				thread.sleep(.5)
+			else
+				if clock() - c.idle >= 15 then
+					c.idle = nil
 				end
-				local rand = math.random(1,1000000)
-				for i = 1, c.count do
-					qs:push({rand,c.count})
+				thread.skip()
+			end
+			data = connSync:peek()
+			if data~= nil and data[1]=="INIT" then
+				connSync:pop()
+				c.idle = clock()
+				table.insert(syncs,data[2])
+				for i=1,#syncs do
+					connSync:push{"SYNCA",syncs[i],data[2]}
 				end
+			end
+			data = connFire:peek()
+			if data~=nil and cleanUp[data[1]] then
+				local meh = data[1]
+				connFire:pop() -- lets remove dead thread stuff
+				multi:newAlarm(15):OnRing(function(a)
+					cleanUp[meh] = nil
+				end)
 			end
 		end
 	end)
-	GLOBAL[name]=c
+	GLOBAL[c.name]=c
 	return c
 end
-function multi:systemThreadedBenchmark(n)
+
+function multi:SystemThreadedBenchmark(n)
 	n=n or 1
 	local cores=multi.integration.THREAD.getCores()
 	local queue=multi:newSystemThreadedQueue("THREAD_BENCH_QUEUE"):init()
@@ -211,6 +262,7 @@ function multi:systemThreadedBenchmark(n)
 			multi:benchMark(n):OnBench(function(self,count)
 				queue:push(count)
 				sThread.kill()
+				error("Thread was killed!")
 			end)
 			multi:mainloop()
 		end,n)
@@ -240,6 +292,7 @@ function multi:newSystemThreadedConsole(name)
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init()
+		_G.__Needs_Multi = true
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
@@ -247,10 +300,10 @@ function multi:newSystemThreadedConsole(name)
 		end
 		local cc={}
 		if multi.isMainThread then
-			if GLOBAL["__SYSTEM_CONSLOE__"] then
-				cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+			if GLOBAL["__SYSTEM_CONSOLE__"] then
+				cc.stream = sThread.waitFor("__SYSTEM_CONSOLE__"):init()
 			else
-				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSLOE__"):init()
+				cc.stream = multi:newSystemThreadedQueue("__SYSTEM_CONSOLE__"):init()
 				multi:newLoop(function()
 					local data = cc.stream:pop()
 					if data then
@@ -261,10 +314,10 @@ function multi:newSystemThreadedConsole(name)
 							print(unpack(data))
 						end
 					end
-				end)
+				end):setName("ST.consoleSyncer")
 			end
 		else
-			cc.stream = sThread.waitFor("__SYSTEM_CONSLOE__"):init()
+			cc.stream = sThread.waitFor("__SYSTEM_CONSOLE__"):init()
 		end
 		function cc:write(msg)
 			self.stream:push({"w",tostring(msg)})
@@ -281,12 +334,14 @@ function multi:newSystemThreadedConsole(name)
 	GLOBAL[c.name]=c
 	return c
 end
+-- NEEDS WORK
 function multi:newSystemThreadedTable(name)
 	local c={}
 	c.name=name -- set the name this is important for identifying what is what
 	local sThread=multi.integration.THREAD
 	local GLOBAL=multi.integration.GLOBAL
 	function c:init() -- create an init function so we can mimic on both love2d and lanes
+		_G.__Needs_Multi = true
 		local multi = require("multi")
 		if multi:getPlatform()=="love2d" then
 			GLOBAL=_G.GLOBAL
@@ -324,14 +379,16 @@ function multi:newSystemThreadedTable(name)
 	return c
 end
 local jobqueuecount = 0
+local jqueues = {}
 function multi:newSystemThreadedJobQueue(a,b)
 	jobqueuecount=jobqueuecount+1
 	local GLOBAL=multi.integration.GLOBAL
 	local sThread=multi.integration.THREAD
 	local c = {}
 	c.numberofcores = 4
+	c.idle = nil
 	c.name = "SYSTEM_THREADED_JOBQUEUE_"..jobqueuecount
-	-- This is done to keep backwards compatability for older code
+	-- This is done to keep backwards compatibility for older code
 	if type(a)=="string" and not(b) then
 		c.name = a
 	elseif type(a)=="number" and not (b) then
@@ -343,6 +400,10 @@ function multi:newSystemThreadedJobQueue(a,b)
 		c.name = b
 		c.numberofcores = a
 	end
+	if jqueues[c.name] then
+		error("A job queue by the name: "..c.name.." already exists!")
+	end
+	jqueues[c.name] = true
 	c.isReady = false
 	c.jobnum=1
 	c.OnJobCompleted = multi:newConnection()
@@ -359,6 +420,7 @@ function multi:newSystemThreadedJobQueue(a,b)
 	end
 	c.tempQueue = {}
 	function c:pushJob(name,...)
+		c.idle = os.clock()
 		if not self.isReady then
 			table.insert(c.tempQueue,{self.jobnum,name,...})
 			self.jobnum=self.jobnum+1
@@ -370,8 +432,9 @@ function multi:newSystemThreadedJobQueue(a,b)
 		end
 	end
 	function c:doToAll(func)
+		local r = multi.randomString(12)
 		for i = 1, self.numberofcores do
-			queueDA:push{multi.randomString(12),func}
+			queueDA:push{r,func}
 		end
 	end
 	for i=1,c.numberofcores do
@@ -425,12 +488,9 @@ function multi:newSystemThreadedJobQueue(a,b)
 					end
 				end
 			end)
-			multi:newThread("Idler",function()
-				while true do
-					if os.clock()-lastjob>1 then
-						sThread.sleep(.1)
-					end
-					thread.sleep(.001)
+			multi:newLoop(function()
+				if os.clock()-lastjob>1 then
+					sThread.sleep(.1)
 				end
 			end)
 			setmetatable(_G,{
@@ -443,11 +503,11 @@ function multi:newSystemThreadedJobQueue(a,b)
 			end
 		end,c.name)
 	end
-	multi:newThread("counter",function()
-		print("thread started")
+	local clock = os.clock
+	multi:newThread("JQ-"..c.name.." Manager",function()
 		local _count = 0
 		while _count<c.numberofcores do
-			thread.skip(1)
+			thread.skip()
 			if queueCC:pop() then
 				_count = _count + 1
 			end
@@ -460,9 +520,17 @@ function multi:newSystemThreadedJobQueue(a,b)
 		c.OnReady:Fire(c)
 		local dat
 		while true do
-			thread.skip(1)
+			if not c.idle then
+				thread.sleep(.5)
+			else
+				if clock() - c.idle >= 15 then
+					c.idle = nil
+				end
+				thread.skip()
+			end
 			dat = queueJD:pop()
 			if dat then
+				c.idle = clock()
 				c.OnJobCompleted:Fire(unpack(dat))
 			end
 		end

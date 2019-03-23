@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -32,6 +32,8 @@ end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
 local multi = require("multi") -- get it all and have it on all lanes
+multi.SystemThreads = {}
+local thread = thread
 multi.isMainThread=true
 function multi:canSystemThread()
 	return true
@@ -39,10 +41,10 @@ end
 function multi:getPlatform()
 	return "lanes"
 end
--- Step 2 set up the linda objects
+-- Step 2 set up the Linda objects
 local __GlobalLinda = lanes.linda() -- handles global stuff
 local __SleepingLinda = lanes.linda() -- handles sleeping stuff
--- For convience a GLOBAL table will be constructed to handle requests
+-- For convenience a GLOBAL table will be constructed to handle requests
 local GLOBAL={}
 setmetatable(GLOBAL,{
 	__index=function(t,k)
@@ -52,7 +54,7 @@ setmetatable(GLOBAL,{
 		__GlobalLinda:set(k,v)
 	end,
 })
--- Step 3 rewrite the thread methods to use lindas
+-- Step 3 rewrite the thread methods to use Lindas
 local THREAD={}
 function THREAD.set(name,val)
 	__GlobalLinda:set(name,val)
@@ -82,6 +84,9 @@ end
 function THREAD.getCores()
 	return THREAD.__CORES
 end
+function THREAD.getThreads()
+	return GLOBAL.__THREADS__
+end
 if os.getOS()=="windows" then
 	THREAD.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
 else
@@ -93,6 +98,10 @@ end
 function THREAD.getName()
 	return THREAD_NAME
 end
+function THREAD.getID()
+	return THREAD_ID
+end
+_G.THREAD_ID = 0
 --[[ Step 4 We need to get sleeping working to handle timing... We want idle wait, not busy wait
 Idle wait keeps the CPU running better where busy wait wastes CPU cycles... Lanes does not have a sleep method
 however, a linda recieve will in fact be a idle wait! So we use that and wrap it in a nice package]]
@@ -109,36 +118,74 @@ function THREAD.hold(n)
 end
 local rand = math.random(1,10000000)
 -- Step 5 Basic Threads!
+local threads = {}
+local count = 1
+local started = false
+local livingThreads = {}
 function multi:newSystemThread(name,func,...)
+	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1,10000000)
     local c={}
     local __self=c
     c.name=name
+	c.Name = name
+	c.Id = count
+	livingThreads[count] = {true,name}
+	local THREAD_ID = count
+	count = count + 1
 	c.Type="sthread"
+	c.creationTime = os.clock()
 	local THREAD_NAME=name
 	local function func2(...)
+		local multi = require("multi")
 		_G["THREAD_NAME"]=THREAD_NAME
+		_G["THREAD_ID"]=THREAD_ID
 		math.randomseed(rand)
 		func(...)
+		if _G.__Needs_Multi then
+			multi:mainloop()
+		end
+		THREAD.kill()
 	end
     c.thread=lanes.gen("*", func2)(...)
 	function c:kill()
-		--self.status:Destroy()
 		self.thread:cancel()
-		print("Thread: '"..self.name.."' has been stopped!")
+		multi.print("Thread: '"..self.name.."' has been stopped!")
 	end
-	c.status=multi:newUpdater(multi.Priority_IDLE)
-	c.status.link=c
-	c.status:OnUpdate(function(self)
-		local v,err,t=self.link.thread:join(.001)
-		if err then
-			multi.OnError:Fire(self.link,err,"Error in systemThread: '"..self.link.name.."' <"..err..">")
-			self:Destroy()
-		end
-	end)
+	table.insert(multi.SystemThreads,c)
+	c.OnError = multi:newConnection()
+	GLOBAL["__THREADS__"]=livingThreads
     return c
 end
-print("Integrated Lanes!")
+multi.OnSystemThreadDied = multi:newConnection()
+function multi.InitSystemThreadErrorHandler()
+	if started==true then return end
+	started = true
+	multi:newThread("ThreadErrorHandler",function()
+		local threads = multi.SystemThreads
+		while true do
+			thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough. 
+			for i=#threads,1,-1 do
+				local v,err,t=threads[i].thread:join(.001)
+				if err then
+					if err:find("Thread was killed!") then
+						livingThreads[threads[i].Id] = {false,threads[i].Name}
+						multi.OnSystemThreadDied:Fire(threads[i].Id)
+						GLOBAL["__THREADS__"]=livingThreads
+						table.remove(threads,i)
+					else
+						threads[i].OnError:Fire(threads[i],err,"Error in systemThread: '"..threads[i].name.."' <"..err..">")
+						livingThreads[threads[i].Id] = {false,threads[i].Name}
+						multi.OnSystemThreadDied:Fire(threads[i].Id)
+						GLOBAL["__THREADS__"]=livingThreads
+						table.remove(threads,i)
+					end
+				end
+			end
+		end
+	end)
+end
+multi.print("Integrated Lanes!")
 multi.integration={} -- for module creators
 multi.integration.GLOBAL=GLOBAL
 multi.integration.THREAD=THREAD
