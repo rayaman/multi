@@ -1,6 +1,6 @@
 #Changes
 [TOC]
-Update 13.0.0 So you documented it, finally! If I had a dollar for each time I found a bug working on 13.0.0 I'd be quite wealthy by now. 
+Update 13.0.0 Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
 This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
@@ -15,7 +15,7 @@ Changed:
 Connection Example:
 ```lua
 loop = multi:newTLoop(function(self)
-	self:OnLoops() -- new way to Fire a connection! Only works when used on a multi object, bin objects, or any object that contains a Type parameter
+	self:OnLoops() -- new way to Fire a connection! Only works when used on a multi object, bin objects, or any object that contains a Type variable
 end,1)
 loop.OnLoops = multi:newConnection()
 loop.OnLoops(function()
@@ -53,11 +53,11 @@ Fixed:
 - Massive object management bugs which caused performance to drop like a rock.
 - Found a bug with processors not having the Destroy() function implemented properly.
 - Found an issue with the rockspec which is due to the networkManager additon. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
-- Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes futhur than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release
-- Fixed an issue where any argument greater than 256^2/65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4/4294967296 bytes. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
+- Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes futhur than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release (Im releasing 13.0.0 though this hasn't been ironed out just yet)
+- Fixed an issue where any argument greater than 256^2 or 65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4 or 4294967296. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
 - Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
 - Fixed a bug where pause and resume would duplicate objects! Not good
-- Noticed that the switching of lua states, corutine based threading, is slow when done often. Code your threads to have an idler of .5 seconds between sleep states. After doing this to a few built in threads I've seen a nice drop in performance. 68%-100% to 0%-40% when using the jobqueue. If you dont need the hold feature then use a multi object! Sleeping can be done in a multi object using timers and alarms. Though if your aim is speed timers are a bit faster than alarms, if you really want to boost speed then local clock = os.clock and use the clock function to do your timings yourself
+- Noticed that the switching of lua states, corutine based threading, is slower than multi-objs (Not by much though).
 - multi:newSystemThreadedConnection(name,protect) -- I did it! It works and I believe all the gotchas are fixed as well.
 -- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
 -- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
@@ -118,7 +118,10 @@ Table format for getTasksDetails(STRING format)
 **Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a signifacant increase in performance.
 
 **Going forward:**
-- Add something
+- Work on system threaded functions
+- work on the node manager
+- patch up bugs
+- finish documentstion
 
 Update 12.2.2 Time for some more bug fixes!
 -------------
@@ -139,7 +142,7 @@ Fixed: SystemThreadedConnection
 Removed: multi:newQueuer
 - This feature has no real use after corutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
 
-Going forward:
+Going forwardGoing forward:
 - Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
 - I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
 
