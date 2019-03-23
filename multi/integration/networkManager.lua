@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -23,7 +23,7 @@ SOFTWARE.
 ]]
 local multi = require("multi")
 local net = require("net")
-require("bin")
+local bin = require("bin")
 bin.setBitsInterface(infinabits) -- the bits interface does not work so well, another bug to fix
 
 -- Commands that the master and node will respect, max of 256 commands
@@ -42,6 +42,7 @@ local CMD_CONSOLE		= 0x0B
 
 local char = string.char
 local byte = string.byte
+-- Process to hold all of the networkManager's muilt objects
 
 -- Helper for piecing commands
 local function pieceCommand(cmd,...)
@@ -142,17 +143,20 @@ function multi:nodeManager(port)
 	server.OnDataRecieved(function(server,data,cid,ip,port)
 		local cmd = data:sub(1,1)
 		if cmd == "R" then
-			multi:newTLoop(function(loop)
-				if server.timeouts[cid]==true then
-					server.OnNodeRemoved:Fire(server.nodes[cid])
-					server.nodes[cid] = nil
-					server.timeouts[cid] = nil
-					loop:Destroy()
-					return
+			multi:newThread("Node Client Manager",function(loop)
+				while true do
+					if server.timeouts[cid]==true then
+						server.OnNodeRemoved:Fire(server.nodes[cid])
+						server.nodes[cid] = nil
+						server.timeouts[cid] = nil
+						thread.kill()
+					else
+						server.timeouts[cid] = true
+						server:send(cid,"ping")
+					end
+					thread.sleep(1)
 				end
-				server.timeouts[cid] = true
-				server:send(cid,"ping")
-			end,1)
+			end)
 			server.nodes[cid]=data:sub(2,-1)
 			server.OnNodeAdded:Fire(server.nodes[cid])
 		elseif cmd == "G" then
@@ -172,6 +176,7 @@ function multi:nodeManager(port)
 end
 -- The main driving force of the network manager: Nodes
 function multi:newNode(settings)
+	multi:enableLoadDetection()
 	settings = settings or {}
 	-- Here we have to use the net library to broadcast our node across the network
 	math.randomseed(os.time())
@@ -189,21 +194,21 @@ function multi:newNode(settings)
 	node.hasFuncs = {}
 	node.OnError = multi:newConnection()
 	node.OnError(function(node,err,master)
-		print("ERROR",err,node.name)
+		multi.print("ERROR",err,node.name)
 		local temp = bin.new()
 		temp:addBlock(#node.name,2)
 		temp:addBlock(node.name)
 		temp:addBlock(#err,2)
 		temp:addBlock(err)
 		for i,v in pairs(node.connections) do
-			print(i)
+			multi.print(i)
 			v[1]:send(v[2],char(CMD_ERROR)..temp.data,v[3])
 		end
 	end)
 	if settings.managerDetails then
 		local c = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
 		if not c then
-			print("Cannot connect to the node manager! Ensuring broadcast is enabled!") settings.noBroadCast = false
+			multi.print("Cannot connect to the node manager! Ensuring broadcast is enabled!") settings.noBroadCast = false
 		else
 			c.OnDataRecieved(function(self,data)
 				if data == "ping" then
@@ -215,7 +220,7 @@ function multi:newNode(settings)
 	end
 	if not settings.preload then
 		if node.functions:getSize()~=0 then
-			print("We have function(s) to preload!")
+			multi.print("We have function(s) to preload!")
 			local len = node.functions:getBlock("n",1)
 			local name,func
 			while len do
@@ -265,14 +270,14 @@ function multi:newNode(settings)
 			node.queue:push(resolveData(dat))
 		elseif cmd == CMD_REG then
 			if not settings.allowRemoteRegistering then
-				print(ip..": has attempted to register a function when it is currently not allowed!")
+				multi.print(ip..": has attempted to register a function when it is currently not allowed!")
 				return
 			end
 			local temp = bin.new(dat)
 			local len = temp:getBlock("n",1)
 			local name = temp:getBlock("s",len)
 			if node.hasFuncs[name] then
-				print("Function already preloaded onto the node!")
+				multi.print("Function already preloaded onto the node!")
 				return
 			end
 			len = temp:getBlock("n",2)
@@ -283,7 +288,7 @@ function multi:newNode(settings)
 			local temp = bin.new(dat)
 			local len = temp:getBlock("n",1)
 			local name = temp:getBlock("s",len)
-			len = temp:getBlock("n",2)
+			len = temp:getBlock("n",4)
 			local args = temp:getBlock("s",len)
 			_G[name](unpack(resolveData(args)))
 		elseif cmd == CMD_TASK then
@@ -299,13 +304,13 @@ function multi:newNode(settings)
 				node.OnError:Fire(node,err,server)
 			end
 		elseif cmd == CMD_INITNODE then
-			print("Connected with another node!")
+			multi.print("Connected with another node!")
 			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
 			end)-- set this up
 		elseif cmd == CMD_INITMASTER then
-			print("Connected to the master!",dat)
+			multi.print("Connected to the master!",dat)
 			node.connections[dat]={server,ip,port}
 			multi.OnGUpdate(function(k,v)
 				server:send(ip,table.concat{char(CMD_GLOBAL),k,"|",v},port)
@@ -352,7 +357,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	if settings.managerDetails then
 		local client = net:newTCPClient(settings.managerDetails[1],settings.managerDetails[2])
 		if not client then
-			print("Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
+			multi.print("Warning: Cannot connect to the node manager! Ensuring broadcast listening is enabled!") settings.noBroadCast = false
 		else
 			client.OnDataRecieved(function(client,data)
 				local cmd = data:sub(1,1)
@@ -402,7 +407,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		temp:addBlock(CMD_CALL,1)
 		temp:addBlock(#name,1)
 		temp:addBlock(name,#name)
-		temp:addBlock(#args,2)
+		temp:addBlock(#args,4)
 		temp:addBlock(args,#args)
 		master:sendTo(node,temp.data)
 	end
@@ -436,12 +441,12 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 				name = self:getRandomNode()
 			end
 			if name==nil then
-				multi:newTLoop(function(loop)
-					if name~=nil then
-						self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
-						loop:Desrtoy()
-					end
-				end,.1)
+				multi:newEvent(function() return name~=nil end):OnEvent(function(evnt)
+					self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
+					evnt:Destroy()
+				end):SetName("DelayedSendTask"):SetName("DelayedSendTask"):SetTime(8):OnTimedOut(function(self)
+					self:Destroy()
+				end)
 			else
 				self:sendTo(name,char(CMD_TASK)..len..aData..len2..fData)
 			end
@@ -455,12 +460,12 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 			name = "NODE_"..name
 		end
 		if self.connections[name]==nil then
-			multi:newTLoop(function(loop)
-				if self.connections[name]~=nil then
-					self.connections[name]:send(data)
-					loop:Destroy()
-				end
-			end,.1)
+			multi:newEvent(function() return self.connections[name]~=nil end):OnEvent(function(evnt)
+				self.connections[name]:send(data)
+				evnt:Destroy()
+			end):SetName("DelayedSendTask"):SetTime(8):OnTimedOut(function(self)
+				self:Destroy()
+			end)
 		else
 			self.connections[name]:send(data)
 		end
@@ -495,16 +500,19 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 		client.OnClientReady(function()
 			client:send(char(CMD_INITMASTER)..master.name) -- Tell the node that you are a master trying to connect
 			if not settings.managerDetails then
-				multi:newTLoop(function(loop)
-					if master.timeouts[name]==true then
-						master.timeouts[name] = nil
-						master.connections[name] = nil
-						loop:Destroy()
-						return
+				multi:newThread("Node Data Link Controller",function(loop)
+					while true do
+						if master.timeouts[name]==true then
+							master.timeouts[name] = nil
+							master.connections[name] = nil
+							thread.kill()
+						else
+							master.timeouts[name] = true
+							master:sendTo(name,char(CMD_PING))
+						end
+						thread.sleep(1)
 					end
-					master.timeouts[name] = true
-					master:sendTo(name,char(CMD_PING))
-				end,1)
+				end)
 			end
 			client.name = name
 			client.OnDataRecieved(function(client,data)
@@ -542,7 +550,7 @@ function multi:newMaster(settings) -- You will be able to have more than one mas
 	return master
 end
 -- The init function that gets returned
-print("Integrated Network Parallelism")
+multi.print("Integrated Network Parallelism")
 return {init = function()
 	return GLOBAL
 end}

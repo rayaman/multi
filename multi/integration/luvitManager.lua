@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -114,7 +114,7 @@ local function _INIT(luvitThread,timer)
 		luvitThread.start(entry,package.path,name,c.func,...)
 		return c
 	end
-	print("Integrated Luvit!")
+	multi.print("Integrated Luvit!")
 	multi.integration={} -- for module creators
 	multi.integration.GLOBAL=GLOBAL
 	multi.integration.THREAD=THREAD

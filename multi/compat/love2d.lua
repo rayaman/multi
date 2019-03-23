@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2018 Ryan Ward
+Copyright (c) 2019 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,6 +37,7 @@ multi.OnMouseMoved = multi:newConnection()
 multi.OnDraw = multi:newConnection()
 multi.OnTextInput = multi:newConnection()
 multi.OnUpdate = multi:newConnection()
+multi.OnQuit = multi:newConnection()
 multi.OnPreLoad(function()
 	local function Hook(func,conn)
 		if love[func]~=nil then
@@ -51,6 +52,7 @@ multi.OnPreLoad(function()
 			end
 		end
 	end
+	Hook("quit",multi.OnQuit)
 	Hook("keypressed",multi.OnKeyPressed)
 	Hook("keyreleased",multi.OnKeyReleased)
 	Hook("mousepressed",multi.OnMousePressed)
@@ -66,5 +68,9 @@ multi.OnPreLoad(function()
 			multi.drawF[i]()
 		end
 	end)
+end)
+multi.OnQuit(function()
+	multi.Stop()
+	love.event.quit()
 end)
 return multi

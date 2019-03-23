@@ -1,11 +1,134 @@
 #Changes
 [TOC]
-Update 12.2.2 Time for some more bug fixes! 
+Update 13.0.0 Added some documentation, and some new features too check it out!
+-------------
+**Quick note** on the 13.0.0 update:
+This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
+
+Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
+Changed: 
+- A few things, to make concepts in the library more clear.
+- The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
+- Modified the connection object to allow for some more syntaxial suger!
+- System threads now trigger an OnError connection that is a member of the object itself. multi.OnError() is no longer triggered for a system thread that crashes!
+
+Connection Example:
+```lua
+loop = multi:newTLoop(function(self)
+	self:OnLoops() -- new way to Fire a connection! Only works when used on a multi object, bin objects, or any object that contains a Type variable
+end,1)
+loop.OnLoops = multi:newConnection()
+loop.OnLoops(function()
+	print("Looping")
+end)
+multi:mainloop()
+```
+
+Function Example:
+```lua
+func = multi:newFunction(function(self,a,b)
+	self:Pause()
+	return 1,2,3
+end)
+print(func()) -- returns: 1, 2, 3
+print(func()) -- nil, true
+```
+
+Removed:
+- Ranges and conditions -- corutine based threads can emulate what these objects did and much better!
+- Due to the creation of hyper threaded processes the following objects are no more!
+-- ~~multi:newThreadedEvent()~~
+-- ~~multi:newThreadedLoop()~~
+-- ~~multi:newThreadedTLoop()~~
+-- ~~multi:newThreadedStep()~~
+-- ~~multi:newThreadedTStep()~~
+-- ~~multi:newThreadedAlarm()~~
+-- ~~multi:newThreadedUpdater()~~
+-- ~~multi:newTBase()~~ -- Acted as the base for creating the other objects
+
+These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
+
+Fixed:
+- There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
+- Massive object management bugs which caused performance to drop like a rock.
+- Found a bug with processors not having the Destroy() function implemented properly.
+- Found an issue with the rockspec which is due to the networkManager additon. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
+- Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes futhur than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release (Im releasing 13.0.0 though this hasn't been ironed out just yet)
+- Fixed an issue where any argument greater than 256^2 or 65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4 or 4294967296. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
+- Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
+- Fixed a bug where pause and resume would duplicate objects! Not good
+- Noticed that the switching of lua states, corutine based threading, is slower than multi-objs (Not by much though).
+- multi:newSystemThreadedConnection(name,protect) -- I did it! It works and I believe all the gotchas are fixed as well.
+-- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
+-- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
+
+Added:
+- Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
+- multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
+- multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
+- multi:purge() -- Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
+- multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
+- multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
+- multi:enableLoadDetection() -- Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
+- THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
+- multi.print(...) works like normal print, but only prints if the setting print is set to true
+- setting: `print` enables multi.print() to work
+- STC: IgnoreSelf defaults to false, if true a Fire command will not be sent to the self
+- STC: OnConnectionAdded(function(connID)) -- Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are genereated for you.
+- STC: FireTo(id,...) -- Described above.
+
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+local multi = require("multi")
+conn = multi:newConnector()
+conn.OnTest = multi:newConnection()
+conn.OnTest(function()
+	print("Yes!")
+end)
+test = multi:newHyperThreadedProcess("test")
+test:newTLoop(function()
+	print("HI!")
+	conn:OnTest()
+end,1)
+test:newLoop(function()
+	print("HEY!")
+	thread.sleep(.5)
+end)
+multi:newAlarm(3):OnRing(function()
+	test:Sleep(10)
+end)
+test:Start()
+multi:mainloop()
+```
+Table format for getTasksDetails(STRING format)
+```lua
+{
+	{TID = 1,Type="",Priority="",Uptime=0}
+	{TID = 2,Type="",Priority="",Uptime=0}
+	...
+    {TID = n,Type="",Priority="",Uptime=0}
+	ThreadCount = 0
+	threads={
+    	[Thread_Name]={
+        	Uptime = 0
+        }
+    }
+}
+```
+**Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a signifacant increase in performance.
+
+**Going forward:**
+- Work on system threaded functions
+- work on the node manager
+- patch up bugs
+- finish documentstion
+
+Update 12.2.2 Time for some more bug fixes!
 -------------
 Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 Thats all for this update
 
-Update 12.2.1 Time for some bug fixes! 
+Update 12.2.1 Time for some bug fixes!
 -------------
 Fixed: SystemThreadedJobQueues
 - You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!
@@ -19,7 +142,7 @@ Fixed: SystemThreadedConnection
 Removed: multi:newQueuer
 - This feature has no real use after corutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
 
-Going forward:
+Going forwardGoing forward:
 - Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
 - I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
 
