@@ -1,5 +1,8 @@
 # multi Version: 13.0.1 Bug fixes
 
+
+Found an issue? Please submit it and ill look into it!
+
 My multitasking library for lua. It is a pure lua binding, if you ignore the integrations and the love2d compat. If you find any bugs or have any issues, please let me know . **If you don't see a table of contents try using the ReadMe.html file. It is easier to navigate than readme**</br>
 
 INSTALLING
@@ -13,8 +16,11 @@ To install copy the multi folder into your environment and you are good to go</b
 If you want to use the system threads, then you'll need to install lanes!
 **or** use luarocks
 
+Because of a codependency in net libaray, if using the networkmanager you will need to install the net library sepertly
+Going forward I will include a Release zip for love2d. I do not know why I haven't done this yet
 ```
 luarocks install multi
+luarocks install lnet
 ```
 
 Discord
