@@ -1,7 +1,7 @@
-package.path="?/init.lua;?.lua;"..package.path
+--~ package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
-local GLOBAL,THREAD = require("multi.integration.lanesManager").init()
-nGLOBAL = require("multi.integration.networkManager").init()
+--~ local GLOBAL,THREAD = require("multi.integration.lanesManager").init()
+--~ nGLOBAL = require("multi.integration.networkManager").init()
 --~ local a
 --~ local clock = os.clock
 --~ function sleep(n)  -- seconds
@@ -32,6 +32,7 @@ nGLOBAL = require("multi.integration.networkManager").init()
 --~ multi.OnError(function(...)
 --~ 	print(...)
 --~ end)
+print("HI!")
 multi:mainloop{
 	protect = false,
 	print = true
