@@ -1495,8 +1495,13 @@ end
 multi:setDomainName("Threads")
 multi:setDomainName("Globals")
 local initT = false
+local threadCount = 0
 function multi:newThread(name,func)
-	if not func then return end
+	local func = func
+	if type(name) == "function" then
+		func = name
+		name = "Thread#"..threadCount
+	end
 	local c={}
 	c.ref={}
 	c.Name=name
