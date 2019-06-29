@@ -24,8 +24,8 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
-multi.Version = "13.0.0"
-multi._VERSION = "13.0.0"
+multi.Version = "13.1.0"
+multi._VERSION = "13.1.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
@@ -740,6 +740,7 @@ function multi:newConnection(protect,func)
 	local c={}
 	c.callback = func
 	c.Parent=self
+	c.lock = false
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
 		if type(t)=="table" and t.Type ~= nil then
@@ -788,8 +789,15 @@ function multi:newConnection(protect,func)
 			return self.connections[name] or self
 		end
 	end
+	function c:Lock()
+		c.lock = true
+	end
+	function c:Unlock()
+		c.lock = false
+	end
 	function c:Fire(...)
 		local ret={}
+		if self.lock then return end
 		for i=#self.func,1,-1 do
 			if self.protect then
 				local temp={pcall(self.func[i][1],...)}
@@ -822,6 +830,7 @@ function multi:newConnection(protect,func)
 			ID=self.ID,
 			Parent=self,
 			Fire=function(self,...)
+				if self.Parent.lock then return end
 --~ 				if self.Parent.FC>0 then
 --~ 					for i=1,#self.Parent.FC do
 --~ 						self.Parent.FC[i]:Fire(...)
@@ -1497,9 +1506,8 @@ multi:setDomainName("Globals")
 local initT = false
 local threadCount = 0
 function multi:newThread(name,func)
-	local func = func
+	local func = func or name
 	if type(name) == "function" then
-		func = name
 		name = "Thread#"..threadCount
 	end
 	local c={}

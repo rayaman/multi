@@ -1,5 +1,15 @@
 #Changes
 [TOC]
+Update 13.1.0 Bug fixes and some new features (Will upgrade version to 14.0.0 if significant changes are made)
+-------------
+Added: 
+- Connections:Lock() -- Prevents a connection object form being fired
+- Connections:Unlock() -- Removes the restriction imposed by conn:Lock()
+
+Fixed:
+- Minor bug with multi:newThread() in how names and functions were managed
+- 
+
 Update 13.0.0 Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
