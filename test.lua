@@ -15,16 +15,29 @@ function table.print(tbl, indent)
 		end
 	end
 end
-multi:newThread(function()
+print(#multi.SystemThreads)
+multi:newThread("Detail Updater",function()
 	while true do
 		thread.sleep(1)
+		print(multi:getTasksDetails())
 		print("-----")
-		multi:getTasksDetails("t")
+		table.print(multi:getTasksDetails("t"))
+		io.read()
 	end
+end)
+multi.OnSystemThreadDied(function(...)
+	print("why you say dead?",...)
 end)
 multi.OnError(function(...)
 	print(...)
 end)
+multi:newSystemThread("TestSystem",function()
+	while true do
+		THREAD.sleep(1)
+		print("I'm alive")
+	end
+end)
+print(#multi.SystemThreads)
 multi:mainloop{
 	protect = false,
 	print = true

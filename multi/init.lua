@@ -158,7 +158,7 @@ function multi:getLoad()
 			bench = steps
 			bb = steps
 		end)
-		while not bench do 
+		while not bench do
 			multi:uManager()
 		end
 		bench = bench^1.5
@@ -355,7 +355,7 @@ function multi:getTasksDetails(t)
 				dat2 = dat2.."<SystemThread: "..multi.SystemThreads[i].Name.." | "..os.clock()-multi.SystemThreads[i].creationTime..">\n"
 			end
 		end
-		local load,steps = multi:getLoad()
+		local load, steps = multi:getLoad()
 		if multi.scheduler then
 			for i=1,#multi.scheduler.Threads do
 				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
@@ -373,19 +373,18 @@ function multi:getTasksDetails(t)
 			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
 			SystemLoad = multi.Round(load,2),
 			CyclesPerSecondPerTask = steps,
+			SystemThreadCount = #multi.SystemThreads
 		}
-		str.threads = {}
-		str.systemthreads = {}
+		str.Threads = {}
+		str.Systemthreads = {}
 		for i,v in pairs(self.Mainloop) do
 			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
 		end
 		for i=1,#multi.scheduler.Threads do
-			str.threads[multi.scheduler.Threads[i].Name]={Uptime = os.clock()-multi.scheduler.Threads[i].creationTime}
+			table.insert(str.Threads,{Uptime = os.clock()-multi.scheduler.Threads[i].creationTime,Name = multi.scheduler.Threads[i].Name})
 		end
-		if multi.canSystemThread then
-			for i=1,#multi.SystemThreads do
-				str.systemthreads[multi.SystemThreads[i].Name]={Uptime = os.clock()-multi.SystemThreads[i].creationTime}
-			end
+		for i=1,#multi.SystemThreads do
+			table.insert(str.Systemthreads,{Uptime = os.clock()-multi.SystemThreads[i].creationTime,Name = multi.SystemThreads[i].Name})
 		end
 		return str
 	end
@@ -635,7 +634,7 @@ function multi:newProcessor(file)
 	c.Jobs={}
 	c.queue={}
 	c.jobUS=2
-	c.l=self:newLoop(function(self,dt) 
+	c.l=self:newLoop(function(self,dt)
 		if self.link.Active then
 			c:uManager()
 		end
@@ -1055,9 +1054,9 @@ function multi:newFunction(func)
 	c.func=func
 	mt={
 		__index=multi,
-		__call=function(self,...) 
-			if self.Active then 
-				return self:func(...) 
+		__call=function(self,...)
+			if self.Active then
+				return self:func(...)
 			end
 			return nil,true
 		end
@@ -1478,8 +1477,8 @@ function thread.waitFor(name)
 	return thread.get(name)
 end
 function thread.testFor(name,_val,sym)
-	thread.hold(function() 
-		local val = thread.get(name)~=nil 
+	thread.hold(function()
+		local val = thread.get(name)~=nil
 		if val then
 			if sym == "==" or sym == "=" then
 				return _val==val

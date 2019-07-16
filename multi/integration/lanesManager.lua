@@ -135,6 +135,7 @@ function multi:newSystemThread(name,func,...)
 	count = count + 1
 	c.Type="sthread"
 	c.creationTime = os.clock()
+	c.alive = true
 	local THREAD_NAME=name
 	local function func2(...)
 		local multi = require("multi")
@@ -151,6 +152,7 @@ function multi:newSystemThread(name,func,...)
 	function c:kill()
 		self.thread:cancel()
 		multi.print("Thread: '"..self.name.."' has been stopped!")
+		self.alive = false
 	end
 	table.insert(multi.SystemThreads,c)
 	c.OnError = multi:newConnection()
@@ -164,17 +166,21 @@ function multi.InitSystemThreadErrorHandler()
 	multi:newThread("ThreadErrorHandler",function()
 		local threads = multi.SystemThreads
 		while true do
-			thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough. 
+			thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
 			for i=#threads,1,-1 do
 				local v,err,t=threads[i].thread:join(.001)
 				if err then
 					if err:find("Thread was killed!") then
+						print(err)
 						livingThreads[threads[i].Id] = {false,threads[i].Name}
+						threads[i].alive = false
 						multi.OnSystemThreadDied:Fire(threads[i].Id)
 						GLOBAL["__THREADS__"]=livingThreads
 						table.remove(threads,i)
-					else
+					elseif err:find("stack traceback") then
+						print(err)
 						threads[i].OnError:Fire(threads[i],err,"Error in systemThread: '"..threads[i].name.."' <"..err..">")
+						threads[i].alive = false
 						livingThreads[threads[i].Id] = {false,threads[i].Name}
 						multi.OnSystemThreadDied:Fire(threads[i].Id)
 						GLOBAL["__THREADS__"]=livingThreads
