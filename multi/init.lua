@@ -378,7 +378,7 @@ function multi:getTasksDetails(t)
 		str.Threads = {}
 		str.Systemthreads = {}
 		for i,v in pairs(self.Mainloop) do
-			str[#str+1]={Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
+			str[#str+1]={Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = i}
 		end
 		for i=1,#multi.scheduler.Threads do
 			table.insert(str.Threads,{Uptime = os.clock()-multi.scheduler.Threads[i].creationTime,Name = multi.scheduler.Threads[i].Name})
