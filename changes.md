@@ -1,6 +1,6 @@
 # Changes
 [TOC]
-Update 13.1.0 Bug fixes and some new features (Will upgrade version to 14.0.0 if significant changes are made)
+Update 13.1.0 Bug fixes and some new features
 -------------
 Added: 
 - Connections:Lock() -- Prevents a connection object form being fired
@@ -30,6 +30,7 @@ Fixed:
 - Minor bug with multi:newThread() in how names and functions were managed
 - Major bug with the system thread handler. Saw healthy threads as dead ones
 - Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler opperates. 
+- newSystemThread()'s returned object now matches both the lanes and love2d in terms of methods that are usable. Error handling of System threads now behave the same across both love and lanes implementations.
 
 Changed: 
 - getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details

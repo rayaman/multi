@@ -311,11 +311,15 @@ function multi:newSystemThread(name,func,...) -- the main method
     local c={}
     c.name=name
 	c.Name = name
+	c.Type="sthread"
 	c.ID=c.name.."<ID|"..randomString(8)..">"
 	c.Id=count
+	c.creationTime = os.clock()
 	count = count + 1
-	livingThreads[count] = {true,name}
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
+	livingThreads[count] = {true,name}
+	livingThreads[thread] = c
+	c.OnError = multi:newConnection()
 	c.thread:start(c.ID,c.name,THREAD_ID,...)
 	function c:kill()
 		multi.integration.GLOBAL["__DIEPLZ"..self.ID.."__"]="__DIEPLZ"..self.ID.."__"
@@ -324,6 +328,7 @@ function multi:newSystemThread(name,func,...) -- the main method
 end
 function love.threaderror( thread, errorstr )
 	multi.OnError:Fire(thread,errorstr)
+	livingThreads[thread].OnError:Fire(threads[i],err,"Error in systemThread: '"..livingThreads[thread].name.."' <"..errorstr..">")
 	multi.print("Error in systemThread: "..tostring(thread)..": "..errorstr)
 end
 local THREAD={}
