@@ -12,20 +12,7 @@ Added:
 -- handle:Pause()
 -- handle:Resume()
 -- handle:Kill()
-- Basic Thread error checking.
-When creating a coroutine based thread with multi:newThread(), the library will attempt to scan through the butecode and check for while loops and the use of thread.* This is only done at thread creation. It isn't perfect, but the goal is to print a warning message that the thread may hang the multi library. This also has some flaws, if a thread function calls another function that has code that may hang the program, this quick check does not see that! Perhaps this is something I can tackle in the future.
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-multi = require("multi")
-a=0
-multi:newThread("Test",function()
-	while true do
-		a=a+1
-	end
-end)
-multi:mainloop()
--- Output: Warning! The thread created: <Test> contains a while loop which may not be confugured properly with thread.* If your code seems to hang this may be the reason!
-```
+
 Fixed:
 - Minor bug with multi:newThread() in how names and functions were managed
 - Major bug with the system thread handler. Saw healthy threads as dead ones
@@ -37,6 +24,10 @@ Changed:
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
 - thread.hold() -- As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
 - You should notice some faster code execution from threads, the changes improve preformance of threads greatly. They are now much faster than before!
+
+Removed:
+- multi:threadloop()
+-- After some reworking to how threads are managed, this feature is no longer needed
 
 # Tasks Details Table format
 ```

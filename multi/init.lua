@@ -345,14 +345,12 @@ function multi:getTasksDetails(t)
 			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
 		end
 		for v,i in pairs(multi.PausedObjects) do
-			if v.Type~="event" then
-				local name = v.Name or ""
-				if name~="" then
-					name = " <"..name..">"
-				end
-				count = count + 1
-				table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
+			local name = v.Name or ""
+			if name~="" then
+				name = " <"..name..">"
 			end
+			count = count + 1
+			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
 		end
 		if count == 0 then
 			table.insert(str,{"Currently no processes running!","","",""})
@@ -393,9 +391,7 @@ function multi:getTasksDetails(t)
 			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
 		end
 		for v,i in pairs(multi.PausedObjects) do
-			if v.Type~="event" then
-				table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
-			end
+			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
 		end
 		for i=1,#multi.scheduler.Threads do
 			table.insert(str.Threads,{Uptime = os.clock()-multi.scheduler.Threads[i].creationTime,Name = multi.scheduler.Threads[i].Name,Link = multi.scheduler.Threads[i],TID = multi.scheduler.Threads[i].TID})
@@ -1555,12 +1551,6 @@ function multi:newThread(name,func)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local g=string.dump(func)
-	if g:find("K") and not g:find("thread") then
-		print("Warning! The thread created: <"..name.."> contains a while loop which may not be confugured properly with thread.* If your code seems to hang this may be the reason!")
-	else
-		multi.print("Should be safe")
-	end
 	local c={}
 	c.ref={}
 	c.Name=name
@@ -1893,72 +1883,6 @@ function multi:newHyperThreadedProcess(name)
 	return c
 end
 -- Multi runners
-function multi:threadloop(settings)
-	multi.scheduler:Destroy() -- destroy is an interesting thing... if you dont set references to nil, then you only remove it from the mainloop
-	local Threads=multi:linkDomain("Threads")
-	local Globals=multi:linkDomain("Globals")
-	local counter=0
-	local tick = 0
-	while true do
-		tick = tick + 1
-		if tick == 1024 then
-			tick = 0
-			multi:uManager(settings)
-		end
-		counter=counter+1
-		for i=#Threads,1,-1 do
-			ret={}
-			if coroutine.status(Threads[i].thread)=="dead" then
-				table.remove(Threads,i)
-			else
-				if Threads[i].timer:Get()>=Threads[i].sleep then
-					if Threads[i].firstRunDone==false then
-						Threads[i].firstRunDone=true
-						Threads[i].timer:Start()
-						_,ret=coroutine.resume(Threads[i].thread,Threads[i].ref)
-					else
-						_,ret=coroutine.resume(Threads[i].thread,Globals)
-					end
-					if _==false then
-						multi.OnError:Fire(Threads[i],"Error in thread: <"..Threads[i].Name.."> "..ret)
-					end
-					if ret==true or ret==false then
-						ret={}
-					end
-				end
-				if ret then
-					if ret[1]=="_kill_" then
-						table.remove(Threads,i)
-					elseif ret[1]=="_sleep_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=ret[2]
-					elseif ret[1]=="_skip_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=math.huge
-						local event=multi:newEvent(function(evnt) return counter>=evnt.counter end)
-						event.link=Threads[i]
-						event.counter=counter+ret[2]
-						event:OnEvent(function(evnt)
-							evnt.link.sleep=0
-							evnt:Destroy()
-						end)
-					elseif ret[1]=="_hold_" then
-						Threads[i].timer:Reset()
-						Threads[i].sleep=math.huge
-						local event=multi:newEvent(ret[2])
-						event.link=Threads[i]
-						event:OnEvent(function(evnt)
-							evnt.link.sleep=0
-							evnt:Destroy()
-						end)
-					elseif ret.Name then
-						Globals[ret.Name]=ret.Value
-					end
-				end
-			end
-		end
-	end
-end
 function multi:mainloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
