@@ -31,7 +31,7 @@ function os.getOS()
 end
 -- Step 1 get lanes
 lanes=require("lanes").configure()
-local multi = require("multi") -- get it all and have it on all lanes
+local multi, thread = require("multi") -- get it all and have it on all lanes
 multi.SystemThreads = {}
 local thread = thread
 multi.isMainThread=true

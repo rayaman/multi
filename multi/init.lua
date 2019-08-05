@@ -24,6 +24,7 @@ SOFTWARE.
 local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
+local thread = {}
 multi.Version = "13.1.0"
 multi._VERSION = "13.1.0"
 multi.stage = "stable"
@@ -364,11 +365,11 @@ function multi:getTasksDetails(t)
 			end
 		end
 		local load, steps = multi:getLoad()
-		if multi.scheduler then
-			for i=1,#multi.scheduler.Threads do
-				dat = dat .. "<THREAD: "..multi.scheduler.Threads[i].Name.." | "..os.clock()-multi.scheduler.Threads[i].creationTime..">\n"
+		if thread.__threads then
+			for i=1,#thread.__threads do
+				dat = dat .. "<THREAD: "..thread.__threads[i].Name.." | "..os.clock()-thread.__threads[i].creationTime..">\n"
 			end
-			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#multi.scheduler.Threads.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat..dat2
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#thread.__threads.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat..dat2
 		else
 			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s..dat2
 		end
@@ -376,7 +377,7 @@ function multi:getTasksDetails(t)
 		local load,steps = multi:getLoad()
 		str = {
 			ProcessName = (self.Name or "Unnamed"),
-			ThreadCount = #multi.scheduler.Threads,
+			ThreadCount = #thread.__threads,
 			MemoryUsage = math.ceil(collectgarbage("count")),
 			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
 			SystemLoad = multi.Round(load,2),
@@ -393,8 +394,8 @@ function multi:getTasksDetails(t)
 		for v,i in pairs(multi.PausedObjects) do
 			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
 		end
-		for i=1,#multi.scheduler.Threads do
-			table.insert(str.Threads,{Uptime = os.clock()-multi.scheduler.Threads[i].creationTime,Name = multi.scheduler.Threads[i].Name,Link = multi.scheduler.Threads[i],TID = multi.scheduler.Threads[i].TID})
+		for i=1,#thread.__threads do
+			table.insert(str.Threads,{Uptime = os.clock()-thread.__threads[i].creationTime,Name = thread.__threads[i].Name,Link = thread.__threads[i],TID = thread.__threads[i].TID})
 		end
 		if multi.SystemThreads then
 			for i=1,#multi.SystemThreads do
@@ -1459,7 +1460,6 @@ function multi:newWatcher(namespace,name)
 	end
 end
 -- Threading stuff
-thread={}
 multi.GlobalVariables={}
 if os.getOS()=="windows" then
 	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
@@ -1491,12 +1491,13 @@ function thread.hold(n)
 end
 function thread.skip(n)
 	thread._Requests()
-	coroutine.yield({"_skip_",n or 0})
+	if not n then n = 1 elseif n<1 then n = 1 end
+	coroutine.yield({"_skip_",n})
 end
 function thread.kill()
 	coroutine.yield({"_kill_",":)"})
 end
-function thread.yeild()
+function thread.yield()
 	thread._Requests()
 	coroutine.yield({"_sleep_",0})
 end
@@ -1541,11 +1542,11 @@ function multi.print(...)
 		print(...)
 	end
 end
-multi:setDomainName("Threads")
-multi:setDomainName("Globals")
 local initT = false
 local threadCount = 0
 local threadid = 0
+thread.__threads = {}
+local threads = thread.__threads
 function multi:newThread(name,func)
 	local func = func or name
 	if type(name) == "function" then
@@ -1560,7 +1561,6 @@ function multi:newThread(name,func)
 	c.TID = threadid
 	c.firstRunDone=false
 	c.timer=multi:newTimer()
-	c.ref.Globals=self:linkDomain("Globals")
 	c._isPaused = false
 	function c:isPaused()
 		return self._isPaused
@@ -1613,7 +1613,7 @@ function multi:newThread(name,func)
 	function c.ref:syncGlobals(v)
 		self.Globals=v
 	end
-	table.insert(self:linkDomain("Threads"),c)
+	table.insert(threads,c)
 	if initT==false then
 		multi.initThreads()
 	end
@@ -1629,86 +1629,138 @@ function multi.initThreads()
 		self.skip=tonumber(n) or 24
 	end
 	multi.scheduler.skip=0
-	multi.scheduler.Threads=multi:linkDomain("Threads")
-	multi.scheduler.Globals=multi:linkDomain("Globals")
-	local holds = {}
-	local skips = {}
 	local t0,t1,t2,t3,t4,t5,t6
-	local ret
+	local ret,_
+	local function helper(i)
+		if ret then
+			if ret[1]=="_kill_" then
+				table.remove(threads,i)
+			elseif ret[1]=="_sleep_" then
+				threads[i].sec = ret[2]
+				threads[i].time = clock()
+				threads[i].task = "sleep"
+				threads[i].__ready = false
+				ret = nil
+			elseif ret[1]=="_skip_" then
+				threads[i].count = ret[2]
+				threads[i].pos = 0
+				threads[i].task = "skip"
+				threads[i].__ready = false
+				ret = nil
+			elseif ret[1]=="_hold_" then
+				threads[i].func = ret[2]
+				threads[i].task = "hold"
+				threads[i].__ready = false
+				ret = nil
+			end
+		end
+	end
 	multi.scheduler:OnLoop(function(self)
-		for i=#skips,1,-1 do
-			skips[i].pos = skips[i].pos + 1
-			if skips[i].count==skips[i].pos then
-				skips[i].Link.sleep=0
-				skips[i]=nil
+		for i=#threads,1,-1 do
+			if not threads[i].__started then
+				_,ret=coroutine.resume(threads[i].thread)
+				threads[i].__started = true
+				helper(i)
 			end
-		end
-		for i=#holds,1,-1 do
-			if holds[i] then
-				t0,t1,t2,t3,t4,t5,t6 = holds[i].func()
+			if not _ then
+				multi:OnError("Error in thread <"..threads[i].Name..">", ret)
+			end
+			if coroutine.status(threads[i].thread)=="dead" then
+				table.remove(threads,i)
+			elseif threads[i].task == "skip" then
+				threads[i].pos = threads[i].pos + 1
+				if threads[i].count==threads[i].pos then
+					threads[i].task = ""
+					threads[i].__ready = true
+				end
+			elseif threads[i].task == "hold" then
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
-					holds[i].Link.sleep = 0
-					holds[i].Link.returns = {t0,t1,t2,t3,t4,t5,t6}
-					holds[i]=nil
+					threads[i].task = ""
+					threads[i].__ready = true
+				end
+			elseif threads[i].task == "sleep" then
+				if clock() - threads[i].time>=threads[i].sec then
+					threads[i].task = ""
+					threads[i].__ready = true
 				end
 			end
-		end
-		for i=#self.Threads,1,-1 do
-			if coroutine.status(self.Threads[i].thread)=="dead" then
-				table.remove(self.Threads,i)
-			else
-				if self.Threads[i].timer:Get()>=self.Threads[i].sleep then
-					if self.Threads[i].firstRunDone==false then
-						self.Threads[i].firstRunDone=true
-						self.Threads[i].timer:Start()
-						if unpack(self.Threads[i].returns or {}) then
-							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
-						else
-							_,ret=coroutine.resume(self.Threads[i].thread,self.Threads[i].ref)
-						end
-					else
-						if unpack(self.Threads[i].returns or {}) then
-							_,ret=coroutine.resume(self.Threads[i].thread,unpack(self.Threads[i].returns))
-						else
-							_,ret=coroutine.resume(self.Threads[i].thread,self.Globals)
-						end
-					end
-					if _==false then
-						self.Parent.OnError:Fire(self.Threads[i],"Error in thread: <"..self.Threads[i].Name.."> "..ret)
-					end
-					if ret==true or ret==false then
-						multi.print("Thread Ended!!!")
-						ret=nil
-					end
-				end
-				if ret then
-					if ret[1]=="_kill_" then
-						table.remove(self.Threads,i)
-					elseif ret[1]=="_sleep_" then
-						self.Threads[i].timer:Reset()
-						self.Threads[i].sleep=ret[2]
-					elseif ret[1]=="_skip_" then
-						self.Threads[i].timer:Reset()
-						self.Threads[i].sleep=math.huge
-						table.insert(skips,{
-							Link = self.Threads[i],
-							count = ret[2],
-							pos = 0,
-						})
-					elseif ret[1]=="_hold_" then
-						self.Threads[i].timer:Reset()
-						self.Threads[i].sleep=math.huge
-						table.insert(holds,{
-							Link = self.Threads[i],
-							func = ret[2]
-						})
-					elseif ret.Name then
-						self.Globals[ret.Name]=ret.Value
-					end
-				end
+			if threads[i].__ready then
+				threads[i].__ready = false
+				_,ret=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
 			end
+			helper(i)
 		end
 	end)
+end
+function multi:threadloop()
+	initT = true
+	multi.scheduler=multi:newLoop():setName("multi.thread")
+	multi.scheduler.Type="scheduler"
+	function multi.scheduler:setStep(n)
+		self.skip=tonumber(n) or 24
+	end
+	multi.scheduler.skip=0
+	local t0,t1,t2,t3,t4,t5,t6
+	local ret,_
+	local function helper(i)
+		if ret then
+			if ret[1]=="_kill_" then
+				table.remove(threads,i)
+			elseif ret[1]=="_sleep_" then
+				threads[i].sec = ret[2]
+				threads[i].time = clock()
+				threads[i].task = "sleep"
+				threads[i].__ready = false
+				ret = nil
+			elseif ret[1]=="_skip_" then
+				threads[i].count = ret[2]
+				threads[i].pos = 0
+				threads[i].task = "skip"
+				threads[i].__ready = false
+				ret = nil
+			elseif ret[1]=="_hold_" then
+				threads[i].func = ret[2]
+				threads[i].task = "hold"
+				threads[i].__ready = false
+				ret = nil
+			end
+		end
+	end
+	while true do
+		for i=#threads,1,-1 do
+			if not threads[i].__started then
+				_,ret=coroutine.resume(threads[i].thread)
+				threads[i].__started = true
+				helper(i)
+			end
+			if coroutine.status(threads[i].thread)=="dead" then
+				table.remove(threads,i)
+			elseif threads[i].task == "skip" then
+				threads[i].pos = threads[i].pos + 1
+				if threads[i].count==threads[i].pos then
+					threads[i].task = ""
+					threads[i].__ready = true
+				end
+			elseif threads[i].task == "hold" then
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
+				if t0 then
+					threads[i].task = ""
+					threads[i].__ready = true
+				end
+			elseif threads[i].task == "sleep" then
+				if clock() - threads[i].time>=threads[i].sec then
+					threads[i].task = ""
+					threads[i].__ready = true
+				end
+			end
+			if threads[i].__ready then
+				threads[i].__ready = false
+				_,ret=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+			end
+			helper(i)
+		end
+	end
 end
 multi.OnError=multi:newConnection()
 function multi:newThreadedProcess(name)
@@ -2498,4 +2550,7 @@ end
 function multi:setDefualtStateFlag(opt)
 	--
 end
-return multi
+if not(multi.Version == "13.2.0" or multi.Version == "14.0.0") then
+	_G.thread = thread 
+end
+return multi, thread

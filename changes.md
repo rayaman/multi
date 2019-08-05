@@ -1,14 +1,14 @@
 # Changes
 [TOC]
-Update 13.1.0 Bug fixes and some new features
+Update 13.1.0 Bug fixes and features added
 -------------
 Added: 
 - Connections:Lock() -- Prevents a connection object form being fired
 - Connections:Unlock() -- Removes the restriction imposed by conn:Lock()
-- new fucntion added to the thread namespace
+- new fucntions added to the thread namespace
 -- thread.request(THREAD handle,STRING cmd,VARARGS args) -- allows you to push thread requests from outside the running thread! Extremely powerful.
 -- thread.exec(FUNCTION func) -- Allows you to push code to run within the thread execution block!
-- handle = multi:newThread() now returns a thread handle to interact with the object
+- handle = multi:newThread() -- now returns a thread handle to interact with the object outside fo the thread
 -- handle:Pause()
 -- handle:Resume()
 -- handle:Kill()
@@ -18,16 +18,16 @@ Fixed:
 - Major bug with the system thread handler. Saw healthy threads as dead ones
 - Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler opperates. 
 - newSystemThread()'s returned object now matches both the lanes and love2d in terms of methods that are usable. Error handling of System threads now behave the same across both love and lanes implementations.
+- looks like I found a typo, thread.yeild -> thread.yield
 
 Changed: 
 - getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
 - thread.hold() -- As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
 - You should notice some faster code execution from threads, the changes improve preformance of threads greatly. They are now much faster than before!
+- multi:threadloop() -- No longer runs normal multi objects at all! The new change completely allows the multi objects to be seperated from the thread objects!
+- local multi, thread = require("multi") -- Since coroutine based threading has seen a change to how it works, requring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
 
-Removed:
-- multi:threadloop()
--- After some reworking to how threads are managed, this feature is no longer needed
 
 # Tasks Details Table format
 ```

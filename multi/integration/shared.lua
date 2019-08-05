@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-multi = require("multi")
+multi, thread = require("multi")
 function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
 	local c={} -- where we will store our object
 	c.name=name -- set the name this is important for the love2d side

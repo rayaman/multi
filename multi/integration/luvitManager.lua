@@ -35,7 +35,7 @@ local function _INIT(luvitThread,timer)
 		end
 	end
 	-- Step 1 get setup threads on luvit... Sigh how do i even...
-	local multi = require("multi")
+	local multi, thread = require("multi")
 	isMainThread=true
 	function multi:canSystemThread()
 		return true

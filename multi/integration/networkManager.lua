@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-local multi = require("multi")
+local multi, thread = require("multi")
 local net = require("net")
 local bin = require("bin")
 bin.setBitsInterface(infinabits) -- the bits interface does not work so well, another bug to fix
