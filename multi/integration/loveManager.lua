@@ -318,7 +318,7 @@ function multi:newSystemThread(name,func,...) -- the main method
 	count = count + 1
     c.thread=love.thread.newThread(multi.integration.love2d.ThreadBase:gsub("INSERT_USER_CODE",dump(func)))
 	livingThreads[count] = {true,name}
-	livingThreads[thread] = c
+	livingThreads[c.thread] = c
 	c.OnError = multi:newConnection()
 	c.thread:start(c.ID,c.name,THREAD_ID,...)
 	function c:kill()
