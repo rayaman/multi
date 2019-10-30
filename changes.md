@@ -1,5 +1,38 @@
 # Changes
 [TOC]
+Update 14.0.0 Consistency and stability
+-------------
+Added:
+- multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
+- thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
+- thread.holdWithin(NUMBER; cycles,FUNCTION; condition) -- Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
+**Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
+
+Fixed:
+- Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
+- An internal mismanagement of the treads scheduler was fixed. Now it should be quicker and free of bugs
+- Thread error management is the integrations was not properly implemented. This is now fixed
+- 
+
+Changed:
+- Ties in to the new function that has been added multi.init()
+```lua
+local multi, thread = require("multi").init() -- The require multi function still returns the multi object like before
+```
+Note: Using init allows you to get access to the thread handle. This was done because thread was modifying the global space as well as multi. I wanted to not modify the global space anymore.
+internally most of your code can stay the same, you only need to change how the library is required. I do toy a bit with the global space, buy I use a variable name that is invalid as a variable name. The variable name is  $multi. This is used internally to keep some records and maintain a clean space
+
+Also when using intergrations things now look more consistant.
+```lua
+local multi, thread = require("multi").init()
+local GLOBSL, THREAD = require("multi.integration.lanesManager").init() -- or whichever manager you are using
+local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
+```
+Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
+
+Going forward:
+- Sterlization is still being worked on. I was planning of having a way to save state of multi objects and such, but that isn't possible without knowing how your code is strutured or if it is even made to handle something like that. So I decided on giving a tostirng/tofile method for each multi object as well as a fromstring/fromfile method for use. This is technically in the code already, but not documented. It has actually been in the code for a while, but its not done just yet and I want to make it perfect before sending it out.
+
 Update 13.1.0 Bug fixes and features added
 -------------
 Added: 

@@ -25,6 +25,9 @@ local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
 local thread = {}
+if not _G["$multi"] then
+	_G["$multi"] = {multi=multi,thread=thread}
+end
 multi.Version = "13.1.0"
 multi._VERSION = "13.1.0"
 multi.stage = "stable"
@@ -78,6 +81,9 @@ multi.PriorityTick=1 -- Between 1, 2 and 4
 multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
+function multi.init()
+	return _G["$multi"].multi,_G["$multi"].thread
+end
 function multi.queuefinal(self)
 	self:Destroy()
 	if self.Parent.Mainloop[#self.Parent.Mainloop] then
@@ -758,6 +764,9 @@ function multi:newConnector()
 	local c = {Type = "connector"}
 	return c
 end
+local CRef = {
+	Fire = function() end
+}
 function multi:newConnection(protect,func)
 	local c={}
 	c.callback = func
@@ -802,11 +811,9 @@ function multi:newConnection(protect,func)
 		return self
 	end
 	c.FConnect=c.fConnect
-	function c:getConnection(name,ingore)
-		if ingore then
-			return self.connections[name] or {
-				Fire=function() return end -- if the connection doesn't exist lets call all of them or silently ignore
-			}
+	function c:getConnection(name,ignore)
+		if ignore then
+			return self.connections[name] or CRef
 		else
 			return self.connections[name] or self
 		end
@@ -1489,6 +1496,10 @@ function thread.hold(n)
 	thread._Requests()
 	return coroutine.yield({"_hold_",n or function() return true end})
 end
+function thread.holdFor(sec,n)
+	thread._Requests()
+	return coroutine.yield({"_holdF_", sec, n or function() return true end})
+end
 function thread.skip(n)
 	thread._Requests()
 	if not n then n = 1 elseif n<1 then n = 1 end
@@ -1652,6 +1663,13 @@ function multi.initThreads()
 				threads[i].task = "hold"
 				threads[i].__ready = false
 				ret = nil
+			elseif ret[1]=="_holdF_" then
+				threads[i].sec = ret[2]
+				threads[i].func = ret[3]
+				threads[i].task = "holdF"
+				threads[i].time = clock()
+				threads[i].__ready = false
+				ret = nil
 			end
 		end
 	end
@@ -1684,8 +1702,19 @@ function multi.initThreads()
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
+			elseif threads[i].task == "holdF" then
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
+				if t0 then
+					threads[i].task = ""
+					threads[i].__ready = true
+				elseif clock() - threads[i].time>=threads[i].sec then
+					threads[i].task = ""
+					threads[i].__ready = true
+					t0 = nil
+					t1 = "TIMEOUT"
+				end
 			end
-			if threads[i].__ready then
+			if threads[i] and threads[i].__ready then
 				threads[i].__ready = false
 				_,ret=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
 			end
@@ -1724,6 +1753,13 @@ function multi:threadloop()
 				threads[i].task = "hold"
 				threads[i].__ready = false
 				ret = nil
+			elseif ret[1]=="_holdF_" then
+				threads[i].sec = ret[2]
+				threads[i].func = ret[3]
+				threads[i].task = "holdF"
+				threads[i].time = clock()
+				threads[i].__ready = false
+				ret = nil
 			end
 		end
 	end
@@ -1752,6 +1788,17 @@ function multi:threadloop()
 				if clock() - threads[i].time>=threads[i].sec then
 					threads[i].task = ""
 					threads[i].__ready = true
+				end
+			elseif threads[i].task == "holdF" then
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
+				if t0 then
+					threads[i].task = ""
+					threads[i].__ready = true
+				elseif clock() - threads[i].time>=threads[i].sec then
+					threads[i].task = ""
+					threads[i].__ready = true
+					t0 = nil
+					t1 = "TIMEOUT"
 				end
 			end
 			if threads[i].__ready then
@@ -2550,7 +2597,4 @@ end
 function multi:setDefualtStateFlag(opt)
 	--
 end
-if not(multi.Version == "13.2.0" or multi.Version == "14.0.0") then
-	_G.thread = thread 
-end
-return multi, thread
+return multi
