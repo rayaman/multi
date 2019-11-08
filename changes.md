@@ -7,6 +7,11 @@ Added:
 - thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
 - thread.holdWithin(NUMBER; cycles,FUNCTION; condition) -- Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
 **Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
+- thread objects got an addition!
+-- tobj.OnDeath(self,status,returns[...]) -- This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
+-- tobj.OnError(self,error) -- returns a reference to self and the error as a string
+-- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 6 max.
+- thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function
 
 Fixed:
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.

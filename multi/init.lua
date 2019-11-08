@@ -28,8 +28,8 @@ local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
-multi.Version = "13.1.0"
-multi._VERSION = "13.1.0"
+multi.Version = "14.0.0"
+multi._VERSION = "14.0.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
@@ -1500,6 +1500,10 @@ function thread.holdFor(sec,n)
 	thread._Requests()
 	return coroutine.yield({"_holdF_", sec, n or function() return true end})
 end
+function thread.holdWithin(skip,n)
+	thread._Requests()
+	return coroutine.yield({"_holdW_", skip, n or function() return true end})
+end
 function thread.skip(n)
 	thread._Requests()
 	if not n then n = 1 elseif n<1 then n = 1 end
@@ -1528,6 +1532,16 @@ end
 function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
+end
+function thread.run(func)
+	local threaddata,t2,t3,t4,t5,t6
+	local t = multi:newThread("Temp_Thread",func)
+	t.OnDeath(function(self,status, r1,r2,r3,r4,r5,r6)
+		threaddata,t2,t3,t4,t5,t6 = r1,r2,r3,r4,r5,r6
+	end)
+	return thread.hold(function()
+		return threaddata,t2,t3,t4,t5,t6
+	end)
 end
 function thread.testFor(name,_val,sym)
 	thread.hold(function()
@@ -1573,6 +1587,9 @@ function multi:newThread(name,func)
 	c.firstRunDone=false
 	c.timer=multi:newTimer()
 	c._isPaused = false
+	c.returns = {}
+	c.OnError = multi:newConnection()
+	c.OnDeath = multi:newConnection()
 	function c:isPaused()
 		return self._isPaused
 	end
@@ -1598,7 +1615,6 @@ function multi:newThread(name,func)
 	c.Destroy = c.Kill
 	function c.ref:send(name,val)
 		ret=coroutine.yield({Name=name,Value=val})
-		self:syncGlobals(ret)
 	end
 	function c.ref:get(name)
 		return self.Globals[name]
@@ -1612,11 +1628,9 @@ function multi:newThread(name,func)
 	function c.ref:sleep(n)
 		if type(n)=="function" then
 			ret=coroutine.yield({"_hold_",n})
-			self:syncGlobals(ret)
 		elseif type(n)=="number" then
 			n = tonumber(n) or 0
 			ret=coroutine.yield({"_sleep_",n})
-			self:syncGlobals(ret)
 		else
 			error("Invalid Type for sleep!")
 		end
@@ -1641,11 +1655,14 @@ function multi.initThreads()
 	end
 	multi.scheduler.skip=0
 	local t0,t1,t2,t3,t4,t5,t6
+	local r1,r2,r3,r4,r5,r6
 	local ret,_
 	local function helper(i)
-		if ret then
+		if type(ret)=="table" then
 			if ret[1]=="_kill_" then
+				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6)
 				table.remove(threads,i)
+				ret = nil
 			elseif ret[1]=="_sleep_" then
 				threads[i].sec = ret[2]
 				threads[i].time = clock()
@@ -1670,20 +1687,29 @@ function multi.initThreads()
 				threads[i].time = clock()
 				threads[i].__ready = false
 				ret = nil
+			elseif ret[1]=="_holdW_" then
+				threads[i].count = ret[2]
+				threads[i].pos = 0
+				threads[i].func = ret[3]
+				threads[i].task = "holdW"
+				threads[i].time = clock()
+				threads[i].__ready = false
+				ret = nil
 			end
 		end
 	end
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
-				_,ret=coroutine.resume(threads[i].thread)
+				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread)
 				threads[i].__started = true
 				helper(i)
 			end
 			if not _ then
-				multi:OnError("Error in thread <"..threads[i].Name..">", ret)
+				threads[i].OnError:Fire(threads[i],ret)
 			end
 			if coroutine.status(threads[i].thread)=="dead" then
+				threads[i].OnDeath:Fire(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
 				table.remove(threads,i)
 			elseif threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
@@ -1713,10 +1739,22 @@ function multi.initThreads()
 					t0 = nil
 					t1 = "TIMEOUT"
 				end
+			elseif threads[i].task == "holdW" then
+				threads[i].pos = threads[i].pos + 1
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
+				if t0 then
+					threads[i].task = ""
+					threads[i].__ready = true
+				elseif threads[i].count==threads[i].pos then
+					threads[i].task = ""
+					threads[i].__ready = true
+					t0 = nil
+					t1 = "TIMEOUT"
+				end
 			end
 			if threads[i] and threads[i].__ready then
 				threads[i].__ready = false
-				_,ret=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
 			end
 			helper(i)
 		end
@@ -1731,11 +1769,14 @@ function multi:threadloop()
 	end
 	multi.scheduler.skip=0
 	local t0,t1,t2,t3,t4,t5,t6
+	local r1,r2,r3,r4,r5,r6
 	local ret,_
 	local function helper(i)
 		if ret then
 			if ret[1]=="_kill_" then
+				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6)
 				table.remove(threads,i)
+				ret = nil
 			elseif ret[1]=="_sleep_" then
 				threads[i].sec = ret[2]
 				threads[i].time = clock()
@@ -1760,17 +1801,29 @@ function multi:threadloop()
 				threads[i].time = clock()
 				threads[i].__ready = false
 				ret = nil
+			elseif ret[1]=="_holdW_" then
+				threads[i].count = ret[2]
+				threads[i].pos = 0
+				threads[i].func = ret[3]
+				threads[i].task = "holdW"
+				threads[i].time = clock()
+				threads[i].__ready = false
+				ret = nil
 			end
 		end
 	end
 	while true do
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
-				_,ret=coroutine.resume(threads[i].thread)
+				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread)
 				threads[i].__started = true
 				helper(i)
 			end
+			if not _ then
+				threads[i].OnError:Fire(threads[i],ret)
+			end
 			if coroutine.status(threads[i].thread)=="dead" then
+				threads[i].OnDeath(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
 				table.remove(threads,i)
 			elseif threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
@@ -1800,10 +1853,22 @@ function multi:threadloop()
 					t0 = nil
 					t1 = "TIMEOUT"
 				end
+			elseif threads[i].task == "holdW" then
+				threads[i].pos = threads[i].pos + 1
+				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
+				if t0 then
+					threads[i].task = ""
+					threads[i].__ready = true
+				elseif threads[i].count==threads[i].pos then
+					threads[i].task = ""
+					threads[i].__ready = true
+					t0 = nil
+					t1 = "TIMEOUT"
+				end
 			end
-			if threads[i].__ready then
+			if threads[i] and threads[i].__ready then
 				threads[i].__ready = false
-				_,ret=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
 			end
 			helper(i)
 		end
