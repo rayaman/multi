@@ -1,6 +1,6 @@
 # Changes
 [TOC]
-Update 14.0.0 Consistency and stability
+Update 14.0.0 Consistency, stability and some new features
 -------------
 Added:
 - multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
@@ -12,6 +12,15 @@ Added:
 -- tobj.OnError(self,error) -- returns a reference to self and the error as a string
 -- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 6 max.
 - thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function
+- thread:newFunction(FUNCTION; func)
+-- returns a function that gives you the option to wait or connect to the returns of the function.
+-- func().wait() -- only works when within a coroutine based thread
+-- func().connect() -- this can work outside of of a coroutine based thread
+-- func() -- If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
+-- If the created function encounters an error, it will return nil, the error message!
+- special variable multi.NIL was added to allow error handling in threaded functions.
+-- multi.NIL can be used in to force a nil value when using thread.hold()
+- All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features
 
 Fixed:
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.

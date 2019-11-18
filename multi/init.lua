@@ -49,6 +49,7 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
+math.randomseed(os.time())
 local mainloopActive = false
 local isRunning = false
 local next
@@ -82,6 +83,7 @@ multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
 function multi.init()
+	multi.NIL = {Type="NIL"}
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 function multi.queuefinal(self)
@@ -1533,6 +1535,32 @@ function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
+function thread:newFunction(func)
+    local c = {}
+    c.__call = function(self,...)
+        local rets, err
+        local t = multi:newThread("TempThread",func)
+		t.OnDeath(function(self,status,...) rets = {...}  end)
+		t.OnError(function(self,e) err = e end)
+        return  {
+			wait = function() 
+				return thread.hold(function()
+						if err then 
+							return multi.NIL, err
+						elseif rets then
+							return unpack(rets) 
+						end
+					end)
+				end,
+			connect = function(f) 
+				t.OnDeath(function(self,status,...) f(...) end) 
+				t.OnError(function(self,err) f(self, err) end) 
+			end
+        }
+    end
+    setmetatable(c,c)
+    return c
+end
 function thread.run(func)
 	local threaddata,t2,t3,t4,t5,t6
 	local t = multi:newThread("Temp_Thread",func)
@@ -1577,6 +1605,18 @@ function multi:newThread(name,func)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
+	local env = {}
+	setmetatable(env,{
+		__index = _G,
+		__newindex = function(t,k,v)
+			if type(v)=="function" then
+				rawset(t,k,thread:newFunction(v))
+			else
+				rawset(t,k,v)
+			end
+		end
+	})
+	setfenv(func,env)
 	local c={}
 	c.ref={}
 	c.Name=name
@@ -1720,6 +1760,9 @@ function multi.initThreads()
 			elseif threads[i].task == "hold" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
+					if t0==multi.NIL then
+						t0 = nil
+					end
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
