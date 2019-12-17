@@ -11,7 +11,7 @@ Added:
 -- tobj.OnDeath(self,status,returns[...]) -- This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
 -- tobj.OnError(self,error) -- returns a reference to self and the error as a string
 -- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 6 max.
-- thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function
+- thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function -- Use thread newfunctions for a more powerful version of thread.run()
 - thread:newFunction(FUNCTION; func)
 -- returns a function that gives you the option to wait or connect to the returns of the function.
 -- func().wait() -- only works when within a coroutine based thread
@@ -20,13 +20,58 @@ Added:
 -- If the created function encounters an error, it will return nil, the error message!
 - special variable multi.NIL was added to allow error handling in threaded functions.
 -- multi.NIL can be used in to force a nil value when using thread.hold()
-- All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features
+- All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features. **Note:** these functions are local to the function! And are only converted if they aren't set as local! Otherwise the function
+
+thread newFunction
+```lua
+func=thread:newFunction(function(...)
+    print("Function running...")
+    thread.sleep(1)
+    return {1,2,3},"done"
+end)
+multi:newThread("Test",function()
+	func().connect(function(...)
+    	print(...)
+    end)
+end)
+----OUTPUT----
+> Function running...
+> table: 0x008cf340       done    nil     nil     nil     nil     nil
+```
+
+thread newFunction using auto convert
+```lua
+package.path = "./?/init.lua;" .. package.path
+multi, thread = require("multi").init()
+a=5
+multi:newThread("Test",function()
+    function hmm() -- Auto converted into a threaded function
+        return "Hello!",2
+    end
+    print(a)
+    a=10
+    print(hmm().wait())
+end)
+multi:newAlarm(3):OnRing(function()
+    print(a)
+end)
+print(hmm)
+multi:mainloop()
+-----OUTPUT-----
+> nil
+> 5
+> Hello!  2       nil     nil     nil     nil     nil -- The way I manage function returns is by allocating them to predefined locals. Because I pass these values regardless they technically get passed even when they are nil. This choice was made to keep the creation of tables to capture arguments then using unpack to pass them on when processing is done 
+> 10
+```
 
 Fixed:
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
 - An internal mismanagement of the treads scheduler was fixed. Now it should be quicker and free of bugs
 - Thread error management is the integrations was not properly implemented. This is now fixed
-- 
+
+Removed:
+- multi:newWatcher() -- No real use
+- multi:newCustomObject() -- No real use
 
 Changed:
 - Ties in to the new function that has been added multi.init()
@@ -45,7 +90,7 @@ local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
 Going forward:
-- Sterlization is still being worked on. I was planning of having a way to save state of multi objects and such, but that isn't possible without knowing how your code is strutured or if it is even made to handle something like that. So I decided on giving a tostirng/tofile method for each multi object as well as a fromstring/fromfile method for use. This is technically in the code already, but not documented. It has actually been in the code for a while, but its not done just yet and I want to make it perfect before sending it out.
+- Do not expect anything new from the next update. I have a bunch of bugs to iron out. Most pertainint to network and system threading. Maybe 
 
 Update 13.1.0 Bug fixes and features added
 -------------

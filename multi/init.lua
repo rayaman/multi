@@ -952,27 +952,6 @@ function multi.nextStep(func)
 end
 multi.OnPreLoad=multi:newConnection()
 --Core Actors
-function multi:newCustomObject(objRef,isActor)
-	local c={}
-	if isActor then
-		c=self:newBase()
-		if type(objRef)=='table' then
-			table.merge(c,objRef)
-		end
-		if not c.Act then
-			function c:Act()
-				-- Empty function
-			end
-		end
-	else
-		c=objRef or {}
-	end
-	if not c.Type then
-		c.Type='coustomObject'
-	end
-	self:create(c)
-	return c
-end
 function multi:newEvent(task)
 	local c=self:newBase()
 	c.Type='event'
@@ -1434,40 +1413,6 @@ function multi:newTimeStamper()
 	self:create(c)
 	return c
 end
-function multi:newWatcher(namespace,name)
-	local function WatcherObj(ns,n)
-		if self.Type=='queue' then
-			multi.print("Cannot create a watcher on a queue! Creating on 'multi' instead!")
-			self=multi
-		end
-		local c=self:newBase()
-		c.Type='watcher'
-		c.ns=ns
-		c.n=n
-		c.cv=ns[n]
-		function c:OnValueChanged(func)
-			table.insert(self.func,func)
-			return self
-		end
-		function c:Act()
-			if self.cv~=self.ns[self.n] then
-				for i=1,#self.func do
-					self.func[i](self,self.cv,self.ns[self.n])
-				end
-				self.cv=self.ns[self.n]
-			end
-		end
-		self:create(c)
-		return c
-	end
-	if type(namespace)~='table' and type(namespace)=='string' then
-		return WatcherObj(_G,namespace)
-	elseif type(namespace)=='table' and (type(name)=='string' or 'number') then
-		return WatcherObj(namespace,name)
-	else
-		multi.print('Warning, invalid arguments! Nothing returned!')
-	end
-end
 -- Threading stuff
 multi.GlobalVariables={}
 if os.getOS()=="windows" then
@@ -1536,27 +1481,33 @@ function thread.waitFor(name)
 	return thread.get(name)
 end
 function thread:newFunction(func)
-    local c = {}
+    local c = {Type = "tfunc"}
     c.__call = function(self,...)
-        local rets, err
-        local t = multi:newThread("TempThread",func)
+		local rets, err
+		local function wait() 
+			return thread.hold(function()
+				if err then
+					return multi.NIL, err
+				elseif rets then
+					return unpack(rets) 
+				end
+			end)
+		end
+        local t = multi:newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
-        return  {
-			wait = function() 
-				return thread.hold(function()
-						if err then 
-							return multi.NIL, err
-						elseif rets then
-							return unpack(rets) 
-						end
-					end)
-				end,
-			connect = function(f) 
-				t.OnDeath(function(self,status,...) f(...) end) 
-				t.OnError(function(self,err) f(self, err) end) 
-			end
-        }
+		--if thread.isThread() then
+		--	return wait()
+		--else
+			return  {
+				isTFunc = true,
+				wait = wait,
+				connect = function(f) 
+					t.OnDeath(function(self,status,...) f(...) end) 
+					t.OnError(function(self,err) f(self, err) end) 
+				end
+			}
+		--end
     end
     setmetatable(c,c)
     return c
@@ -1600,24 +1551,26 @@ local threadCount = 0
 local threadid = 0
 thread.__threads = {}
 local threads = thread.__threads
-function multi:newThread(name,func)
+local Gref = _G
+function multi:newThread(name,func,...)
 	local func = func or name
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
 	local env = {}
 	setmetatable(env,{
-		__index = _G,
+		__index = Gref,
 		__newindex = function(t,k,v)
 			if type(v)=="function" then
 				rawset(t,k,thread:newFunction(v))
 			else
-				rawset(t,k,v)
+				Gref[k]=v
 			end
 		end
 	})
 	setfenv(func,env)
 	local c={}
+	c.startArgs = {...}
 	c.ref={}
 	c.Name=name
 	c.thread=coroutine.create(func)
@@ -1741,7 +1694,7 @@ function multi.initThreads()
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
-				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread)
+				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
 				threads[i].__started = true
 				helper(i)
 			end

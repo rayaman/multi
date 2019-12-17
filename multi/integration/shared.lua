@@ -25,95 +25,20 @@ local multi, thread = require("multi").init()
 function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
 	local c = {} -- where we will store our object
 	c.name = name -- set the name this is important for the love2d side
-	if love then -- check love
-		if love.thread then -- make sure we can use the threading module
-			function c:init() -- create an init function so we can mimic on both love2d and lanes
-				self.chan = love.thread.getChannel(self.name) -- create channel by the name self.name
-				function self:push(v) -- push to the channel
-					local tab
-					if type(v) == "table" then
-						tab = {}
-						for i, c in pairs(v) do
-							if type(c) == "function" then
-								tab[i] = "\1" .. string.dump(c)
-							else
-								tab[i] = c
-							end
-						end
-						self.chan:push(tab)
-					else
-						self.chan:push(c)
-					end
-				end
-				function self:pop() -- pop from the channel
-					local v = self.chan:pop()
-					if not v then
-						return
-					end
-					if type(v) == "table" then
-						tab = {}
-						for i, c in pairs(v) do
-							if type(c) == "string" then
-								if c:sub(1, 1) == "\1" then
-									tab[i] = loadstring(c:sub(2, -1))
-								else
-									tab[i] = c
-								end
-							else
-								tab[i] = c
-							end
-						end
-						return tab
-					else
-						return self.chan:pop()
-					end
-				end
-				function self:peek()
-					local v = self.chan:peek()
-					if not v then
-						return
-					end
-					if type(v) == "table" then
-						tab = {}
-						for i, c in pairs(v) do
-							if type(c) == "string" then
-								if c:sub(1, 1) == "\1" then
-									tab[i] = loadstring(c:sub(2, -1))
-								else
-									tab[i] = c
-								end
-							else
-								tab[i] = c
-							end
-						end
-						return tab
-					else
-						return self.chan:pop()
-					end
-				end
-				GLOBAL[self.name] = self -- send the object to the thread through the global interface
-				return self -- return the object
-			end
-			return c
-		else
-			error("Make sure you required the love.thread module!") -- tell the user if he/she didn't require said module
-		end
-	else
-		c.linda = lanes.linda() -- lanes is a bit easier, create the linda on the main thread
-		function c:push(v) -- push to the queue
-			self.linda:send("Q", v)
-		end
-		function c:pop() -- pop the queue
-			return ({self.linda:receive(0, "Q")})[2]
-		end
-		function c:peek()
-			return self.linda:get("Q")
-		end
-		function c:init() -- mimic the feature that love2d requires, so code can be consistent
-			return self
-		end
-		multi.integration.GLOBAL[name] = c -- send the object to the thread through the global interface
+	c.linda = lanes.linda() -- lanes is a bit easier, create the linda on the main thread
+	function c:push(v) -- push to the queue
+		self.linda:send("Q", v)
 	end
+	function c:pop() -- pop the queue
+		return ({self.linda:receive(0, "Q")})[2]
+	end
+	function c:peek()
+		return self.linda:get("Q")
+	end
+	function c:init() -- mimic the feature that love2d requires, so code can be consistent
+		return self
+	end
+	multi.integration.GLOBAL[name] = c -- send the object to the thread through the global interface
 	return c
 end
 
