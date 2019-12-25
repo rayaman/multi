@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
-local multi, thread = require("multi").init() -- get it all and have it on all lanes
+multi, thread = require("multi").init() -- get it all and have it on all lanes
 if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassel
 	return {
 		init = function()
@@ -73,70 +73,7 @@ function THREAD.get(name)
 end
 local function randomString(n)
 	local str = ""
-	local strings = {
-		"a",
-		"b",
-		"c",
-		"d",
-		"e",
-		"f",
-		"g",
-		"h",
-		"i",
-		"j",
-		"k",
-		"l",
-		"m",
-		"n",
-		"o",
-		"p",
-		"q",
-		"r",
-		"s",
-		"t",
-		"u",
-		"v",
-		"w",
-		"x",
-		"y",
-		"z",
-		"1",
-		"2",
-		"3",
-		"4",
-		"5",
-		"6",
-		"7",
-		"8",
-		"9",
-		"0",
-		"A",
-		"B",
-		"C",
-		"D",
-		"E",
-		"F",
-		"G",
-		"H",
-		"I",
-		"J",
-		"K",
-		"L",
-		"M",
-		"N",
-		"O",
-		"P",
-		"Q",
-		"R",
-		"S",
-		"T",
-		"U",
-		"V",
-		"W",
-		"X",
-		"Y",
-		"Z"
-	}
+	local strings = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","1","2","3","4","5","6","7","8","9","0","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"}
 	for i = 1, n do
 		str = str .. "" .. strings[math.random(1, #strings)]
 	end
@@ -198,6 +135,29 @@ local threads = {}
 local count = 1
 local started = false
 local livingThreads = {}
+function multi.removeUpvalues(func)
+	if not debug then return end
+	local count=1
+	local dat = true
+	while dat do
+		dat = debug.setupvalue(func, count, nil)
+		count = count+1
+	end
+end
+function multi.getUpvalues(func)
+	local count=1
+	local tab = {}
+	local dat = true
+	while dat do
+		dat = debug.getupvalue(func, count)
+		if dat then
+			table.insert(tab,dat)
+			print(dat)
+		end
+		count = count+1
+	end
+	return tab
+end
 function multi:newSystemThread(name, func, ...)
 	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1, 10000000)
@@ -206,25 +166,20 @@ function multi:newSystemThread(name, func, ...)
 	c.name = name
 	c.Name = name
 	c.Id = count
+	c.loadString = {"base","package","os,math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
-	local THREAD_ID = count
-	count = count + 1
 	c.Type = "sthread"
 	c.creationTime = os.clock()
 	c.alive = true
-	local THREAD_NAME = name
-	local function func2(...)
-		local multi = require("multi")
-		_G["THREAD_NAME"] = THREAD_NAME
-		_G["THREAD_ID"] = THREAD_ID
-		math.randomseed(rand)
-		func(...)
-		if _G.__Needs_Multi then
-			multi:mainloop()
-		end
-		THREAD.kill()
-	end
-	c.thread = lanes.gen("*", func2)(...)
+	c.priority = thread.Priority_Normal
+	local args = {...}
+	multi.nextStep(function()
+		c.thread = lanes.gen(table.concat(c.loadString,","),{globals={
+			THREAD_NAME=name,
+			THREAD_ID=count
+		},priority=c.priority}, func)(unpack(args))
+	end)
+	count = count + 1
 	function c:kill()
 		self.thread:cancel()
 		multi.print("Thread: '" .. self.name .. "' has been stopped!")
@@ -242,7 +197,7 @@ function multi.InitSystemThreadErrorHandler()
 	end
 	started = true
 	multi:newThread(
-		"ThreadErrorHandler",
+"ThreadErrorHandler",
 		function()
 			local threads = multi.SystemThreads
 			while true do
@@ -276,7 +231,7 @@ multi.print("Integrated Lanes!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
-require("multi.integration.shared")
+require("multi.integration.lanesManager.extensions")
 return {
 	init = function()
 		return GLOBAL, THREAD

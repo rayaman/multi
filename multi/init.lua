@@ -66,6 +66,13 @@ multi.Priority_Normal = 64
 multi.Priority_Below_Normal = 256
 multi.Priority_Low = 1024
 multi.Priority_Idle = 4096
+thread.Priority_Core = 3
+thread.Priority_High = 2
+thread.Priority_Above_Normal = 1
+thread.Priority_Normal = 0
+thread.Priority_Below_Normal = -1
+thread.Priority_Low = -2
+thread.Priority_Idle = -3
 multi.PriorityResolve = {
 	[1]="Core",
 	[4]="High",
@@ -831,6 +838,7 @@ function multi:newConnection(protect,func)
 		if self.lock then return end
 		for i=#self.func,1,-1 do
 			if self.protect then
+				if not self.func[i] then return end
 				local temp={pcall(self.func[i][1],...)}
 				if temp[1] then
 					table.remove(temp,1)
@@ -839,6 +847,7 @@ function multi:newConnection(protect,func)
 					multi.print(temp[2])
 				end
 			else
+				if not self.func[i] then return end
 				table.insert(ret,{self.func[i][1](...)})
 			end
 		end

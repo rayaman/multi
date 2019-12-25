@@ -150,7 +150,6 @@ function threads.getConsole()
     return c
 end
 if not ISTHREAD then
-    print("mainthread")
     local clock = os.clock
     local lastproc = clock()
     local queue = love.thread.getChannel("__CONSOLE__")
@@ -163,7 +162,7 @@ if not ISTHREAD then
                 print(unpack(dat))
             end
             if clock()-lastproc>2 then
-                thread.sleep(.1) -- Printing is for humans, sleep can be big to lower processing
+                thread.sleep(.1)
             end
         end
     end)

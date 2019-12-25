@@ -21,6 +21,14 @@ Added:
 - special variable multi.NIL was added to allow error handling in threaded functions.
 -- multi.NIL can be used in to force a nil value when using thread.hold()
 - All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features. **Note:** these functions are local to the function! And are only converted if they aren't set as local! Otherwise the function
+- lanes threads can now have their priority set using: sThread.priority = 
+-- thread.Priority_Core
+-- thread.Priority_High
+-- thread.Priority_Above_Normal
+-- thread.Priority_Normal
+-- thread.Priority_Below_Normal
+-- thread.Priority_Low
+-- thread.Priority_Idle
 
 thread newFunction
 ```lua
@@ -78,6 +86,8 @@ Changed:
 ```lua
 local multi, thread = require("multi").init() -- The require multi function still returns the multi object like before
 ```
+- love/lanesManager system threading integration has been reworked. Faster and cleaner code! Consistant code as well
+- l
 Note: Using init allows you to get access to the thread handle. This was done because thread was modifying the global space as well as multi. I wanted to not modify the global space anymore.
 internally most of your code can stay the same, you only need to change how the library is required. I do toy a bit with the global space, buy I use a variable name that is invalid as a variable name. The variable name is  $multi. This is used internally to keep some records and maintain a clean space
 
