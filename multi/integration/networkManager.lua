@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2019 Ryan Ward
+Copyright (c) 2020 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,7 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-local multi, thread = require("multi").init()
+local multi, thread = require("multi"):init()
 local net = require("net")
 local bin = require("bin")
 bin.setBitsInterface(infinabits) -- the bits interface does not work so well, another bug to fix

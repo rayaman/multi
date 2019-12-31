@@ -1,10 +1,11 @@
 # Changes
 [TOC]
-Update 14.0.0 Consistency, stability and some new features
+Update 14.0.0 Consistency, Stability and Additions
 -------------
 Added:
 - multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
 - thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
+- multi.hold(function or number) -- It's back and uses context switching. Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
 - thread.holdWithin(NUMBER; cycles,FUNCTION; condition) -- Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
 **Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
 - thread objects got an addition!
@@ -14,8 +15,8 @@ Added:
 - thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function -- Use thread newfunctions for a more powerful version of thread.run()
 - thread:newFunction(FUNCTION; func)
 -- returns a function that gives you the option to wait or connect to the returns of the function.
--- func().wait() -- only works when within a coroutine based thread
--- func().connect() -- this can work outside of of a coroutine based thread
+-- func().wait() -- waits for the function to return
+-- func().connect() -- connects to the function finishing
 -- func() -- If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
 -- If the created function encounters an error, it will return nil, the error message!
 - special variable multi.NIL was added to allow error handling in threaded functions.
@@ -82,12 +83,28 @@ Removed:
 - multi:newCustomObject() -- No real use
 
 Changed:
+- multi connections connect function can now chain connections
+```lua
+	package.path = "./?/init.lua;"..package.path
+    local multi, thread = require("multi").init()
+    test = multi:newConnection()
+    test(function(a)
+        print("test 1",a.Temp)
+        a.Temp = "No!"
+    end,function(a)
+        print("test 2",a.Temp)
+        a.Temp = "Maybe!"
+    end,function(a)
+        print("test 3",a.Temp)
+    end)
+    test:Fire({Temp="Yes!"})
+```
 - Ties in to the new function that has been added multi.init()
 ```lua
 local multi, thread = require("multi").init() -- The require multi function still returns the multi object like before
 ```
 - love/lanesManager system threading integration has been reworked. Faster and cleaner code! Consistant code as well
-- l
+
 Note: Using init allows you to get access to the thread handle. This was done because thread was modifying the global space as well as multi. I wanted to not modify the global space anymore.
 internally most of your code can stay the same, you only need to change how the library is required. I do toy a bit with the global space, buy I use a variable name that is invalid as a variable name. The variable name is  $multi. This is used internally to keep some records and maintain a clean space
 

@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2019 Ryan Ward
+Copyright (c) 2020 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,8 +21,8 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
--- I DEMAND USAGE FOR LUVIT
--- Cannot use discordia without my multitasking library (Which I love more that the luvit platform... then again i'm partial :P)
+
+-- This module probably will not be maintained any longer!
 package.path = "?/init.lua;?.lua;" .. package.path
 local function _INIT(luvitThread, timer)
 	-- lots of this stuff should be able to stay the same
@@ -66,70 +66,7 @@ local function _INIT(luvitThread, timer)
 	end
 	local function randomString(n)
 		local str = ""
-		local strings = {
-			"a",
-			"b",
-			"c",
-			"d",
-			"e",
-			"f",
-			"g",
-			"h",
-			"i",
-			"j",
-			"k",
-			"l",
-			"m",
-			"n",
-			"o",
-			"p",
-			"q",
-			"r",
-			"s",
-			"t",
-			"u",
-			"v",
-			"w",
-			"x",
-			"y",
-			"z",
-			"1",
-			"2",
-			"3",
-			"4",
-			"5",
-			"6",
-			"7",
-			"8",
-			"9",
-			"0",
-			"A",
-			"B",
-			"C",
-			"D",
-			"E",
-			"F",
-			"G",
-			"H",
-			"I",
-			"J",
-			"K",
-			"L",
-			"M",
-			"N",
-			"O",
-			"P",
-			"Q",
-			"R",
-			"S",
-			"T",
-			"U",
-			"V",
-			"W",
-			"X",
-			"Y",
-			"Z"
-		}
+		local strings = {"a","b","c","d","e","f","g","h","i","j","k","l","m","n","o","p","q","r","s","t","u","v","w","x","y","z","1","2","3","4","5","6","7","8","9","0","A","B","C","D","E","F","G","H","I","J","K","L","M","N","O","P","Q","R","S","T","U","V","W","X","Y","Z"}
 		for i = 1, n do
 			str = str .. "" .. strings[math.random(1, #strings)]
 		end
@@ -195,6 +132,6 @@ local function _INIT(luvitThread, timer)
 	return multi
 end
 return {init = function(threadHandle, timerHandle)
-		local multi = _INIT(threadHandle, timerHandle)
-		return GLOBAL, THREAD
-	end}
+	local multi = _INIT(threadHandle, timerHandle)
+	return GLOBAL, THREAD
+end}

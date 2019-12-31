@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2019 Ryan Ward
+Copyright (c) 2020 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -861,9 +861,13 @@ function multi:newConnection(protect,func)
 		self.func={}
 		return self
 	end
-	function c:connect(func,name,num)
+	local function conn_helper(self,func,name,num)
 		self.ID=self.ID+1
-		table.insert(self.func,num or #self.func+1,{func,self.ID})
+		if num then
+			table.insert(self.func,num,{func,self.ID})
+		else
+			table.insert(self.func,1,{func,self.ID})
+		end
 		local temp = {
 			Link=self.func,
 			func=func,
@@ -907,6 +911,24 @@ function multi:newConnection(protect,func)
 			self.callback(temp)
 		end
 		return temp
+	end
+	function c:connect(...)--func,name,num
+		local tab = {...}
+		local funcs={}
+		for i=1,#tab do
+			if type(tab[i])=="function" then
+				funcs[#funcs+1] = tab[i]
+			end
+		end
+		if #funcs>1 then
+			local ret = {}
+			for i=1,#funcs do
+				table.insert(ret,conn_helper(self,funcs[i]))
+			end
+			return ret
+		else
+			conn_helper(self,tab[1],tab[2],tab[3])
+		end
 	end
 	c.Connect=c.connect
 	c.GetConnection=c.getConnection
@@ -1489,34 +1511,59 @@ function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
+function multi.hold(func)
+	local death = false
+	if type(func)=="function" then
+		local rets
+		multi:newThread("Hold_func",function()
+			rets = {thread.hold(func)}
+			death = true
+		end)
+		while not death do
+			multi.scheduler:Act()
+		end
+		return unpack(rets)
+	elseif type(func)=="number" then
+		multi:newThread("Hold_func",function()
+			thread.sleep(func)
+			death = true
+		end)
+		while not death do
+			multi.scheduler:Act()
+		end
+	end
+end
 function thread:newFunction(func)
     local c = {Type = "tfunc"}
     c.__call = function(self,...)
 		local rets, err
 		local function wait() 
-			return thread.hold(function()
-				if err then
-					return multi.NIL, err
-				elseif rets then
-					return unpack(rets) 
+			if thread.isThread() then
+				return thread.hold(function()
+					if err then
+						return multi.NIL, err
+					elseif rets then
+						return unpack(rets) 
+					end
+				end)
+			else
+				while not rets do
+					multi.scheduler:Act()
 				end
-			end)
+				return unpack(rets)
+			end
 		end
-        local t = multi:newThread("TempThread",func,...)
+		local t = multi:newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
-		--if thread.isThread() then
-		--	return wait()
-		--else
-			return  {
-				isTFunc = true,
-				wait = wait,
-				connect = function(f) 
-					t.OnDeath(function(self,status,...) f(...) end) 
-					t.OnError(function(self,err) f(self, err) end) 
-				end
-			}
-		--end
+		return  {
+			isTFunc = true,
+			wait = wait,
+			connect = function(f) 
+				t.OnDeath(function(self,status,...) f(...) end) 
+				t.OnError(function(self,err) f(self, err) end) 
+			end
+		}
     end
     setmetatable(c,c)
     return c
@@ -1648,7 +1695,7 @@ function multi:newThread(name,func,...)
 	threadid = threadid + 1
 	return c
 end
-function multi.initThreads()
+function multi.initThreads(justThreads)
 	initT = true
 	multi.scheduler=multi:newLoop():setName("multi.thread")
 	multi.scheduler.Type="scheduler"
@@ -1764,120 +1811,14 @@ function multi.initThreads()
 			helper(i)
 		end
 	end)
+	if justThreads then
+		while true do
+			multi.scheduler:Act()
+		end
+	end
 end
 function multi:threadloop()
-	initT = true
-	multi.scheduler=multi:newLoop():setName("multi.thread")
-	multi.scheduler.Type="scheduler"
-	function multi.scheduler:setStep(n)
-		self.skip=tonumber(n) or 24
-	end
-	multi.scheduler.skip=0
-	local t0,t1,t2,t3,t4,t5,t6
-	local r1,r2,r3,r4,r5,r6
-	local ret,_
-	local function helper(i)
-		if ret then
-			if ret[1]=="_kill_" then
-				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6)
-				table.remove(threads,i)
-				ret = nil
-			elseif ret[1]=="_sleep_" then
-				threads[i].sec = ret[2]
-				threads[i].time = clock()
-				threads[i].task = "sleep"
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_skip_" then
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].task = "skip"
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_hold_" then
-				threads[i].func = ret[2]
-				threads[i].task = "hold"
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_holdF_" then
-				threads[i].sec = ret[2]
-				threads[i].func = ret[3]
-				threads[i].task = "holdF"
-				threads[i].time = clock()
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_holdW_" then
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].func = ret[3]
-				threads[i].task = "holdW"
-				threads[i].time = clock()
-				threads[i].__ready = false
-				ret = nil
-			end
-		end
-	end
-	while true do
-		for i=#threads,1,-1 do
-			if not threads[i].__started then
-				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread)
-				threads[i].__started = true
-				helper(i)
-			end
-			if not _ then
-				threads[i].OnError:Fire(threads[i],ret)
-			end
-			if coroutine.status(threads[i].thread)=="dead" then
-				threads[i].OnDeath(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
-				table.remove(threads,i)
-			elseif threads[i].task == "skip" then
-				threads[i].pos = threads[i].pos + 1
-				if threads[i].count==threads[i].pos then
-					threads[i].task = ""
-					threads[i].__ready = true
-				end
-			elseif threads[i].task == "hold" then
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					threads[i].task = ""
-					threads[i].__ready = true
-				end
-			elseif threads[i].task == "sleep" then
-				if clock() - threads[i].time>=threads[i].sec then
-					threads[i].task = ""
-					threads[i].__ready = true
-				end
-			elseif threads[i].task == "holdF" then
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					threads[i].task = ""
-					threads[i].__ready = true
-				elseif clock() - threads[i].time>=threads[i].sec then
-					threads[i].task = ""
-					threads[i].__ready = true
-					t0 = nil
-					t1 = "TIMEOUT"
-				end
-			elseif threads[i].task == "holdW" then
-				threads[i].pos = threads[i].pos + 1
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					threads[i].task = ""
-					threads[i].__ready = true
-				elseif threads[i].count==threads[i].pos then
-					threads[i].task = ""
-					threads[i].__ready = true
-					t0 = nil
-					t1 = "TIMEOUT"
-				end
-			end
-			if threads[i] and threads[i].__ready then
-				threads[i].__ready = false
-				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
-			end
-			helper(i)
-		end
-	end
+	multi.initThreads(true)
 end
 multi.OnError=multi:newConnection()
 function multi:newThreadedProcess(name)

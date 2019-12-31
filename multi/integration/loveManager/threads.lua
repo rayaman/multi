@@ -1,5 +1,25 @@
 --[[
-    Shared methods for both the main thread and 
+MIT License
+
+Copyright (c) 2020 Ryan Ward
+
+Permission is hereby granted, free of charge, to any person obtaining a copy
+of this software and associated documentation files (the "Software"), to deal
+in the Software without restriction, including without limitation the rights
+to use, copy, modify, merge, publish, distribute, sub-license, and/or sell
+copies of the Software, and to permit persons to whom the Software is
+furnished to do so, subject to the following conditions:
+
+The above copyright notice and this permission notice shall be included in all
+copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
 ]]
 require("love.timer")
 require("love.system")
@@ -47,7 +67,6 @@ function threads.get(name)
         return dat
     end
 end
-
 function threads.waitFor(name)
     if thread.isThread() then
         return thread.hold(function()
@@ -63,22 +82,17 @@ function threads.waitFor(name)
     end
     return dat
 end
-
 function threads.package(name,val)
     local init = val.init
     val.init=threads.dump(val.init)
     GLOBAL[name]=val
     val.init=init
 end
-
-function threads.testFor(name,val,sym)
-    -- Not yet implemented
-end
 function threads.getCores()
     return love.system.getProcessorCount()
 end
 function threads.kill()
-
+    error("Thread Killed!")
 end
 function threads.getThreads()
     local t = {}
