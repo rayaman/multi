@@ -1512,8 +1512,22 @@ function thread.waitFor(name)
 	return thread.get(name)
 end
 function multi.hold(func)
+	if thread.isThread() then
+		if type(func) == "function" or type(func) == "table" then
+			return thread.hold(func)
+		end
+		return thread.sleep(func)
+	end
 	local death = false
-	if type(func)=="function" then
+	if type(func)=="number" then
+		multi:newThread("Hold_func",function()
+			thread.sleep(func)
+			death = true
+		end)
+		while not death do
+			multi.scheduler:Act()
+		end
+	else
 		local rets
 		multi:newThread("Hold_func",function()
 			rets = {thread.hold(func)}
@@ -1523,15 +1537,21 @@ function multi.hold(func)
 			multi.scheduler:Act()
 		end
 		return unpack(rets)
-	elseif type(func)=="number" then
-		multi:newThread("Hold_func",function()
-			thread.sleep(func)
-			death = true
-		end)
-		while not death do
-			multi.scheduler:Act()
-		end
 	end
+end
+function multi.holdFor(n,func)
+	local temp
+	multi:newThread(function()
+		thread.sleep(n)
+		temp = true
+	end)
+	return multi.hold(function()
+		if func() then
+			return func()
+		elseif temp then
+			return multi.NIL, "TIMEOUT"
+		end
+	end)
 end
 function thread:newFunction(func)
     local c = {Type = "tfunc"}
@@ -1725,6 +1745,15 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				ret = nil
 			elseif ret[1]=="_hold_" then
+				if type(ret[2])=="table" and ret[2].Type=='connector' then
+					local letsgo
+					ret[2](function(...) letsgo = {...} end)
+					ret[2] = function()
+						if letsgo then
+							return unpack(letsgo)
+						end
+					end
+				end
 				threads[i].func = ret[2]
 				threads[i].task = "hold"
 				threads[i].__ready = false
@@ -1766,7 +1795,7 @@ function multi.initThreads(justThreads)
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
-			elseif threads[i].task == "hold" then
+			elseif threads[i].task == "hold" then --GOHERE
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
 					if t0==multi.NIL then

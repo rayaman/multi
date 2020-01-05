@@ -1,21 +1,22 @@
 # Changes
 [TOC]
-Update 14.0.0 Consistency, Stability and Additions
+Update 14.0.0 Consistency, Additions and Stability
 -------------
 Added:
 - multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
 - thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
-- multi.hold(function or number) -- It's back and uses context switching. Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
+- multi.hold(function or number) -- It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
 - thread.holdWithin(NUMBER; cycles,FUNCTION; condition) -- Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
+- multi.holdFor(NUMBER; seconds,FUNCTION; condition) -- Follows the same rules as multi.hold while mimicing the functionality of thread.holdWithin
 **Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
-- thread objects got an addition!
--- tobj.OnDeath(self,status,returns[...]) -- This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
--- tobj.OnError(self,error) -- returns a reference to self and the error as a string
--- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 6 max.
+- thread objects now have hooks that allow you to interact with it in more refined ways!
+-- tObj.OnDeath(self,status,returns[...]) -- This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
+-- tObj.OnError(self,error) -- returns a reference to self and the error as a string
+-- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. (The way the scheduler works this would happen every cycle and thats no good) Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 7 max.
 - thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function -- Use thread newfunctions for a more powerful version of thread.run()
 - thread:newFunction(FUNCTION; func)
 -- returns a function that gives you the option to wait or connect to the returns of the function.
--- func().wait() -- waits for the function to return
+-- func().wait() -- waits for the function to return works both within a thread and outside of one
 -- func().connect() -- connects to the function finishing
 -- func() -- If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
 -- If the created function encounters an error, it will return nil, the error message!
@@ -30,6 +31,20 @@ Added:
 -- thread.Priority_Below_Normal
 -- thread.Priority_Low
 -- thread.Priority_Idle
+- thread.hold() and multi.hold() now accept connections as an argument. See example below
+
+```lua
+package.path = "./?/init.lua;"..package.path
+local multi, thread = require("multi"):init()
+conn = multi:newConnection()
+multi:newThread(function()
+    thread.hold(conn)
+    print("Connection Fired!!!")
+end)
+multi:newAlarm(3):OnRing(function()
+    conn:Fire()
+end)
+```
 
 thread newFunction
 ```lua
@@ -83,7 +98,7 @@ Removed:
 - multi:newCustomObject() -- No real use
 
 Changed:
-- multi connections connect function can now chain connections
+- Connections connect function can now chain connections
 ```lua
 	package.path = "./?/init.lua;"..package.path
     local multi, thread = require("multi").init()
@@ -117,7 +132,7 @@ local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
 Going forward:
-- Do not expect anything new from the next update. I have a bunch of bugs to iron out. Most pertainint to network and system threading. Maybe 
+- If all goes well, the future will contain quality of code features. I'll keep an eye out for bugs
 
 Update 13.1.0 Bug fixes and features added
 -------------
