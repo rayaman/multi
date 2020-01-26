@@ -1,5 +1,4 @@
-# multi Version: 13.1.0 Bug fixes and a few features added (See changes.md)
-
+# multi Version: 14.0.0 Bug fixes and cool new features added (See changes.md)
 
 Found an issue? Please submit it and ill look into it!
 
@@ -18,6 +17,8 @@ If you want to use the system threads, then you'll need to install lanes!
 
 Because of a codependency in net libaray, if using the networkmanager you will need to install the net library sepertly
 Going forward I will include a Release zip for love2d. I do not know why I haven't done this yet
+**The Network Manager rework is currently being worked on and the old version is not included in this version. It will be released in 15.0.0**
+
 ```
 luarocks install multi
 luarocks install lnet
