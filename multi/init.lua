@@ -1786,16 +1786,16 @@ function multi.initThreads(justThreads)
 			if not _ then
 				threads[i].OnError:Fire(threads[i],ret)
 			end
-			if coroutine.status(threads[i].thread)=="dead" then
+			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
 				threads[i].OnDeath:Fire(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
 				table.remove(threads,i)
-			elseif threads[i].task == "skip" then
+			elseif threads[i] and threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
 				if threads[i].count==threads[i].pos then
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
-			elseif threads[i].task == "hold" then --GOHERE
+			elseif threads[i] and threads[i].task == "hold" then --GOHERE
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
 					if t0==multi.NIL then
@@ -1804,12 +1804,12 @@ function multi.initThreads(justThreads)
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
-			elseif threads[i].task == "sleep" then
+			elseif threads[i] and threads[i].task == "sleep" then
 				if clock() - threads[i].time>=threads[i].sec then
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
-			elseif threads[i].task == "holdF" then
+			elseif threads[i] and threads[i].task == "holdF" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
 					threads[i].task = ""
@@ -1820,7 +1820,7 @@ function multi.initThreads(justThreads)
 					t0 = nil
 					t1 = "TIMEOUT"
 				end
-			elseif threads[i].task == "holdW" then
+			elseif threads[i] and threads[i].task == "holdW" then
 				threads[i].pos = threads[i].pos + 1
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
