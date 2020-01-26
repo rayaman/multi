@@ -12,4 +12,3 @@ test.lua
 test.lua
 *.code-workspace
 *.dat
-multi\integration\networkManager

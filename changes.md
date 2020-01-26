@@ -90,7 +90,7 @@ multi:mainloop()
 
 Fixed:
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
-- An internal mismanagement of the treads scheduler was fixed. Now it should be quicker and free of bugs
+- An internal mismanagement of the threads scheduler was fixed. Now it should be quicker and free of bugs
 - Thread error management is the integrations was not properly implemented. This is now fixed
 
 Removed:
@@ -132,6 +132,7 @@ local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
 Going forward:
+- Finish the rework of the networkManager - It "works", but there are packet losses that I cannot explain. I do not know what is causing this at all. Ill fix when I figure it out!
 - If all goes well, the future will contain quality of code features. I'll keep an eye out for bugs
 
 Update 13.1.0 Bug fixes and features added

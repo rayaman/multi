@@ -2515,14 +2515,6 @@ function multi:ToString()
 		table.merge(data,{
 			set=self.set,
 		})
-	elseif t=="watcher" then
-		multi.print("Currently cannot sterilize a watcher object!")
-		-- needs testing
-		-- table.merge(data,{
-			-- ns=self.ns,
-			-- n=self.n,
-			-- cv=self.cv,
-		-- })
 	elseif t=="timemaster" then
 		-- Weird stuff is going on here!
 		-- Need to do some testing
@@ -2597,10 +2589,6 @@ function multi:newFromString(str)
 		return item
 	elseif t=="alarm" then -- GOOD
 		local item=self:newAlarm()
-		table.merge(item,data)
-		return item
-	elseif t=="watcher" then -- NEEDS TESTING
-		local item=self:newWatcher()
 		table.merge(item,data)
 		return item
 	elseif t=="updater" then -- GOOD
