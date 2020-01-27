@@ -1452,6 +1452,8 @@ else
 	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
 end
 thread.requests = {}
+local dFunc = function() return true end
+local dRef = {nil,nil,nil}
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
 end
@@ -1468,31 +1470,44 @@ function thread.exec(func)
 end
 function thread.sleep(n)
 	thread._Requests()
-	coroutine.yield({"_sleep_",n or 0})
+	dRef[1] = "_sleep_"
+	dRef[2] = n or 0
+	return coroutine.yield(dRef)
 end
 function thread.hold(n)
 	thread._Requests()
-	return coroutine.yield({"_hold_",n or function() return true end})
+	dRef[1] = "_hold_"
+	dRef[2] = n or dFunc
+	return coroutine.yield(dRef)
 end
 function thread.holdFor(sec,n)
 	thread._Requests()
-	return coroutine.yield({"_holdF_", sec, n or function() return true end})
+	dRef[1] = "_holdF_"
+	dRef[2] = sec
+	dRef[3] = n or dFunc
+	return coroutine.yield(dRef)
 end
 function thread.holdWithin(skip,n)
 	thread._Requests()
-	return coroutine.yield({"_holdW_", skip, n or function() return true end})
+	dRef[1] = "_holdW_"
+	dRef[2] = skip or 1
+	dRef[3] = n or dFunc
+	return coroutine.yield(dRef)
 end
 function thread.skip(n)
 	thread._Requests()
-	if not n then n = 1 elseif n<1 then n = 1 end
-	coroutine.yield({"_skip_",n})
+	dRef[1] = "_skip_"
+	dRef[2] = n or 1
+	return coroutine.yield(dRef)
 end
 function thread.kill()
-	coroutine.yield({"_kill_",":)"})
+	dRef[1] = "_kill_"
+	dRef[2] = "T_T"
+	return coroutine.yield(dRef)
 end
 function thread.yield()
 	thread._Requests()
-	coroutine.yield({"_sleep_",0})
+	return thread.sleep(0)
 end
 function thread.isThread()
 	return coroutine.running()~=nil
@@ -1689,17 +1704,18 @@ function multi:newThread(name,func,...)
 		return self.Globals[name]
 	end
 	function c.ref:kill()
-		err=coroutine.yield({"_kill_"})
+		dRef[1] = "_kill_"
+		dRef[2] = "I Was killed by You!"
+		err = coroutine.yield(dRef)
 		if err then
 			error("Failed to kill a thread! Exiting...")
 		end
 	end
 	function c.ref:sleep(n)
 		if type(n)=="function" then
-			ret=coroutine.yield({"_hold_",n})
+			ret=thread.hold(n)
 		elseif type(n)=="number" then
-			n = tonumber(n) or 0
-			ret=coroutine.yield({"_sleep_",n})
+			ret=thread.sleep(tonumber(n) or 0)
 		else
 			error("Invalid Type for sleep!")
 		end
