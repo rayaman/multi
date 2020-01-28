@@ -4,16 +4,11 @@ Update 14.1.0 Bug Fixes and a change
 -------------
 # Added: 
 - multi:scheduleJob(time,func)
-
--- time.min -- Minute a value of (0-59)
-
--- time.hour -- Hour a value of (0-23)
-
--- time.day -- Day of month a value of (1-31)
-
--- time.wday -- Weekday a value of (0-6)
-
--- time.month -- Month a value of (1-12)
+	- time.min -- Minute a value of (0-59)
+	- time.hour -- Hour a value of (0-23)
+	- time.day -- Day of month a value of (1-31)
+	- time.wday -- Weekday a value of (0-6)
+	- time.month -- Month a value of (1-12)
 
 **Usage**
 ```lua
