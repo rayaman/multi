@@ -1,5 +1,36 @@
 # Changes
 [TOC]
+Update 14.1.0 Bug Fixes and a change
+-------------
+# Added: 
+- multi:scheduleJob(time,func)
+-- time.min -- Minute a value of (0-59)
+-- time.hour -- Hour a value of (0-23)
+-- time.day -- Day of month a value of (1-31)
+-- time.wday -- Weekday a value of (0-6)
+-- time.month -- Month a value of (1-12)
+**Usage**
+```lua
+local multi,thread = require("multi"):init()
+multi:scheduleJob({min = 15, hour = 14},function()
+	-- This function will be called once everyday at 2:15
+	-- Using a combination of the values above you are able to schedule a time 
+end)
+multi:mainloop()
+```
+# Removed: 
+- multi:newTimeStamper() -- schedulejob replaces timestamper
+# Fixed:
+- Modified the thread.* methods to perform better
+-- thread.sleep()
+-- thread.hold()
+-- thread.holdFor()
+-- thread.holdWithin()
+-- thread.skip()
+-- thread.kill()
+-- thread.yield()
+
+
 Update 14.0.0 Consistency, Additions and Stability
 -------------
 Added:
