@@ -1305,144 +1305,34 @@ function multi:newTStep(start,reset,count,set)
 	self:create(c)
 	return c
 end
-function multi:newTimeStamper()
-	local c=self:newUpdater(self.Priority_Idle)
-	c:OnUpdate(function()
-		c:Run()
-	end)
-	local feb = 28
-	local leap = tonumber(os.date("%Y"))%4==0 and (tonumber(os.date("%Y"))%100~=0 or tonumber(os.date("%Y"))%400==0)
-	if leap then
-		feb = 29
-	end
-	local dInM = {
-		["01"] = 31,
-		["02"] = feb,
-		["03"] = 31,
-		["04"] = 30,
-		["05"] = 31,
-		["06"] = 30,
-		["07"] = 31, -- This is dumb, why do we still follow this double 31 days!?
-		["08"] = 31,
-		["09"] = 30,
-		["10"] = 31,
-		["11"] = 30,
-		["12"] = 31,
-	}
-	c.Type='timestamper'
-	c:setPriority("Idle")
-	c.hour = {}
-	c.minute = {}
-	c.second = {}
-	c.time = {}
-	c.day = {}
-	c.month = {}
-	c.year = {}
-	function c:Run()
-		for i=1,#self.hour do
-			if self.hour[i][1]==os.date("%H") and self.hour[i][3] then
-				self.hour[i][2](self)
-				self.hour[i][3]=false
-			elseif self.hour[i][1]~=os.date("%H") and not self.hour[i][3] then
-				self.hour[i][3]=true
-			end
-		end
-		for i=1,#self.minute do
-			if self.minute[i][1]==os.date("%M") and self.minute[i][3] then
-				self.minute[i][2](self)
-				self.minute[i][3]=false
-			elseif self.minute[i][1]~=os.date("%M") and not self.minute[i][3] then
-				self.minute[i][3]=true
-			end
-		end
-		for i=1,#self.second do
-			if self.second[i][1]==os.date("%S") and self.second[i][3] then
-				self.second[i][2](self)
-				self.second[i][3]=false
-			elseif self.second[i][1]~=os.date("%S") and not self.second[i][3] then
-				self.second[i][3]=true
-			end
-		end
-		for i=1,#self.day do
-			if type(self.day[i][1])=="string" then
-				if self.day[i][1]==os.date("%a") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif self.day[i][1]~=os.date("%a") and not self.day[i][3] then
-					self.day[i][3]=true
-				end
-			else
-				local dday = self.day[i][1]
-				if dday < 0 then
-					dday = dInM[os.date("%m")]+(dday+1)
-				end
-				if string.format("%02d",dday)==os.date("%d") and self.day[i][3] then
-					self.day[i][2](self)
-					self.day[i][3]=false
-				elseif string.format("%02d",dday)~=os.date("%d") and not self.day[i][3] then
-					self.day[i][3]=true
+local scheduledjobs = {}
+local sthread
+function multi:scheduleJob(time,func)
+	if not sthread then
+		sthread = multi:newThread("JobScheduler",function()
+			local time = os.date("*t", os.time())
+			local ready = false
+			while true do
+				thread.sleep(1) -- Every second we do some tests
+				time = os.date("*t", os.time())
+				for j,job in pairs(scheduledjobs) do
+					ready = true
+					for k,v in pairs(job[1]) do
+						if not (v == time[k]) then
+							ready = false
+						end
+					end
+					if ready and not job[3] then
+						job[2]()
+						job[3] = true
+					elseif not ready and job[3] then
+						job[3] = false
+					end
 				end
 			end
-		end
-		for i=1,#self.month do
-			if self.month[i][1]==os.date("%m") and self.month[i][3] then
-				self.month[i][2](self)
-				self.month[i][3]=false
-			elseif self.month[i][1]~=os.date("%m") and not self.month[i][3] then
-				self.month[i][3]=true
-			end
-		end
-		for i=1,#self.time do
-			if self.time[i][1]==os.date("%X") and self.time[i][3] then
-				self.time[i][2](self)
-				self.time[i][3]=false
-			elseif self.time[i][1]~=os.date("%X") and not self.time[i][3] then
-				self.time[i][3]=true
-			end
-		end
-		for i=1,#self.year do
-			if self.year[i][1]==os.date("%y") and self.year[i][3] then
-				self.year[i][2](self)
-				self.year[i][3]=false
-			elseif self.year[i][1]~=os.date("%y") and not self.year[i][3] then
-				self.year[i][3]=true
-			end
-		end
+		end)
 	end
-	function c:OnTime(hour,minute,second,func)
-		if type(hour)=="number" then
-			self.time[#self.time+1]={string.format("%02d:%02d:%02d",hour,minute,second),func,true}
-		else
-			self.time[#self.time+1]={hour,minute,true}
-		end
-		return self
-	end
-	function c:OnHour(hour,func)
-		self.hour[#self.hour+1]={string.format("%02d",hour),func,true}
-		return self
-	end
-	function c:OnMinute(minute,func)
-		self.minute[#self.minute+1]={string.format("%02d",minute),func,true}
-		return self
-	end
-	function c:OnSecond(second,func)
-		self.second[#self.second+1]={string.format("%02d",second),func,true}
-		return self
-	end
-	function c:OnDay(day,func)
-		self.day[#self.day+1]={day,func,true}
-		return self
-	end
-	function c:OnMonth(month,func)
-		self.month[#self.month+1]={string.format("%02d",month),func,true}
-		return self
-	end
-	function c:OnYear(year,func)
-		self.year[#self.year+1]={string.format("%02d",year),func,true}
-		return self
-	end
-	self:create(c)
-	return c
+	table.insert(scheduledjobs,{time, func,false})
 end
 -- Threading stuff
 multi.GlobalVariables={}
