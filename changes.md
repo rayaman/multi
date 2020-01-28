@@ -34,7 +34,7 @@ multi:mainloop()
 
 Update 14.0.0 Consistency, Additions and Stability
 -------------
-Added:
+# Added:
 - multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
 - thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
 - multi.hold(function or number) -- It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
@@ -120,16 +120,16 @@ multi:mainloop()
 > 10
 ```
 
-Fixed:
+# Fixed:
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
 - An internal mismanagement of the threads scheduler was fixed. Now it should be quicker and free of bugs
 - Thread error management is the integrations was not properly implemented. This is now fixed
 
-Removed:
+# Removed:
 - multi:newWatcher() -- No real use
 - multi:newCustomObject() -- No real use
 
-Changed:
+# Changed:
 - Connections connect function can now chain connections
 ```lua
 	package.path = "./?/init.lua;"..package.path
@@ -163,13 +163,13 @@ local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 ```
 Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
-Going forward:
+# Going forward:
 - Finish the rework of the networkManager - It "works", but there are packet losses that I cannot explain. I do not know what is causing this at all. Ill fix when I figure it out!
 - If all goes well, the future will contain quality of code features. I'll keep an eye out for bugs
 
 Update 13.1.0 Bug fixes and features added
 -------------
-Added: 
+# Added: 
 - Connections:Lock() -- Prevents a connection object form being fired
 - Connections:Unlock() -- Removes the restriction imposed by conn:Lock()
 - new fucntions added to the thread namespace
@@ -180,14 +180,14 @@ Added:
 -- handle:Resume()
 -- handle:Kill()
 
-Fixed:
+# Fixed:
 - Minor bug with multi:newThread() in how names and functions were managed
 - Major bug with the system thread handler. Saw healthy threads as dead ones
 - Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler opperates. 
 - newSystemThread()'s returned object now matches both the lanes and love2d in terms of methods that are usable. Error handling of System threads now behave the same across both love and lanes implementations.
 - looks like I found a typo, thread.yeild -> thread.yield
 
-Changed: 
+# Changed: 
 - getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
 - thread.hold() -- As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
@@ -245,8 +245,8 @@ Update 13.0.0 Added some documentation, and some new features too check it out!
 **Quick note** on the 13.0.0 update:
 This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
 
-Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
-Changed: 
+# Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
+# Changed: 
 - A few things, to make concepts in the library more clear.
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
 - Modified the connection object to allow for some more syntaxial suger!
@@ -274,7 +274,7 @@ print(func()) -- returns: 1, 2, 3
 print(func()) -- nil, true
 ```
 
-Removed:
+# Removed:
 - Ranges and conditions -- corutine based threads can emulate what these objects did and much better!
 - Due to the creation of hyper threaded processes the following objects are no more!
 -- ~~multi:newThreadedEvent()~~
@@ -288,7 +288,7 @@ Removed:
 
 These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
 
-Fixed:
+# Fixed:
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 - Massive object management bugs which caused performance to drop like a rock.
 - Found a bug with processors not having the Destroy() function implemented properly.
@@ -302,7 +302,7 @@ Fixed:
 -- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
 -- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
 
-Added:
+# Added:
 - Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
 - multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
 - multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
@@ -365,7 +365,7 @@ Table format for getTasksDetails(STRING format)
 
 Update 12.2.2 Time for some more bug fixes!
 -------------
-Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
+# Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 Thats all for this update
 
 Update 12.2.1 Time for some bug fixes!
@@ -382,7 +382,7 @@ Fixed: SystemThreadedConnection
 Removed: multi:newQueuer
 - This feature has no real use after corutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
 
-Going forwardGoing forward:
+Going forward:
 - Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
 - I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
 
