@@ -1416,8 +1416,8 @@ function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
-function multi.hold(func)
-	if thread.isThread() then
+function multi.hold(func,no)
+	if thread.isThread() and not(no) then
 		if type(func) == "function" or type(func) == "table" then
 			return thread.hold(func)
 		end
@@ -1462,9 +1462,9 @@ function thread:newFunction(func)
     local c = {Type = "tfunc"}
     c.__call = function(self,...)
 		local rets, err
-		local function wait() 
-			if thread.isThread() then
-				return thread.hold(function()
+		local function wait(no) 
+			if thread.isThread() and not (no) then
+				return multi.hold(function()
 					if err then
 						return multi.NIL, err
 					elseif rets then
@@ -1551,16 +1551,18 @@ function multi:newThread(name,func,...)
 						if not _G["_stack_"] or #_G["_stack_"]==0 then
 							_G["_stack_"] = {}
 							local s = _G["_stack_"]
-							local a,b,c,d,e,f,g = v.wait()
+							local a,b,c,d,e,f,g = v.wait(true)
 							table.insert(s,a)
 							table.insert(s,b)
 							table.insert(s,c)
 							table.insert(s,d)
 							table.insert(s,e)
 							table.insert(s,f)
-							Gref[k]=table.remove(_G["_stack_"])
+							local x = table.remove(_G["_stack_"])
+							Gref[k]=x
 						else
-							Gref[k]=table.remove(_G["_stack_"])
+							local x = table.remove(_G["_stack_"])
+							Gref[k]=x
 						end
 					else
 						Gref[k]=v
@@ -1707,7 +1709,9 @@ function multi.initThreads(justThreads)
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
-				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
+				if coroutine.running() ~= threads[i].thread then
+					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+				end
 				threads[i].__started = true
 				helper(i)
 			end
@@ -1763,7 +1767,9 @@ function multi.initThreads(justThreads)
 			end
 			if threads[i] and threads[i].__ready then
 				threads[i].__ready = false
-				_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+				if coroutine.running() ~= threads[i].thread then
+					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+				end
 			end
 			helper(i)
 		end
