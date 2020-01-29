@@ -1334,6 +1334,20 @@ function multi:scheduleJob(time,func)
 	end
 	table.insert(scheduledjobs,{time, func,false})
 end
+-- Special Events
+local _os = os.exit
+function os.exit(n)
+	multi.OnExit:Fire(n or 0)
+	_os(n)
+end
+multi.OnExit = multi:newConnection()
+multi.m = {onexit = function() multi.OnExit:Fire() end}
+if _VERSION >= "Lua 5.2" then
+	setmetatable(multi.m, {__gc = multi.m.onexit})
+else
+	multi.m.sentinel = newproxy(true)
+	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
+end
 -- Threading stuff
 multi.GlobalVariables={}
 if os.getOS()=="windows" then
