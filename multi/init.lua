@@ -1559,10 +1559,10 @@ function multi:newThread(name,func,...)
 							table.insert(s,e)
 							table.insert(s,f)
 							local x = table.remove(_G["_stack_"])
-							Gref[k]=x
+							rawset(t,k,x)
 						else
 							local x = table.remove(_G["_stack_"])
-							Gref[k]=x
+							rawset(t,k,x)
 						end
 					else
 						Gref[k]=v

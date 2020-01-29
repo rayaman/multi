@@ -3,6 +3,34 @@
 Update 14.1.0 Bug Fixes and a change
 -------------
 # Added: 
+- thread enviroments are able to interact with threaded functions and wait when there is the presence of variables. Only works when creating "Globals" inside of a thread. The way the enviroment has been set up is that it sets your "Global" as a "GLocal" a global variable local to the threaded enviroment. This does not have the access speed benifits that using pure locals have..
+```lua
+package.path="?/init.lua;?.lua;"..package.path
+multi,thread = require("multi"):init()
+a,b = 6,7
+multi:newThread(function()
+	function test() -- Auto converts your function into a threaded function
+		thread.sleep(1)
+		return 1,2
+	end
+	a,b = test().wait() -- Will modify Global
+	-- when wait is used the special metamethod routine is not triggered and variables are set as normal
+	a,b = test() -- Will modify GLocal
+	-- the threaded function test triggers a special routine within the metamethod that alters the thread's enviroment instead of the global enviroment. 
+	print("Waited:",a,b)
+	--This returns instantly even though the function isn't done!
+	test().connect(function(a,b)
+		print("Connected:",a,b)
+		os.exit()
+	end)
+	-- This waits for the returns since we are demanding them
+end)
+multi:newAlarm(2):OnRing(function()
+	print(a,b)
+end)
+--min,hour,day,wday,month
+multi:mainloop()
+```
 - multi:scheduleJob(time,func)
 	- time.min -- Minute a value of (0-59)
 	- time.hour -- Hour a value of (0-23)
