@@ -1481,7 +1481,7 @@ function thread:newFunction(func)
 		local t = multi:newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
-		return  {
+		local temp = {
 			isTFunc = true,
 			wait = wait,
 			connect = function(f) 
@@ -1489,6 +1489,7 @@ function thread:newFunction(func)
 				t.OnError(function(self,err) f(self, err) end) 
 			end
 		}
+		return temp,temp,temp,temp,temp,temp,temp
     end
     setmetatable(c,c)
     return c
@@ -1545,7 +1546,28 @@ function multi:newThread(name,func,...)
 			if type(v)=="function" then
 				rawset(t,k,thread:newFunction(v))
 			else
-				Gref[k]=v
+				if type(v)=="table" then
+					if v.isTFunc then
+						if not _G["_stack_"] or #_G["_stack_"]==0 then
+							_G["_stack_"] = {}
+							local s = _G["_stack_"]
+							local a,b,c,d,e,f,g = v.wait()
+							table.insert(s,a)
+							table.insert(s,b)
+							table.insert(s,c)
+							table.insert(s,d)
+							table.insert(s,e)
+							table.insert(s,f)
+							Gref[k]=table.remove(_G["_stack_"])
+						else
+							Gref[k]=table.remove(_G["_stack_"])
+						end
+					else
+						Gref[k]=v
+					end
+				else
+					Gref[k]=v
+				end
 			end
 		end
 	})
