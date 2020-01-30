@@ -1,16 +1,17 @@
 package.path="?/init.lua;?.lua;"..package.path
 multi,thread = require("multi"):init()
-function test() -- Auto converts your function into a threaded function
+test = thread:newFunction(function()
 	thread.sleep(1)
 	return 1,2
-end
+end)
 multi:newThread(function()
 	while true do
 		thread.sleep(.1)
 		print("hi")
 	end
 end)
-c,d = test()
+-- When not in a threaded enviroment at root level we need to tell the code that we are waiting!
+c,d = test().wait()
 print(c,d)
 a,b = 6,7
 multi:newThread(function()
@@ -25,5 +26,8 @@ multi:newThread(function()
 		os.exit()
 	end)
 	-- This waits for the returns since we are demanding them
+end)
+multi.OnExit(function(n)
+	print("Code Exited")
 end)
 multi:mainloop()
