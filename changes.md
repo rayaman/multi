@@ -3,6 +3,7 @@
 Update 14.1.0 Bug Fixes and a change
 -------------
 # Added: 
+- multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
 - multi.OnExit(func) -- A special connection that allows you to connect onto the lua state closing event.
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -65,14 +66,14 @@ multi:mainloop()
 # Removed: 
 - multi:newTimeStamper() -- schedulejob replaces timestamper
 # Fixed:
-- Modified the thread.* methods to perform better
--- thread.sleep()
--- thread.hold()
--- thread.holdFor()
--- thread.holdWithin()
--- thread.skip()
--- thread.kill()
--- thread.yield()
+- Modified the thread.* methods to perform better (Tables were being created each time one of these methods were called! Which in turn slowed things down. One table is modified to get things working properly)
+	- thread.sleep()
+	- thread.hold()
+	- thread.holdFor()
+	- thread.holdWithin()
+	- thread.skip()
+	- thread.kill()
+	- thread.yield()
 
 
 Update 14.0.0 Consistency, Additions and Stability

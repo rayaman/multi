@@ -1,5 +1,11 @@
 package.path="?/init.lua;?.lua;"..package.path
 multi,thread = require("multi"):init()
+multi.OnLoad(function()
+	print("Code Loaded!")
+end)
+multi.OnExit(function(n)
+	print("Code Exited")
+end)
 test = thread:newFunction(function()
 	thread.sleep(1)
 	return 1,2
@@ -26,8 +32,5 @@ multi:newThread(function()
 		os.exit()
 	end)
 	-- This waits for the returns since we are demanding them
-end)
-multi.OnExit(function(n)
-	print("Code Exited")
 end)
 multi:mainloop()

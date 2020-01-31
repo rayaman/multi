@@ -776,7 +776,7 @@ end
 local CRef = {
 	Fire = function() end
 }
-function multi:newConnection(protect,func)
+function multi:newConnection(protect,func,kill)
 	local c={}
 	c.callback = func
 	c.Parent=self
@@ -849,6 +849,9 @@ function multi:newConnection(protect,func)
 			else
 				if not self.func[i] then return end
 				table.insert(ret,{self.func[i][1](...)})
+			end
+			if kill then
+				table.remove(self.func,i)
 			end
 		end
 		return ret
@@ -981,7 +984,6 @@ function multi.nextStep(func)
 		next[#next+1] = func
 	end
 end
-multi.OnPreLoad=multi:newConnection()
 --Core Actors
 function multi:newEvent(task)
 	local c=self:newBase()
@@ -1340,7 +1342,9 @@ function os.exit(n)
 	multi.OnExit:Fire(n or 0)
 	_os(n)
 end
-multi.OnExit = multi:newConnection()
+multi.OnPreLoad = multi:newConnection()
+multi.OnLoad = multi:newConnection(nil,nil,true)
+multi.OnExit = multi:newConnection(nil,nil,true)
 multi.m = {onexit = function() multi.OnExit:Fire() end}
 if _VERSION >= "Lua 5.2" then
 	setmetatable(multi.m, {__gc = multi.m.onexit})
@@ -1549,6 +1553,7 @@ thread.__threads = {}
 local threads = thread.__threads
 local Gref = _G
 function multi:newThread(name,func,...)
+	multi.OnLoad:Fire()
 	local func = func or name
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
@@ -1971,9 +1976,9 @@ function multi:newHyperThreadedProcess(name)
 end
 -- Multi runners
 function multi:mainloop(settings)
+	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
-	multi.OnPreLoad:Fire()
 	local p_c,p_h,p_an,p_n,p_bn,p_l,p_i = self.Priority_Core,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Idle
 	local P_LB = p_i
 	if not isRunning then
@@ -2014,6 +2019,7 @@ function multi:mainloop(settings)
 		local autoP = 0
 		local solid,sRef
 		local cc=0
+		multi.OnLoad:Fire()
 		while mainloopActive do
 			if next then
 				local DD = table.remove(next,1)
@@ -2210,6 +2216,7 @@ function multi:uManager(settings)
 		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
 		protect = settings.protect
 	end
+	multi.OnLoad:Fire()
 	self.uManager=self.uManagerRef
 end
 function multi:uManagerRef(settings)
