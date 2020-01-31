@@ -1504,6 +1504,3 @@ Added:
 
 Update: 1.4.1 - First Public release of the library
 -------------
-
-**IMPORTANT:**
-Every update I make aims to make things simpler more efficient and just better, but a lot of old code, which can be really big, uses a lot of older features. I know the pain of having to rewrite everything. My promise to my library users is that I will always have backwards support for older features! New ways may exist that are quicker and easier, but the old features/methods will be supported.</br>**Note:** Version 2.x.x sort of breaks this promise. Sorry about that, but a new major version means changes that had to be made. Not too much has changed though and base code is 100% compatiable. What changed was how you init the library and some files that were removed due to not really being used by what i have seen. The older backwards compat file was for an older version of the library that was changed before the public release had any traction. The goal is still to provide a easy way to multitask in lua. I'll try my best however to ensure that not much changes and that changes are easy to make if they are introduced.
