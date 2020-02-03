@@ -1476,9 +1476,8 @@ function multi.holdFor(n,func)
 		end
 	end)
 end
-function thread:newFunction(func)
-    local c = {Type = "tfunc"}
-    c.__call = function(self,...)
+function thread:newFunction(func,holdme)
+    return function(self,...)
 		local rets, err
 		local function wait(no) 
 			if thread.isThread() and not (no) then
@@ -1499,6 +1498,9 @@ function thread:newFunction(func)
 		local t = multi:newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
+		if holdme then
+			return wait()
+		end
 		local temp = {
 			isTFunc = true,
 			wait = wait,
@@ -1509,8 +1511,6 @@ function thread:newFunction(func)
 		}
 		return temp,temp,temp,temp,temp,temp,temp
     end
-    setmetatable(c,c)
-    return c
 end
 function thread.run(func)
 	local threaddata,t2,t3,t4,t5,t6
