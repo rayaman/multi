@@ -878,11 +878,6 @@ function multi:newConnection(protect,func,kill)
 			Parent=self,
 			Fire=function(self,...)
 				if self.Parent.lock then return end
---~ 				if self.Parent.FC>0 then
---~ 					for i=1,#self.Parent.FC do
---~ 						self.Parent.FC[i]:Fire(...)
---~ 					end
---~ 				end
 				if self.Parent.protect then
 					local t=pcall(self.func,...)
 					if t then
