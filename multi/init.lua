@@ -1594,6 +1594,7 @@ function multi:newThread(name,func,...)
 	})
 	setfenv(func,env)
 	local c={}
+	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
 	c.Name=name
@@ -1675,6 +1676,17 @@ function multi.initThreads(justThreads)
 	local t0,t1,t2,t3,t4,t5,t6
 	local r1,r2,r3,r4,r5,r6
 	local ret,_
+	local function CheckRets(i)
+		if ret~=nil then
+			threads[i].TempRets[1] = ret
+			threads[i].TempRets[2] = r1
+			threads[i].TempRets[3] = r2
+			threads[i].TempRets[4] = r3
+			threads[i].TempRets[5] = r4
+			threads[i].TempRets[6] = r5
+			threads[i].TempRets[7] = r6
+		end
+	end
 	local function helper(i)
 		if type(ret)=="table" then
 			if ret[1]=="_kill_" then
@@ -1723,6 +1735,7 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				ret = nil
 			end
+			CheckRets(i)
 		end
 	end
 	multi.scheduler:OnLoop(function(self)
@@ -1730,6 +1743,7 @@ function multi.initThreads(justThreads)
 			if not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
 					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+					CheckRets(i)
 				end
 				threads[i].__started = true
 				helper(i)
@@ -1738,7 +1752,12 @@ function multi.initThreads(justThreads)
 				threads[i].OnError:Fire(threads[i],ret)
 			end
 			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
-				threads[i].OnDeath:Fire(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
+				local tr = threads[i].TempRets
+				if ret == nil then
+					threads[i].OnDeath:Fire(threads[i],"ended",tr[1],tr[2],tr[3],tr[4],tr[5],tr[6],tr[7])
+				else
+					threads[i].OnDeath:Fire(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
+				end
 				table.remove(threads,i)
 			elseif threads[i] and threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
@@ -1788,6 +1807,7 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				if coroutine.running() ~= threads[i].thread then
 					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+					CheckRets(i)
 				end
 			end
 			helper(i)

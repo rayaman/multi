@@ -3,17 +3,19 @@ multi,thread = require("multi"):init()
 multi.OnLoad(function()
 	print("Code Loaded!")
 end)
+t = os.clock()
+co = 0
 multi.OnExit(function(n)
-	print("Code Exited")
+	print("Code Exited: ".. os.clock()-t .." Count: ".. co)
 end)
 test = thread:newFunction(function()
 	thread.sleep(1)
-	return 1,2
+	return 1,math.random(2,100)
 end)
 multi:newThread(function()
 	while true do
-		thread.sleep(.1)
-		print("hi")
+		thread.skip()
+		co = co + 1
 	end
 end)
 -- When not in a threaded enviroment at root level we need to tell the code that we are waiting!
