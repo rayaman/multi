@@ -1220,6 +1220,9 @@ function multi:newTLoop(func,set)
 	self:create(c)
 	return c
 end
+function multi:setTimeout(func,t)
+	multi:newThread(function() thread.sleep(t) func() end)
+end
 function multi:newTrigger(func)
 	local c={}
 	c.Type='trigger'

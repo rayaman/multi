@@ -3,6 +3,9 @@ multi,thread = require("multi"):init()
 multi.OnLoad(function()
 	print("Code Loaded!")
 end)
+multi:setTimeout(function()
+	print("here we are!")
+end,2)
 local t
 co = 0
 multi.OnExit(function(n)
@@ -11,6 +14,12 @@ end)
 test = thread:newFunction(function()
 	thread.sleep(1)
 	return 1,math.random(2,100)
+end)
+multi:newThread(function()
+	while true do
+		thread.sleep(.1)
+		print("!")
+	end
 end)
 multi:newThread(function()
 	t = os.clock()
