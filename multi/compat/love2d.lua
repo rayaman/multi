@@ -69,6 +69,20 @@ multi.OnPreLoad(function()
 		end
 	end)
 end)
+
+function multi:loveloop()
+	local link
+	link = multi:newThread(function()
+		local mainloop = love.run()
+		while true do
+			thread.yield()
+			pcall(mainloop)
+		end
+	end).OnError(function(...)
+		print(...)
+	end)
+	multi:mainloop()
+end
 multi.OnQuit(function()
 	multi.Stop()
 	love.event.quit()

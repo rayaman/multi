@@ -22,7 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi, thread = require("multi").init()
-local pad = require("multi.integration.loveManager.scratchpad")
 GLOBAL = multi.integration.GLOBAL
 THREAD = multi.integration.THREAD
 function multi:newSystemThreadedQueue(name)
@@ -82,11 +81,8 @@ function multi:newSystemThreadedJobQueue(n)
 	c.queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 	c.id = 0
 	c.OnJobCompleted = multi:newConnection()
-	c._bytedata = love.data.newByteData(string.rep(status.BUSY,c.cores))
-	c.bytedata = pad:new(c._bytedata)
 	local allfunc = 0
 	function c:doToAll(func)
-		self.bytedata:write(string.rep(status.BUSY,c.cores)) -- set all variables to busy
 		local f = THREAD.dump(func)
 		for i = 1, self.cores do
 			self.queueAll:push({allfunc,f})
@@ -97,7 +93,6 @@ function multi:newSystemThreadedJobQueue(n)
 		if self.funcs[name] then
 			error("A function by the name "..name.." has already been registered!") 
 		end
-		self.bytedata:write(string.rep(status.BUSY,c.cores)) -- set all variables to busy
 		self.funcs[name] = func
 	end
 	function c:pushJob(name,...)
@@ -115,6 +110,7 @@ function multi:newSystemThreadedJobQueue(n)
 			end
 		end
 	end)
+	print("Cores: ",c.cores)
 	for i=1,c.cores do
 		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
 			local multi, thread = require("multi"):init()
@@ -123,8 +119,6 @@ function multi:newSystemThreadedJobQueue(n)
 			end
 			require("love.timer")
 			local clock = os.clock
-			local pad = require("multi.integration.loveManager.scratchpad")
-			local status = require("multi.integration.loveManager.status")
 			local funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
 			local queue = love.thread.getChannel("__JobQueue_"..jqc.."_queue")
 			local queueReturn = love.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")

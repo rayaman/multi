@@ -48,6 +48,18 @@ local threads = {}
 local count = 1
 local started = false
 local livingThreads = {}
+function THREAD:newFunction(func,holup)
+	return function(...)
+		local t = multi:newSystemThread("SystemThreadedFunction",function(...)
+			return func(...)
+		end,...)
+		return thread:newFunction(function()
+			return thread.hold(function()
+				return t.thread:join(.001)
+			end)
+		end,holup)()
+	end
+end
 function multi:newSystemThread(name, func, ...)
 	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1, 10000000)
@@ -63,12 +75,10 @@ function multi:newSystemThread(name, func, ...)
 	c.alive = true
 	c.priority = thread.Priority_Normal
 	local args = {...}
-	multi.nextStep(function()
-		c.thread = lanes.gen(table.concat(c.loadString,","),{globals={
-			THREAD_NAME=name,
-			THREAD_ID=count
-		},priority=c.priority}, func)(unpack(args))
-	end)
+	c.thread = lanes.gen(table.concat(c.loadString,","),{globals={
+		THREAD_NAME=name,
+		THREAD_ID=count
+	},priority=c.priority}, func)(unpack(args))
 	count = count + 1
 	function c:kill()
 		self.thread:cancel()

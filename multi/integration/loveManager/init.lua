@@ -27,14 +27,16 @@ end
 local ThreadFileData = [[
 ISTHREAD = true
 THREAD = require("multi.integration.loveManager.threads") -- order is important!
-STATUS = require("multi.integration.loveManager.status")
+sThread = THREAD
 __IMPORTS = {...}
 __FUNC__=table.remove(__IMPORTS,1)
 __THREADID__=table.remove(__IMPORTS,1)
 __THREADNAME__=table.remove(__IMPORTS,1)
+stab = THREAD.createStaticTable(__THREADNAME__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
-THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))]]
+stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
+]]
 local multi, thread = require("multi.compat.love2d"):init()
 local THREAD = {}
 __THREADID__ = 0
@@ -45,18 +47,36 @@ local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
 local OBJECT_ID = 0
+function THREAD:newFunction(func,holup)
+	return function(...)
+		local t = multi:newSystemThread("SystemThreadedFunction",func,...)
+		return thread:newFunction(function()
+            return thread.hold(function()
+                if t.stab["returns"] then
+                    return unpack(t.stab.returns)
+                end
+			end)
+		end,holup)()
+	end
+end
 function multi:newSystemThread(name,func,...)
     local c = {}
     c.name = name
     c.ID=THREAD_ID
     c.thread=love.thread.newThread(ThreadFileData)
     c.thread:start(THREAD.dump(func),c.ID,c.name,...)
+    c.stab = THREAD.createStaticTable(name)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID+1
+    return c
+end
+function love.threaderror(thread, errorstr)
+  print("Thread error!\n"..errorstr)
 end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
+require("multi.integration.loveManager.extensions")
 return {init=function()
     return GLOBAL,THREAD
 end}

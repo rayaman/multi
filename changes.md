@@ -6,6 +6,15 @@ Update 14.1.0 Bug Fixes and a change
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
 multi,thread = require("multi"):init()
+local GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+t = THREAD:newFunction(function(...)
+	print("This is a system threaded function!",...)
+	THREAD.sleep(1) -- This is handled within a system thread! Note: this creates a system thread that runs then ends. C
+	return "We done!"
+end)
+print(t("hehe",1,2,3,true).connect(function(...)
+	print("connected:",...)
+end)) -- The same features that work with thread:newFunction() are here as well
 multi.OnLoad(function()
 	print("Code Loaded!") -- Connect to the load event
 end)
@@ -68,11 +77,13 @@ end)
 multi:mainloop()
 ```
 # Changed:
-- thread:newFunction(func,holdme) -- Added an argument holdme to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
+- thread:newFunction(func,holup) -- Added an argument holdme to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) -- Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
 
-# Added: 
+# Added:
+- THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup)
+- multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
 - multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
 - multi.OnExit(func) -- A special connection that allows you to connect onto the lua state closing event.
 ```lua
@@ -136,6 +147,8 @@ multi:mainloop()
 # Removed: 
 - multi:newTimeStamper() -- schedulejob replaces timestamper
 # Fixed:
+- love2d had an issue where threads crashing would break the mainloop
+- fixed bugs within the extensions.lua file for love threading
 - Modified the thread.* methods to perform better (Tables were being created each time one of these methods were called! Which in turn slowed things down. One table is modified to get things working properly)
 	- thread.sleep()
 	- thread.hold()
