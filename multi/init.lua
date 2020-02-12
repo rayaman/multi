@@ -1071,7 +1071,7 @@ end
 function multi:newLoop(func)
 	local c=self:newBase()
 	c.Type='loop'
-	local start=self.clock()
+	local start=clock()
 	local funcs = {}
 	if func then
 		funcs={func}
@@ -1246,7 +1246,7 @@ function multi:newTStep(start,reset,count,set)
 	c.skip=skip or 0
 	c.count=count or 1*think
 	c.funcE={}
-	c.timer=self.clock()
+	c.timer=clock()
 	c.set=set or 1
 	c.funcS={}
 	function c:Update(start,reset,count,set)
@@ -1255,12 +1255,12 @@ function multi:newTStep(start,reset,count,set)
 		self.endAt=reset or self.endAt
 		self.set=set or self.set
 		self.count=count or self.count or 1
-		self.timer=self.clock()
+		self.timer=clock()
 		self:Resume()
 		return self
 	end
 	function c:Act()
-		if self.clock()-self.timer>=self.set then
+		if clock()-self.timer>=self.set then
 			self:Reset()
 			if self.pos==self.start then
 				for fe=1,#self.funcS do
@@ -1298,7 +1298,7 @@ function multi:newTStep(start,reset,count,set)
 	end
 	function c:Reset(n)
 		if n then self.set=n end
-		self.timer=self.clock()
+		self.timer=clock()
 		self:Resume()
 		return self
 	end
@@ -1475,6 +1475,7 @@ function multi.holdFor(n,func)
 	end)
 end
 function thread:newFunction(func,holdme)
+	local done = false
     return function(...)
 		local rets, err
 		local function wait(no) 
@@ -1502,9 +1503,9 @@ function thread:newFunction(func,holdme)
 		local temp = {
 			isTFunc = true,
 			wait = wait,
-			connect = function(f) 
-				t.OnDeath(function(self,status,...) f(...) end) 
-				t.OnError(function(self,err) f(self, err) end) 
+			connect = function(f)
+				t.OnDeath(function(self,status,...) if done == false then f(...) done = true end end) 
+				t.OnError(function(self,err) if done == false then f(self,err) done = true end end) 
 			end
 		}
 		return temp,temp,temp,temp,temp,temp,temp
@@ -1604,8 +1605,8 @@ function multi:newThread(name,func,...)
 	c.timer=multi:newTimer()
 	c._isPaused = false
 	c.returns = {}
-	c.OnError = multi:newConnection()
-	c.OnDeath = multi:newConnection()
+	c.OnError = multi:newConnection(true,nil,true)
+	c.OnDeath = multi:newConnection(true,nil,true)
 	function c:isPaused()
 		return self._isPaused
 	end
@@ -1676,6 +1677,7 @@ function multi.initThreads(justThreads)
 	local ret,_
 	local function CheckRets(i)
 		if ret~=nil then
+			if not threads[i] then return end
 			threads[i].TempRets[1] = ret
 			threads[i].TempRets[2] = r1
 			threads[i].TempRets[3] = r2
@@ -1740,7 +1742,7 @@ function multi.initThreads(justThreads)
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
+					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
 					CheckRets(i)
 				end
 				threads[i].__started = true

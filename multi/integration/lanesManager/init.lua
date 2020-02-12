@@ -68,7 +68,7 @@ function multi:newSystemThread(name, func, ...)
 	c.name = name
 	c.Name = name
 	c.Id = count
-	c.loadString = {"base","package","os,math","table","string","coroutine"}
+	c.loadString = {"base","package","os","io","math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
 	c.Type = "sthread"
 	c.creationTime = os.clock()

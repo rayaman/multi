@@ -105,7 +105,6 @@ function multi:newSystemThreadedJobQueue(n)
 			thread.yield()
 			local dat = c.queueReturn:pop()
 			if dat then
-				print(dat)
 				c.OnJobCompleted:Fire(unpack(dat))
 			end
 		end

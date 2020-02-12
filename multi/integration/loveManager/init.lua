@@ -47,13 +47,17 @@ local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
 local OBJECT_ID = 0
+local stf = 0
 function THREAD:newFunction(func,holup)
+    stf = stf + 1
 	return function(...)
-		local t = multi:newSystemThread("SystemThreadedFunction",func,...)
+		local t = multi:newSystemThread("STF"..stf,func,...)
 		return thread:newFunction(function()
             return thread.hold(function()
                 if t.stab["returns"] then
-                    return unpack(t.stab.returns)
+                    local dat = t.stab.returns
+                    t.stab.returns = nil
+                    return unpack(dat)
                 end
 			end)
 		end,holup)()
