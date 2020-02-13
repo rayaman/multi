@@ -77,7 +77,9 @@ function multi:newSystemThread(name, func, ...)
 	local args = {...}
 	c.thread = lanes.gen(table.concat(c.loadString,","),{globals={
 		THREAD_NAME=name,
-		THREAD_ID=count
+		THREAD_ID=count,
+		THREAD = THREAD,
+		GLOBAL = GLOBAL
 	},priority=c.priority}, func)(unpack(args))
 	count = count + 1
 	function c:kill()
