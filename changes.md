@@ -1,5 +1,7 @@
 # Changelog
 
+Table of contents
+---
 [Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 Consistency, Additions and Stability](#update-1400-consistency-additions-and-stability)</br>[Update 13.1.0 Bug fixes and features added](#update-1310-bug-fixes-and-features-added)</br>[Update 13.0.0 Added some documentation, and some new features too check it out!](#update-1300-added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 Time for some more bug fixes!](#update-1222-time-for-some-more-bug-fixes)</br>[Update 12.2.1 Time for some bug fixes!](#update-1221-time-for-some-bug-fixes)</br>[Update 12.2.0](#update-1220)</br>[Update 12.1.0](#update-1210)</br>[Update: 12.0.0 Big update (Lots of additions some changes)](#update-1200-big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1](#update-1111)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1](#update-191)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3](#update-183)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 Bug Fixes Only](#update-171-bug-fixes-only)</br>[Update: 1.7.0](#update-170)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 - First Public release of the library](#update-141---first-public-release-of-the-library)
 
 # Update 14.1.0 - A whole new world of possibilities
@@ -666,6 +668,8 @@ Contunue to make small changes as I come about them. This change was inspired wh
 
 **Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a 
 is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
+
+**Note:** The nodeManager is being reworked! This will take some time before it is in a stable state. The old version had some major issues that caused it to perform poorly.
 
 Added:
 ---
