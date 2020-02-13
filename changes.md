@@ -1,8 +1,10 @@
-# Changes
-[TOC]
-Update 14.1.0 Bug Fixes and a change
--------------
-# Full Update Example - I plan on doing full example for each future update. Every feature added gets touched and I litter it with comments.
+# Changelog
+
+[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 Consistency, Additions and Stability](#update-1400-consistency-additions-and-stability)</br>[Update 13.1.0 Bug fixes and features added](#update-1310-bug-fixes-and-features-added)</br>[Update 13.0.0 Added some documentation, and some new features too check it out!](#update-1300-added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 Time for some more bug fixes!](#update-1222-time-for-some-more-bug-fixes)</br>[Update 12.2.1 Time for some bug fixes!](#update-1221-time-for-some-bug-fixes)</br>[Update 12.2.0](#update-1220)</br>[Update 12.1.0](#update-1210)</br>[Update: 12.0.0 Big update (Lots of additions some changes)](#update-1200-big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1](#update-1111)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1](#update-191)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3](#update-183)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 Bug Fixes Only](#update-171-bug-fixes-only)</br>[Update: 1.7.0](#update-170)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 - First Public release of the library](#update-141---first-public-release-of-the-library)
+
+# Update 14.1.0 - A whole new world of possibilities
+Full Update Example - I plan on doing full example for each future update. Every feature added gets touched and I litter it with comments.
+---
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
 multi,thread = require("multi"):init()
@@ -76,13 +78,15 @@ multi:newThread(function()
 end)
 multi:mainloop()
 ```
-# Changed:
+Changed:
+---
 - thread:newFunction(func,holup) -- Added an argument holdme to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) -- Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
 - modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
 
-# Added:
+Added:
+---
 - THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
 - multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
 - multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
@@ -145,9 +149,12 @@ multi:scheduleJob({min = 15, hour = 14},function()
 end)
 multi:mainloop()
 ```
-# Removed: 
+Removed:
+---
 - multi:newTimeStamper() -- schedulejob replaces timestamper
-# Fixed:
+
+Fixed:
+---
 - love2d had an issue where threads crashing would break the mainloop
 - fixed bugs within the extensions.lua file for love threading
 - Modified the thread.* methods to perform better (Tables were being created each time one of these methods were called! Which in turn slowed things down. One table is modified to get things working properly)
@@ -160,9 +167,10 @@ multi:mainloop()
 	- thread.yield()
 
 
-Update 14.0.0 Consistency, Additions and Stability
+# Update 14.0.0 Consistency, Additions and Stability
 -------------
-# Added:
+Added:
+---
 - multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
 - thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
 - multi.hold(function or number) -- It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
@@ -248,16 +256,19 @@ multi:mainloop()
 > 10
 ```
 
-# Fixed:
+Fixed:
+---
 - Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
 - An internal mismanagement of the threads scheduler was fixed. Now it should be quicker and free of bugs
 - Thread error management is the integrations was not properly implemented. This is now fixed
 
-# Removed:
+Removed:
+---
 - multi:newWatcher() -- No real use
 - multi:newCustomObject() -- No real use
 
-# Changed:
+Changed:
+---
 - Connections connect function can now chain connections
 ```lua
 	package.path = "./?/init.lua;"..package.path
@@ -291,13 +302,15 @@ local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 ```
 Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
-# Going forward:
+Going forward:
+---
 - Finish the rework of the networkManager - It "works", but there are packet losses that I cannot explain. I do not know what is causing this at all. Ill fix when I figure it out!
 - If all goes well, the future will contain quality of code features. I'll keep an eye out for bugs
 
-Update 13.1.0 Bug fixes and features added
+# Update 13.1.0 Bug fixes and features added
 -------------
-# Added: 
+Added:
+---
 - Connections:Lock() -- Prevents a connection object form being fired
 - Connections:Unlock() -- Removes the restriction imposed by conn:Lock()
 - new fucntions added to the thread namespace
@@ -308,14 +321,16 @@ Update 13.1.0 Bug fixes and features added
 -- handle:Resume()
 -- handle:Kill()
 
-# Fixed:
+Fixed:
+---
 - Minor bug with multi:newThread() in how names and functions were managed
 - Major bug with the system thread handler. Saw healthy threads as dead ones
 - Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler opperates. 
 - newSystemThread()'s returned object now matches both the lanes and love2d in terms of methods that are usable. Error handling of System threads now behave the same across both love and lanes implementations.
 - looks like I found a typo, thread.yeild -> thread.yield
 
-# Changed: 
+Changed: 
+---
 - getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
 - thread.hold() -- As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
@@ -324,7 +339,8 @@ Update 13.1.0 Bug fixes and features added
 - local multi, thread = require("multi") -- Since coroutine based threading has seen a change to how it works, requring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
 
 
-# Tasks Details Table format
+Tasks Details Table format
+---
 ```
 { 
 	["Tasks"] = { 
@@ -368,13 +384,17 @@ Update 13.1.0 Bug fixes and features added
 	["SystemThreadCount"] = 1
 } 
 ```
-Update 13.0.0 Added some documentation, and some new features too check it out!
+# Update 13.0.0 Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
 This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
 
-# Fixed: Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
-# Changed: 
+Fixed:
+---
+- Tons of bugs, I actually went through the entire library and did a full test of everything, I mean everything, while writing the documentation.
+
+Changed:
+---
 - A few things, to make concepts in the library more clear.
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
 - Modified the connection object to allow for some more syntaxial suger!
@@ -402,7 +422,8 @@ print(func()) -- returns: 1, 2, 3
 print(func()) -- nil, true
 ```
 
-# Removed:
+Removed:
+---
 - Ranges and conditions -- corutine based threads can emulate what these objects did and much better!
 - Due to the creation of hyper threaded processes the following objects are no more!
 -- ~~multi:newThreadedEvent()~~
@@ -416,7 +437,8 @@ print(func()) -- nil, true
 
 These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
 
-# Fixed:
+Fixed:
+---
 - There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 - Massive object management bugs which caused performance to drop like a rock.
 - Found a bug with processors not having the Destroy() function implemented properly.
@@ -430,7 +452,8 @@ These didn't have much use in their previous form, but with the addition of hype
 -- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
 -- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
 
-# Added:
+Added:
+---
 - Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
 - multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
 - multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
@@ -491,12 +514,13 @@ Table format for getTasksDetails(STRING format)
 - patch up bugs
 - finish documentstion
 
-Update 12.2.2 Time for some more bug fixes!
+# Update 12.2.2 Time for some more bug fixes!
 -------------
-# Fixed: multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
-Thats all for this update
+Fixed:
+--- 
+- multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 
-Update 12.2.1 Time for some bug fixes!
+# Update 12.2.1 Time for some bug fixes!
 -------------
 Fixed: SystemThreadedJobQueues
 - You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!
@@ -514,7 +538,8 @@ Going forward:
 - Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
 - I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
 
-# Example
+Example
+---
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
@@ -532,7 +557,7 @@ end
 multi:mainloop()
 ```
 
-Update 12.2.0
+# Update 12.2.0
 -------------
 **Added:**
 - multi.nextStep(func)
@@ -603,7 +628,7 @@ Note:
 The upper limit of this libraries performance on my machine is ~39mil. This is simply a while loop counting up from 0 and stops after 1 second. The 20mil that I am currently getting is probably as fast as it can get since its half of the max performance possible, and each layer I have noticed that it doubles complexity. Throughout the years with this library I have seen massive improvements in speed. In the beginning we had only ~2000 steps per second. Fast right? then after some tweaks we went to about 300000 steps per second, then 600000. Some more tweaks brought me to ~1mil steps per second, then to ~4 mil then ~9 mil and now finally ~20 mil... the doubling effect that i have now been seeing means that odds are I have reach the limit. I will aim to add more features and optimize individule objects. If its possible to make the library even faster then I will go for it.
 
 
-Update 12.1.0
+# Update 12.1.0
 -------------
 Fixed:
 - bug causing arguments when spawning a new thread not going through
@@ -633,15 +658,17 @@ multi:mainloop()
 ```
 **Note:** Only if the first return is non-nil/false will any other returns be passed! So while variable b above is nil the string "We did it!" will not be passed. Also while this seems simple enough to get working, I had to modify a bit on how the scheduler worked to add such a simple feature. Quite a bit is going on behind the scenes which made this a bit tricky to implement, but not hard. Just needed a bit of tinkering. Plus event objects have not been edited since the creation of the EventManager. They have remained mostly the same since 2011
 
-# Going forward:
+Going forward:
+---
 Contunue to make small changes as I come about them. This change was inspired when working of the net library. I was addind simple binary file support over tcp, and needed to pass the data from the socket when the requested amount has been recieved. While upvalues did work, i felt returning data was cleaner and added this feature.
 
-Update: 12.0.0 Big update (Lots of additions some changes)
-------------------------
+# Update: 12.0.0 Big update (Lots of additions some changes)
+
 **Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a 
 is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
 
-#Added:
+Added:
+---
 - `nGLOBAL = require("multi.integration.networkManager").init()`
 - `node = multi:newNode(tbl: settings)`
 - `master = multi:newMaster(tbl: settings)`
@@ -658,14 +685,16 @@ Changed:
 - This library is about 8 years old and using 2.0.0 makes it seem young. I changed it to 12.0.0 since it has some huge changes and there were indeed 12 major releases that added some cool things. Going forward I'll use major.minor.bugfix
 - multi.OnError() is now required to capture errors that are thrown when in prorected mode.
 
-#Node:
+Node:
+---
 - node:sendTo(name,data)
 - node:pushTo(name,data)
 - node:peek()
 - node:pop()
 - node:getConsole() -- has only 1 function print which allows you to print to the master.
 
-#Master:
+Master:
+---
 - master:doToAll(func)
 - master:register(name,node,func)
 - master:execute(name,node,...)
@@ -678,10 +707,12 @@ Changed:
 - master:pop()
 - master:OnError(nodename, error) -- if a node has an error this is triggered.
 
-#Bugs
+Bugs
+---
 - Fixed a small typo I made which caused a hard crash when a (coroutine) thread crashes. This only happened if protect was true.
 
-#Going forward:
+Going forward:
+---
 - I am really excited to finally get this update out there, but left one important thing out. enabling of enviroments for each master connected to a node. This would allow a node to isolate code from multiple masters so they cannot interact with each other. This will come out in version 12.1.0 But might take a while due to the job hunt that I am currently going through.
 - Another feature that I am on the fence about is adding channels. They would work like queues, but are named so you can seperate the data from different channels where only one portion of can see certain data. 
 - I also might add a feature that allows different system threads to consume from a network queue if they are spaned on the same physical machine. This is possible at the moment, just doesn't have a dedicated object for handling this seamlessly. You can do this yourself though.
@@ -784,7 +815,8 @@ multi:mainloop(settings)
 
 **Note:** There are many ways to work this. You could send functions/methods to a node like haw systemThreadedJobQueue work. Or you could write the methods you want in advance in each node file and send over the command to run the method with arguments ... and it will return the results. Network threading is different than system threading. Data transfer is really slow compared to system threading. In fact the main usage for this feature in the library is mearly for experments. Right now I honestly do not know what I want to do with this feature and what I am going to add to this feature. The ablitiy to use this frature like a system thread will be possible, but there are some things that differ.
 
-#Changed:
+Changed:
+---
 - multi:mainloop(settings) -- now takes a table of settings
 - multi:uManager(settings) -- now takes a table of settings
 - connections:holdUT(n) can take a number now. Where they will not continue until it gets triggered **n** times Added 3 updated ago, forgot to list it as a new feature
@@ -808,13 +840,15 @@ multi = require("multi")
 require("multi.integration.luvitManager").init(thread,timer) -- Luvit does not cuttently have support for the global table or threads.
 ```
 
-#Improvements:
+Improvements:
+---
 - Updated the ThreadedConsole, now 100x faster!
 - Updated the ThreadedConections, .5x faster!
 - Both multi:uManager(settings) and multi:mainloop(settings) provide about the same performance! Though uManager is slightly slower due to function overhead, but still really close.
 - Revamped pausing mulit-objects they now take up less memory when being used
 
-#Removed:
+Removed:
+---
 - require("multi.all") -- We are going into a new version of the library so this is nolonger needed
 - require("multi.compat.backwards[1,5,0]") -- This is really old and is no longer supported going forward
 - multi:Do_Order()
@@ -851,8 +885,7 @@ multi:mainloop{
 	end,
 }
 ```
-Update: 1.11.1
---------------
+# Update: 1.11.1
 Love2d change:
 I didn't make a mistake but didn't fully understand how the new love.run function worked.
 So, it works by returning a function that allows for running the mainloop. So, this means that we can do something like this:
@@ -873,8 +906,7 @@ NOTE: **multiobj:hold() will be removed in the next version!** This is something
 
 TODO: Add auto priority adjustments when working with priority and stuff... If the system is under heavy load it will dial some things deemed as less important down and raise the core processes.
 
-Update: 1.11.0
---------------
+# Update: 1.11.0
 Added:
 - SystemThreadedConsole(name) -- Allow each thread to print without the sync issues that make prints merge and hard to read.
 
@@ -902,12 +934,12 @@ end
 ```
 
 
-Update: 1.10.0
---------------
+# Update: 1.10.0
 **Note:** The library is now considered to be stable!
 **Upcoming:** Network parallelism is on the way. It is in the works and should be released soon
 
-#Added:
+Added:
+---
 - isMainThread true/nil
 - multi:newSystemThreadedConnection(name,protect) -- Works like normal connections, but are able to trigger events across threads
 
@@ -940,7 +972,8 @@ multi:newTLoop(function()
 end,1)
 ```
 
-#Fixed:
+Fixed:
+---
 **loveManager** and **shared threading objects**
 - sThread.waitFor()
 - sThread.hold()
@@ -982,8 +1015,7 @@ end,1)
 multi:mainloop()
 ```
 
-Update: 1.9.2
--------------
+# Update: 1.9.2
 Added:
 - (THREAD).kill() kills a thread. Note: THREAD is based on what you name it
 - newTimeStamper() Part of the persistent systems... Useful for when you are running this library for a long amount of time... like months and years! Though daily, hourly, minute events do also exist.
@@ -999,7 +1031,8 @@ stamper:OnDay(int day,func) or stamper:OnDay(string day,func) Mon, Tues, Wed, et
 stamper:OnMonth(int month,func)
 stamper:OnYear(int year,func)
 ```
-Updated:
+Improved:
+---
 - LoadBalancing, well better load balancing than existed before. This one allowed for multiple processes to have their own load reading. Calling this on the multi object will return the total load for the entire multi environment... loads of other processes are indeed affected by what other processes are doing. However, if you combine propriety to the mix of things then you will get differing results... these results however will most likely be higher than normal... different priorities will have different default thresholds of performance.
 
 Fixed:
@@ -1012,8 +1045,7 @@ Changed:
 - SystemThreadedJobQueues pushJob now returns an id of that job which will match the same one that OnJobCompleted returns
 
 
-Update: 1.9.1
--------------
+# Update: 1.9.1
 Added:
 - Integration "multi.integration.luvitManager"
 - Limited... Only the basic multi:newSystemThread(...) will work
@@ -1024,8 +1056,7 @@ Updated:
 - It will not pass the ... to the func(). Do not know why this wasn't done in the first place
 - Also multi:getPlatform(will now return "luvit" if using luvit... Though Idk if module creators would use the multi library when inside the luvit environment
 
-Update: 1.9.0
--------------
+# Update: 1.9.0
 Added:
 - multiobj:ToString() -- returns a string representing the object
 - multi:newFromString(str) -- creates an object from a string
@@ -1042,8 +1073,8 @@ bin.new(talarm:ToString()):tofile("test.dat")
 -- A more seamless way to use this will be made in the form of state saving.
 This is still a WIP
 processes, timers, timemasters, watchers, and queuers have not been worked on yet
-Update: 1.8.7
--------------
+
+# Update: 1.8.7
 Added:
 - multi.timer(func,...)
 
@@ -1060,8 +1091,8 @@ print(multi.timer(test,1,2,3))
 print(multi.timer(test,1,2,3))
 -- multi.timer returns the time taken then the arguments from the function... Uses unpack so careful of nil values!
 ```
-Update: 1.8.6
--------------
+
+# Update: 1.8.6
 Added:
 - jobQueue:doToAll(function)
 - jobQueue:start() is now required Call this after all calls to registerJob()'s. Calling it afterwards will not guarantee your next push job with that job will work. Not calling this will make pushing jobs impossible!
@@ -1105,9 +1136,10 @@ t=gui:newTextLabel("no done yet!",0,0,300,100)
 t:centerX()
 t:centerY()
 ```
-Update: 1.8.5
--------------
+
+# Update: 1.8.5
 Added:
+---
 - SystemThreadedExecute(cmd)
 
 Allows the execution of system calls without hold up. It is possible to do the same using io.popen()! You decide which works best for you!
@@ -1122,16 +1154,18 @@ multi:newTLoop(function()
 end,1)
 multi:mainloop()
 ```
-Update: 1.8.4
--------------
+
+# Update: 1.8.4
 Added:
+---
 - multi:newSystemThreadedJobQueue()
 - Improved stability of the library
 - Fixed a bug that made the benchmark and getload commands non-thread(coroutine) safe
 - Tweaked the loveManager to help improve idle CPU usage
 - Minor tweaks to the coroutine scheduling
 
-# Using multi:newSystemThreadedJobQueue()
+Using multi:newSystemThreadedJobQueue()
+---
 First you need to create the object
 This works the same way as love2d as it does with lanes... It is getting harder to make both work the same way with speed in mind... Anyway...
 ```lua
@@ -1167,9 +1201,9 @@ multi:mainloop() -- Start the main loop :D
 
 That’s it from this version!
 
-Update: 1.8.3
--------------
-Added:</br>
+# Update: 1.8.3
+Added:
+---
 **New Mainloop functions** Below you can see the slight differences... Function overhead is not too bad in lua but has a real difference. multi:mainloop() and multi:unprotectedMainloop() use the same algorithm yet the dedicated unprotected one is slightly faster due to having less function overhead.
 - multi:mainloop()\* -- Bench:  16830003 Steps in 3 second(s)!
 - multi:protectedMainloop() -- Bench:  16699308 Steps in 3 second(s)!
@@ -1185,9 +1219,9 @@ However there is a work around! You can use processes to run multiobjs as well a
 
 I may make a full comparison between each method and which is faster, but for now trust that the dedicated ones with less function overhead are infect faster. Not by much but still faster.
 
-Update: 1.8.2
--------------
-Added:</br>
+# Update: 1.8.2
+Added:
+---
 - multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() does this. Look in the multi/integration/shared/shared.lua files to see how I did it!
 - Modified the GLOBAL metatable to sync before doing its tests
 - multi._VERSION was multi.Version, felt it would be more consistent this way... I left the old way of getting the version just in case someone has used that way. It will eventually be gone. Also multi:getVersion() will do the job just as well and keep your code nice and update related bug free!
@@ -1208,7 +1242,8 @@ we also have the "sync" method, this one was made for love2d because we do a syn
 On GLOBALS sync is a internal method for keeping the GLOBAL table in order. You can still use sThread.waitFor(name) to wait for variables that may or may not yet exist!
 
 Time for some examples:
-# Using multi:newSystemThreadedTable(name)
+Using multi:newSystemThreadedTable(name)
+---
 ```lua
 -- lanes Desktop lua! NOTE: this is in lanesintergratetest6.lua in the examples folder
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
@@ -1249,8 +1284,7 @@ t:centerX()
 t:centerY()
 ```
 
-Update: 1.8.1
--------------
+# Update: 1.8.1
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
 Only compat and integrations are not part of the core and never will be by nature.</br>
@@ -1264,7 +1298,8 @@ Added:</br>
 - multi:canSystemThread() -- true if an integration was added false otherwise (For module creation)
 - Fixed a few bugs in the loveManager
 
-# Using multi:systemThreadedBenchmark()
+Using multi:systemThreadedBenchmark()
+---
 ```lua
 package.path="?/init.lua;"..package.path
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
@@ -1275,7 +1310,8 @@ end)
 multi:mainloop()
 ```
 
-# Using multi:newSystemThreadedQueue()
+Using multi:newSystemThreadedQueue()
+---
 Quick Note: queues shared across multiple objects will be pulling from the same "queue" keep this in mind when coding! ~~Also the queue respects direction a push on the thread side cannot be popped on the thread side... Same goes for the mainthread!</br>~~ Turns out I was wrong about this...
 ```lua
 -- in love2d, this file will be in the same example folder as before, but is named main2.lua
@@ -1345,7 +1381,8 @@ t=gui:newTextLabel("no done yet!",0,0,300,100)
 t:centerX()
 t:centerY()
 ```
-# In Lanes
+In Lanes
+---
 ```lua
 -- The code is compatible with each other, I just wanted to show different things you can do in both examples
 -- This file can be found in the examples folder as lanesintegrationtest4.lua
@@ -1377,22 +1414,23 @@ multi:newThread("test!",function() -- this is a lua thread
 end)
 multi:mainloop()
 ```
-Update: 1.7.6
--------------
-Fixed:
-Typos like always
-Added:</br>
-multi:getPlatform() -- returns "love2d" if using the love2d platform or returns "lanes" if using lanes for threading</br>
-examples files</br>
-In Events added method setTask(func)</br>
-The old way still works and is more convent to be honest, but I felt a method to do this was needed for completeness.</br>
 
-Updated:
-some example files to reflect changes to the core. Changes allow for less typing</br>
+# Update: 1.7.6
+Fixed:
+---
+Typos like always
+Added:
+---
+- multi:getPlatform() -- returns "love2d" if using the love2d platform or returns "lanes" if using lanes for threading
+- examples files
+- In Events added method setTask(func) --The old way still works and is more convent to be honest, but I felt a method to do this was needed for completeness.
+
+Improved:
+---
+- Some example files to reflect changes to the core. Changes allow for less typing</br>
 loveManager to require the compat if used so you don't need 2 require line to retrieve the library</br>
 
-Update: 1.7.5
--------------
+# Update: 1.7.5
 Fixed some typos in the readme... (I am sure there are more there are always more)</br>
 Added more features for module support</br>
 TODO:</br>
@@ -1400,8 +1438,7 @@ Work on performance of the library... I see 3 places where I can make this thing
 
 I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!</br>
 
-Update: 1.7.4
--------------
+# Update: 1.7.4
 Added: the example folder which will be populated with more examples in the near future!</br>
 The loveManager integration that mimics the lanesManager integration almost exactly to keep coding in both environments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
@@ -1478,8 +1515,8 @@ t=gui:newTextLabel("no done yet!",0,0,300,100)
 t:centerX()
 t:centerY()
 ```
-Update: 1.7.3
--------------
+
+# Update: 1.7.3
 Changed how requiring the library works!
 `require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and integrations everything else has been moved into the core of the library.
 ```lua
@@ -1495,15 +1532,12 @@ require("multi.task")
 -- ^ they are all part of the core now
 ```
 
-Update: 1.7.2
--------------
+# Update: 1.7.2
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
-Update: 1.7.1 Bug Fixes Only
--------------
+# Update: 1.7.1 Bug Fixes Only
 
-Update: 1.7.0
--------------
+# Update: 1.7.0
 Modified: multi.integration.lanesManager.lua
 It is now in a stable and simple state Works with the latest lanes version! Tested with version 3.11 I cannot promise that everything will work with earlier versions. Future versions are good though.</br>
 Example Usage:</br>
@@ -1556,9 +1590,11 @@ end)
 multi:mainloop()
 ```
 
-Update: 1.6.0
--------------
-Changed: steps and loops
+# Update: 1.6.0
+Changed:
+---
+- steps
+- loops
 ```lua
 -- Was
 step:OnStep(function(pos,self) -- same goes for tsteps as well
@@ -1580,11 +1616,11 @@ Reasoning I wanted to keep objects consistent, but a lot of my older libraries u
 require("multi.all")
 require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
 ```
-Update: 1.5.0
--------------
+# Update: 1.5.0
 Added:
+---
 - An easy way to manage timeouts
 - Small bug fixes
 
-Update: 1.4.1 - First Public release of the library
--------------
+# Update: 1.4.1 - First Public release of the library
+Wow you looked back this far. Nice, while your at it take a look at the old versions to view the code how it was before my first initial release
