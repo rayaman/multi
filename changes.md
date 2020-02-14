@@ -2,11 +2,12 @@
 
 Table of contents
 ---
-[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 Consistency, Additions and Stability](#update-1400-consistency-additions-and-stability)</br>[Update 13.1.0 Bug fixes and features added](#update-1310-bug-fixes-and-features-added)</br>[Update 13.0.0 Added some documentation, and some new features too check it out!](#update-1300-added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 Time for some more bug fixes!](#update-1222-time-for-some-more-bug-fixes)</br>[Update 12.2.1 Time for some bug fixes!](#update-1221-time-for-some-bug-fixes)</br>[Update 12.2.0](#update-1220)</br>[Update 12.1.0](#update-1210)</br>[Update: 12.0.0 Big update (Lots of additions some changes)](#update-1200-big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1](#update-1111)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1](#update-191)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3](#update-183)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 Bug Fixes Only](#update-171-bug-fixes-only)</br>[Update: 1.7.0](#update-170)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 - First Public release of the library](#update-141---first-public-release-of-the-library)
+[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400-consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310-bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300-added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222-time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221-time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200-big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
 # Update 14.1.0 - A whole new world of possibilities
-Full Update Example - I plan on doing full example for each future update. Every feature added gets touched and I litter it with comments.
+Full Update Showcase
 ---
+Something I plan on doing each version going forward
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
 multi,thread = require("multi"):init()
@@ -169,7 +170,7 @@ Fixed:
 	- thread.yield()
 
 
-# Update 14.0.0 Consistency, Additions and Stability
+# Update 14.0.0 - Consistency, Additions and Stability
 -------------
 Added:
 ---
@@ -309,7 +310,7 @@ Going forward:
 - Finish the rework of the networkManager - It "works", but there are packet losses that I cannot explain. I do not know what is causing this at all. Ill fix when I figure it out!
 - If all goes well, the future will contain quality of code features. I'll keep an eye out for bugs
 
-# Update 13.1.0 Bug fixes and features added
+# Update 13.1.0 - Bug fixes and features added
 -------------
 Added:
 ---
@@ -386,7 +387,7 @@ Tasks Details Table format
 	["SystemThreadCount"] = 1
 } 
 ```
-# Update 13.0.0 Added some documentation, and some new features too check it out!
+# Update 13.0.0 - Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
 This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
@@ -516,13 +517,13 @@ Table format for getTasksDetails(STRING format)
 - patch up bugs
 - finish documentstion
 
-# Update 12.2.2 Time for some more bug fixes!
+# Update 12.2.2 - Time for some more bug fixes!
 -------------
 Fixed:
 --- 
 - multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 
-# Update 12.2.1 Time for some bug fixes!
+# Update 12.2.1 - Time for some bug fixes!
 -------------
 Fixed: SystemThreadedJobQueues
 - You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!
@@ -664,12 +665,14 @@ Going forward:
 ---
 Contunue to make small changes as I come about them. This change was inspired when working of the net library. I was addind simple binary file support over tcp, and needed to pass the data from the socket when the requested amount has been recieved. While upvalues did work, i felt returning data was cleaner and added this feature.
 
-# Update: 12.0.0 Big update (Lots of additions some changes)
+# Update: 12.0.0 - Big update (Lots of additions some changes)
 
 **Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a 
 is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
 
 **Note:** The nodeManager is being reworked! This will take some time before it is in a stable state. The old version had some major issues that caused it to perform poorly.
+
+**Note:** Version names were brought back to reality this update. When transistioning from EventManager to multi I stopped counting when in reality it was simply an overhaul of the previous library
 
 Added:
 ---
@@ -910,7 +913,7 @@ NOTE: **multiobj:hold() will be removed in the next version!** This is something
 
 TODO: Add auto priority adjustments when working with priority and stuff... If the system is under heavy load it will dial some things deemed as less important down and raise the core processes.
 
-# Update: 1.11.0 - Stop talking over eachother
+# Update: 1.11.0
 Added:
 - SystemThreadedConsole(name) -- Allow each thread to print without the sync issues that make prints merge and hard to read.
 
@@ -938,7 +941,7 @@ end
 ```
 
 
-# Update: 1.10.0 - Is it truly stable now?
+# Update: 1.10.0
 **Note:** The library is now considered to be stable!
 **Upcoming:** Network parallelism is on the way. It is in the works and should be released soon
 
@@ -1019,7 +1022,7 @@ end,1)
 multi:mainloop()
 ```
 
-# Update: 1.9.2 - Time for you to get a watch
+# Update: 1.9.2
 Added:
 ---
 - (THREAD).kill() kills a thread. Note: THREAD is based on what you name it
@@ -1065,7 +1068,7 @@ Updated:
 - It will now pass the ... to the func(). Do not know why this wasn't done in the first place
 - Also multi:getPlatform(will now return "luvit" if using luvit... Though Idk if module creators would use the multi library when inside the luvit environment
 
-# Update: 1.9.0 - Sterilization?
+# Update: 1.9.0
 Added:
 ---
 - multiobj:ToString() -- returns a string representing the object
@@ -1084,7 +1087,7 @@ A more seamless way to use this will be made in the form of state saving.
 This is still a WIP
 processes, timers, timemasters, watchers, and queuers have not been worked on yet
 
-# Update: 1.8.7 - Timers?
+# Update: 1.8.7
 Added:
 ---
 - multi.timer(func,...)
@@ -1103,7 +1106,7 @@ print(multi.timer(test,1,2,3))
 -- multi.timer returns the time taken then the arguments from the function... Uses unpack so careful of nil values!
 ```
 
-# Update: 1.8.6 - So much work to do...
+# Update: 1.8.6
 Added:
 - jobQueue:doToAll(function)
 - jobQueue:start() is now required Call this after all calls to registerJob()'s. Calling it afterwards will not guarantee your next push job with that job will work. Not calling this will make pushing jobs impossible!
@@ -1148,7 +1151,7 @@ t:centerX()
 t:centerY()
 ```
 
-# Update: 1.8.5 - Execute order 67.7
+# Update: 1.8.5
 Added:
 ---
 - SystemThreadedExecute(cmd)
@@ -1166,7 +1169,7 @@ end,1)
 multi:mainloop()
 ```
 
-# Update: 1.8.4 - I got a job as a queue
+# Update: 1.8.4
 Added:
 ---
 - multi:newSystemThreadedJobQueue()
@@ -1230,7 +1233,7 @@ However there is a work around! You can use processes to run multiobjs as well a
 
 I may make a full comparison between each method and which is faster, but for now trust that the dedicated ones with less function overhead are infect faster. Not by much but still faster.
 
-# Update: 1.8.2 - Tables x Tables beyond a simple existance, they become multi-dimensional
+# Update: 1.8.2
 Added:
 ---
 - multi:newsystemThreadedTable(name) NOTE: Metatables are not supported in transfers. However there is a work around obj:init() does this. Look in the multi/integration/shared/shared.lua files to see how I did it!
@@ -1295,7 +1298,7 @@ t:centerX()
 t:centerY()
 ```
 
-# Update: 1.8.1 - Funny how all of this undid a previous change.
+# Update: 1.8.1
 No real change!</br>
 Changed the structure of the library. Combined the coroutine based threads into the core!</br>
 Only compat and integrations are not part of the core and never will be by nature.</br>
@@ -1426,7 +1429,7 @@ end)
 multi:mainloop()
 ```
 
-# Update: 1.7.6 - Who are you?
+# Update: 1.7.6
 Fixed:
 ---
 Typos like always
@@ -1441,7 +1444,7 @@ Improved:
 - Some example files to reflect changes to the core. Changes allow for less typing</br>
 loveManager to require the compat if used so you don't need 2 require line to retrieve the library</br>
 
-# Update: 1.7.5 - Where is my support!?
+# Update: 1.7.5
 Fixed some typos in the readme... (I am sure there are more there are always more)</br>
 Added more features for module support</br>
 TODO:</br>
@@ -1449,7 +1452,7 @@ Work on performance of the library... I see 3 places where I can make this thing
 
 I'll show case some old versions of the multitasking library eventually so you can see its changes in days past!</br>
 
-# Update: 1.7.4 - Parity is important, I think...
+# Update: 1.7.4
 Added: the example folder which will be populated with more examples in the near future!</br>
 The loveManager integration that mimics the lanesManager integration almost exactly to keep coding in both environments as close to possible. This is done mostly for library creation support!</br>
 An example of the loveManager in action using almost the same code as the lanesintergreationtest2.lua</br>
@@ -1527,7 +1530,7 @@ t:centerX()
 t:centerY()
 ```
 
-# Update: 1.7.3 - Still undoing previous changes
+# Update: 1.7.3
 Changed how requiring the library works!
 `require("multi.all")` Will still work as expected; however, with the exception of threading, compat, and integrations everything else has been moved into the core of the library.
 ```lua
@@ -1543,7 +1546,7 @@ require("multi.task")
 -- ^ they are all part of the core now
 ```
 
-# Update: 1.7.2 - Good very good lets make things a little more simple
+# Update: 1.7.2
 Moved updaters, loops, and alarms into the init.lua file. I consider them core features and they are referenced in the init.lua file so they need to exist there. Threaded versions are still separate though. Added another example file
 
 # Update: 1.7.1 - Bug Fixes Only
@@ -1602,7 +1605,7 @@ end)
 multi:mainloop()
 ```
 
-# Update: 1.6.0 - The self they say, must first be mastered
+# Update: 1.6.0
 Changed:
 ---
 - steps
@@ -1630,51 +1633,158 @@ Reasoning I wanted to keep objects consistent, but a lot of my older libraries u
 require("multi.all")
 require("multi.compat.backwards[1,5,0]") -- allows for the use of features that were scrapped/changed in 1.6.0+
 ```
-# Update: 1.5.0 -- What!? When did I add system threading... This cannot be it ... it can't be!!!
+# Update: 1.5.0
 Added:
 ---
 - An easy way to manage timeouts
 - Small bug fixes
 
-# Update: 1.4.1 - First Public release of the library
-Wow you looked back this far. Nice, while your at it take a look at the old versions to view the code how it was before my first initial release
+# Update: 1.4.1 (4/10/2017) - First Public release of the library
+Added:
+- SystemThreading very infancy
 
+Change:
+---
+- small change to the hold method to make it a bit more lightweight
+	- Using a timer instead of an alarm object!
+- Limits to hold:
+	- cannot hold more than 1 object at a time, and doing so could cause a deadlock!
 
+**Note:** Wow you looked back this far. Nice, while your at it take a look at the old versions to view the code how it was before my first initial release
 
+Upcomming:
+---
+- Threaded objects wrapped in corutines, so you can hold/sleep without problems!
 
+# Update: 1.4.0 (3/20/2017)
+Added:
+---
+- multiobj:reallocate(ProcessObj) -- changes the parent process of an object
+- ProcessObj:getController() -- returns the mThread so you can opperate on it like a multiobj
+Example 1
+---
+```lua
+require("multimanager") -- require the library
+int1=multi:newProcess() -- create a process
+int1.NAME="int1" -- give it a name for example purposes
+int2=multi:newProcess() -- create another process to reallocate
+int2.NAME="int2" -- name this a different name
+step=int1:newTStep(1,10) -- create a TStep so we can slowly see what is going on
+step:OnStep(function(p,s) -- connect to the onstep event
+	print(p,s.Parent.NAME) -- print the position and process name
+end)
+step:OnEnd(function(s) -- when the step ends lets reallocate it to the other process
+	if s.Parent.NAME=="int1" then -- lets only do this if it is in the int1 process
+		s:reallocate(int2) -- send it to int2
+		s:Reset() -- reset the object
+	else
+		print("We are done!")
+		os.exit() -- end the program when int2 did its thing
+	end
+end)
+int1:Start() -- start process 1
+int2:Start() -- start process 2
+multi:mainloop() -- start the main loop
+```
+Fixed/Updated:
+---
+- queuer=multi:newQueuer([string: file])
+- Alarms now preform as they should on a queuer
+Example 2
+---
+```lua
+int=multi:newQueuer()
+step=int:newTStep(1,10,1,.5)
+alarm=int:newAlarm(2)
+step2=int:newTStep(1,5,1,.5)
+step:OnStep(function(p,s)
+	print(p)
+end)
+step2:OnStep(function(p,s)
+	print(p,"!")
+end)
+alarm:OnRing(function(a)
+	print("Ring1!!!")
+end)
+int:OnQueueCompleted(function(s)
+	s:Pause()
+	print("Done!")
+	os.exit()
+end)
+int:Start()
+multi:mainloop()
+```
 
+# Update: 1.3.0 (1/29/2017)
+Added:
+---
+- Load detection!
+	- multi.threshold -- minimum amount of cycles that all mObjs should be allotted before the Manager is considered burdened. Defualt: 256
+	- multi.threstimed -- amount of time when counting the number of cycles, Greater gives a more accurate view of the load, but takes more time. Defualt: .001
+	- multi:setThreshold(n) -- method used to set multi.threshold
+	- multi:setThrestimed(n) -- method used to set multi.threstimed
+	- multi:getLoad() -- returns a number between 0 and 100
 
+# Update: 1.2.0 (12.31.2016)
+Added:
+---
+- connectionobj.getConnection(name) -- returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name) if you can orginize data before hand you can route info to certain connections thus saving a lot of cpu time. 
+**NOTE:** Only one name per each connection... you can't have 2 of the same names in a dictonary... the last one will be used
+Changed:
+---
+- Started keeping track of dates
+- obj=multi:newConnection()
+	- obj:connect(func,name) and obj(func,name)
+	- Added the name argument to allow indexing specific connection objects... Useful when creating an async library
 
+# Update: 1.1.0
+Changed:
+---
+- multi:newConnection(protect) -- Changed the way you are able to interact with it by adding the __call metamethod
+Old Usage:
+```lua
+OnUpdate=multi:newConnection()
+OnUpdate:connect(function(...)
+	print("Updating",...)
+end)
+OnUpdate:Fire(1,2,3)
+```
+New Usage:
+```lua
+OnUpdate=multi:newConnection()
+OnUpdate(function(...)
+	print("Updating",...)
+end)
+OnUpdate:Fire(1,2,3)
+```
 
+# Update: 1.0.0
+Added:
+---
+- Start of official changelog (internal)
 
+# Update: 0.6.3
+**Note:** No official changelog was made for versions this old. Doing code comparsions is way too much work
 
+# Update: 0.6.2
+**Note:** No official changelog was made for versions this old. Doing code comparsions is way too much work
 
+# Update: 0.6.1-6
+**Note:** No official changelog was made for versions this old. Doing code comparsions is way too much work
 
+# Update: 0.5.1-6
+**Note:** No official changelog was made for versions this old. Doing code comparsions is way too much work
 
+# Update: 0.4.1
+**Note:** No official changelog was made for versions this old. Doing code comparsions is way too much work
 
+# Update: 0.3.0 - The update that started it all
+Changed:
+---
+- Renamed the library to multi from EventManager and a ton of resturcturing
+- Started the version numbering over
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-# Update: 0.3.0 - Changed to multi from event and a ton of resturcturing
-
-# Update: 5.7.3
+# Update: EventManager 2.0.0
 Changed:
 ---
 - Everything, complete restructuring of the library from function based to object based. Resembles the modern version of the library
@@ -1700,7 +1810,7 @@ Added:
 - event:hold(task)
 - event:oneETime(func) -- One time function call
 - event:oneTime(func)
-# Update: 1.2.0
+# Update: EventManager 1.2.0
 Changed:
 ---
 - Made Alarms have their own load order, before alarms were grouped with events
@@ -1713,18 +1823,18 @@ Added:
 - event:Hold(task)
 - event:destroyEvent(tag) -- destroys an event
 
-# Update: 1.1.0
+# Update: EventManager 1.1.0
 Added:
 ---
 - LoadOrder -- allow you to change what was processed first events, steps, or updates
 - event:setLoadOrder(str) -- ESU,EUS,USE,UES,SEU,SUE
 - event:createTStep(tag,reset,timer,endc) -- works like steps but sleeps between loops
-# Update: 1.0.0 - Error checking
+# Update: EventManager 1.0.0 - Error checking
 Changed:
 ---
 - Added error checking which would alert you when something was done wrong
 
-# Version: 0.0.1 - In The Beginning things were very different
+# Version: EventManager 0.0.1 - In The Beginning things were very different
 Usage:
 ---
 ```lua
