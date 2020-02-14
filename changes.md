@@ -56,7 +56,7 @@ setmetatable(example,{
 		-- This works by returning a table with a __call metamethod. Will this work? Will lua detect this as a function or a table?
 		thread.sleep(1)
 		return "You got a string"
-	end,true) -- Tell the code to force a wait and to identify as a function. We need to do this for metamethods
+	end,true) -- Tell the code to force a wait. We need to do this for metamethods
 	-- If we don't pass true this is a table with a __call metamethod
 })
 example["test"] = "We set a variable!"
