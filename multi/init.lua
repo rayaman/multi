@@ -1742,7 +1742,7 @@ function multi.initThreads(justThreads)
 		for i=#threads,1,-1 do
 			if not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
 					CheckRets(i)
 				end
 				threads[i].__started = true

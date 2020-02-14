@@ -80,6 +80,7 @@ function multi:newSystemThreadedJobQueue(n)
     function c:pushJob(name,...)
         queueJob:push{name,jid,{...}}
         jid = jid + 1
+        return jid-1
     end
     multi:newThread("JobQueueManager",function()
         while true do
