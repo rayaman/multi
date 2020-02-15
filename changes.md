@@ -9,9 +9,9 @@ Full Update Showcase
 ---
 Something I plan on doing each version going forward
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
-multi,thread = require("multi"):init()
-local GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+package.path="?.lua;?/init.lua;?.lua;"..package.path
+local multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 t = THREAD:newFunction(function(...)
 	print("This is a system threaded function!",...)
 	THREAD.sleep(1) -- This is handled within a system thread! Note: this creates a system thread that runs then ends. C
@@ -79,17 +79,54 @@ multi:newThread(function()
 	end)
 	-- This waits for the returns since we are demanding them
 end)
+local test = multi:newSystemThreadedJobQueue(4) -- Load up a queue that has 4 running threads
+func = test:newFunction("test",function(a) -- register a function on the queue that has an async function feature
+	test2() -- Call the other registered function on the queue
+	return a..a
+end,true)
+func2 = test:newFunction("test2",function(a)
+	print("ooo")
+	console = THREAD:getConsole() 
+	console.print("Hello!",true)
+end,true) -- When called internally on the job queue the function is a normal sync function and not an async function.
+print(func("1"))
+print(func("Hello"))
+print(func("sigh"))
 multi:mainloop()
 ```
 Changed:
 ---
-- thread:newFunction(func,holup) -- Added an argument holdme to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
+- thread:newFunction(func,holup) -- Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) -- Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
 - modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
 
 Added:
 ---
+- jq = multi:newSystemThreadedJobQueue(n) 
+	- jq:newFunction([name optional],func,holup) -- Provides a newFunction like syntax. If name is left blank a unique one is assigned. The second return after the function is the name of the function.
+- console = THREAD:getConsole() -- Now working on lanes and love2d, allows you to print from multiple threads while keeping the console from writing over each other
+	- console.print(...)
+	- console.write(str)
+```lua
+package.path="?.lua;?/init.lua;?.lua;"..package.path
+local multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
+
+local test = multi:newSystemThreadedJobQueue(4) -- Load up a queue that has 4 running threads
+func = test:newFunction("test",function(a) -- register a function on the queue that has an async function feature
+	test2() -- Call the other registered function on the queue
+	return a..a
+end,true)
+func2 = test:newFunction("test2",function(a)
+	print("ooo")
+	console = THREAD:getConsole() 
+	console.print("Hello!",true)
+end,true) -- When called internally on the job queue the function is a normal sync function and not an async function.
+print(func("1"))
+print(func("Hello"))
+print(func("sigh"))
+```
 - THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
 - multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
 - multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
@@ -158,8 +195,14 @@ Removed:
 
 Fixed:
 ---
-- love2d had an issue where threads crashing would break the mainloop
-- fixed bugs within the extensions.lua file for love threading
+- Issue where async functions connect wasn't properly triggering when a function returned
+- Issue where async functions were not passing arguments properly.
+- Issue where async functions were not handling errors properly
+	- nil, err = func().wait() -- When waiting
+	- func().connect(function(err) end) -- When connection
+- Love2d had an issue where threads crashing would break the mainloop
+- Issue where systemthreadedjobqueues pushJob() was not returning the jobID of the job that was pushed!
+- Fixed bugs within the extensions.lua file for love threading
 - Modified the thread.* methods to perform better (Tables were being created each time one of these methods were called! Which in turn slowed things down. One table is modified to get things working properly)
 	- thread.sleep()
 	- thread.hold()

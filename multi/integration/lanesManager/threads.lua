@@ -54,6 +54,18 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     function THREAD.getCores()
         return THREAD.__CORES
     end
+    function THREAD.getConsole()
+        local c = {}
+        c.queue = _Console
+        function c.print(...)
+            c.queue:send("Q", {...})
+        end
+        function c.error(err)
+            c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
+            error(err)
+        end
+        return c
+    end
     function THREAD.getThreads()
         return GLOBAL.__THREADS__
     end

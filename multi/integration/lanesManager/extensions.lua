@@ -82,6 +82,32 @@ function multi:newSystemThreadedJobQueue(n)
         jid = jid + 1
         return jid-1
     end
+    local nFunc = 0
+    function c:newFunction(name,func,holup) -- This registers with the queue
+        if type(name)=="function" then
+            holup = func
+            func = name
+            name = "JQ_Function_"..nFunc
+        end
+        nFunc = nFunc + 1
+        c:registerFunction(name,func)
+        return thread:newFunction(function(...)
+            local id = c:pushJob(name,...)
+            local link
+            local rets
+            link = c.OnJobCompleted(function(jid,...)
+                if id==jid then
+                    rets = {...}
+                    link:Remove()
+                end
+            end)
+            return thread.hold(function()
+                if rets then
+                    return unpack(rets)
+                end
+            end)
+        end,holup),name
+    end
     multi:newThread("JobQueueManager",function()
         while true do
             local job = thread.hold(function()

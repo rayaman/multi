@@ -1475,7 +1475,6 @@ function multi.holdFor(n,func)
 	end)
 end
 function thread:newFunction(func,holdme)
-	local done = false
     return function(...)
 		local rets, err
 		local function wait(no) 
@@ -1488,8 +1487,11 @@ function thread:newFunction(func,holdme)
 					end
 				end)
 			else
-				while not rets do
+				while not rets and not err do
 					multi.scheduler:Act()
+				end
+				if err then
+					return nil,err
 				end
 				return unpack(rets)
 			end
@@ -1504,11 +1506,11 @@ function thread:newFunction(func,holdme)
 			isTFunc = true,
 			wait = wait,
 			connect = function(f)
-				t.OnDeath(function(self,status,...) if done == false then f(...) done = true end end) 
-				t.OnError(function(self,err) if done == false then f(self,err) done = true end end) 
+				t.OnDeath(function(self,status,...) f(...)  end) 
+				t.OnError(function(self,err) f(err) end) 
 			end
 		}
-		return temp,temp,temp,temp,temp,temp,temp
+		return temp
     end
 end
 function thread.run(func)
@@ -1557,41 +1559,41 @@ function multi:newThread(name,func,...)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local env = {}
-	setmetatable(env,{
-		__index = Gref,
-		__newindex = function(t,k,v)
-			if type(v)=="function" then
-				rawset(t,k,thread:newFunction(v))
-			else
-				if type(v)=="table" then
-					if v.isTFunc then
-						if not _G["_stack_"] or #_G["_stack_"]==0 then
-							_G["_stack_"] = {}
-							local s = _G["_stack_"]
-							local a,b,c,d,e,f,g = v.wait(true)
-							table.insert(s,a)
-							table.insert(s,b)
-							table.insert(s,c)
-							table.insert(s,d)
-							table.insert(s,e)
-							table.insert(s,f)
-							local x = table.remove(_G["_stack_"])
-							rawset(t,k,x)
-						else
-							local x = table.remove(_G["_stack_"])
-							rawset(t,k,x)
-						end
-					else
-						Gref[k]=v
-					end
-				else
-					Gref[k]=v
-				end
-			end
-		end
-	})
-	setfenv(func,env)
+	-- local env = {}
+	-- setmetatable(env,{
+	-- 	__index = Gref,
+	-- 	__newindex = function(t,k,v)
+	-- 		if type(v)=="function" then
+	-- 			rawset(t,k,thread:newFunction(v))
+	-- 		else
+	-- 			if type(v)=="table" then
+	-- 				if v.isTFunc then
+	-- 					if not _G["_stack_"] or #_G["_stack_"]==0 then
+	-- 						_G["_stack_"] = {}
+	-- 						local s = _G["_stack_"]
+	-- 						local a,b,c,d,e,f,g = v.wait(true)
+	-- 						table.insert(s,a)
+	-- 						table.insert(s,b)
+	-- 						table.insert(s,c)
+	-- 						table.insert(s,d)
+	-- 						table.insert(s,e)
+	-- 						table.insert(s,f)
+	-- 						local x = table.remove(_G["_stack_"])
+	-- 						rawset(t,k,x)
+	-- 					else
+	-- 						local x = table.remove(_G["_stack_"])
+	-- 						rawset(t,k,x)
+	-- 					end
+	-- 				else
+	-- 					Gref[k]=v
+	-- 				end
+	-- 			else
+	-- 				Gref[k]=v
+	-- 			end
+	-- 		end
+	-- 	end
+	-- })
+	-- setfenv(func,env)
 	local c={}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
@@ -1676,8 +1678,13 @@ function multi.initThreads(justThreads)
 	local r1,r2,r3,r4,r5,r6
 	local ret,_
 	local function CheckRets(i)
-		if ret~=nil then
+		if ret~=nil and not(threads[i].isError) then
 			if not threads[i] then return end
+			if not _ then
+				threads[i].isError = true
+				threads[i].TempRets[1] = ret
+				return
+			end
 			threads[i].TempRets[1] = ret
 			threads[i].TempRets[2] = r1
 			threads[i].TempRets[3] = r2
@@ -1740,24 +1747,23 @@ function multi.initThreads(justThreads)
 	end
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
-			if not threads[i].__started then
+			if threads[i].isError then
+				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+				table.remove(threads,i)
+			end
+			if threads[i] and not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
 					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
-					CheckRets(i)
 				end
 				threads[i].__started = true
 				helper(i)
 			end
-			if not _ then
-				threads[i].OnError:Fire(threads[i],ret)
+			if threads[i] and not _ then
+				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+				threads[i].isError = true
 			end
 			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
-				local tr = threads[i].TempRets
-				if ret == nil then
-					threads[i].OnDeath:Fire(threads[i],"ended",tr[1],tr[2],tr[3],tr[4],tr[5],tr[6],tr[7])
-				else
-					threads[i].OnDeath:Fire(threads[i],"ended",ret,r1,r2,r3,r4,r5,r6)
-				end
+				threads[i].OnDeath:Fire(threads[i],"ended",unpack(threads[i].TempRets or {}))
 				table.remove(threads,i)
 			elseif threads[i] and threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
@@ -1995,6 +2001,21 @@ function multi:newHyperThreadedProcess(name)
 	return c
 end
 -- Multi runners
+function multi:lightloop()
+	if not isRunning then
+		local Loop=self.Mainloop
+		while true do
+			for _D=#Loop,1,-1 do
+				if Loop[_D].Active then
+					self.CID=_D
+					if not protect then
+						Loop[_D]:Act()
+					end
+				end
+			end
+		end
+	end
+end
 function multi:mainloop(settings)
 	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
