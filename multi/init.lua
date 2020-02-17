@@ -783,8 +783,13 @@ function multi:newConnection(protect,func,kill)
 	c.lock = false
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
-		if type(t)=="table" and t.Type ~= nil then
-			return self:Fire(args,select(2,...))
+		if type(t)=="table" then
+			for i,v in pairs(t) do
+				if v==self then
+					return self:Fire(...)
+				end
+			end
+			return self:connect(...)
 		else
 			return self:connect(...)
 		end
@@ -1559,41 +1564,18 @@ function multi:newThread(name,func,...)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	-- local env = {}
-	-- setmetatable(env,{
-	-- 	__index = Gref,
-	-- 	__newindex = function(t,k,v)
-	-- 		if type(v)=="function" then
-	-- 			rawset(t,k,thread:newFunction(v))
-	-- 		else
-	-- 			if type(v)=="table" then
-	-- 				if v.isTFunc then
-	-- 					if not _G["_stack_"] or #_G["_stack_"]==0 then
-	-- 						_G["_stack_"] = {}
-	-- 						local s = _G["_stack_"]
-	-- 						local a,b,c,d,e,f,g = v.wait(true)
-	-- 						table.insert(s,a)
-	-- 						table.insert(s,b)
-	-- 						table.insert(s,c)
-	-- 						table.insert(s,d)
-	-- 						table.insert(s,e)
-	-- 						table.insert(s,f)
-	-- 						local x = table.remove(_G["_stack_"])
-	-- 						rawset(t,k,x)
-	-- 					else
-	-- 						local x = table.remove(_G["_stack_"])
-	-- 						rawset(t,k,x)
-	-- 					end
-	-- 				else
-	-- 					Gref[k]=v
-	-- 				end
-	-- 			else
-	-- 				Gref[k]=v
-	-- 			end
-	-- 		end
-	-- 	end
-	-- })
-	-- setfenv(func,env)
+	local env = {}
+	setmetatable(env,{
+		__index = Gref,
+		__newindex = function(t,k,v)
+			if type(v)=="function" then
+				rawset(t,k,thread:newFunction(v))
+			else
+				Gref[k]=v
+			end
+		end
+	})
+	setfenv(func,env)
 	local c={}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}

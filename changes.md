@@ -96,6 +96,7 @@ multi:mainloop()
 ```
 Changed:
 ---
+- threaded functions no longer auto detect the presence of arguments when within a threaded function. However, you can use the holup method to produce the same effect. If you plan on using a function in different ways then you can use .wait() and .connect() without setting the holup argument
 - thread:newFunction(func,holup) -- Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) -- Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
@@ -195,6 +196,7 @@ Removed:
 
 Fixed:
 ---
+- Issue where connections object:conn() was firing based on the existance of a Type field. Now this only fires if the table contains a reference to itself. Otherwise it will connect instead of firing
 - Issue where async functions connect wasn't properly triggering when a function returned
 - Issue where async functions were not passing arguments properly.
 - Issue where async functions were not handling errors properly
