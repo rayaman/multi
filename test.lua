@@ -58,14 +58,14 @@ function multi:newService(func) -- Priority managed threads
 	function c.getUpTime()
 		return time:Get()
 	end
-	function c.setPriority(pri)
+	function c:setPriority(pri)
+		if type(self)=="number" then pri = self end
 		p = pri
 	end
 	return c
 end
 serv = multi:newService(function(self,data)
-	thread.sleep(1)
-	error("sorry i crashed :'(")
+	print(self:getUpTime())
 end)
 serv.OnError(function(...)
 	print(...)
