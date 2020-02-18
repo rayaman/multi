@@ -10,11 +10,11 @@ Full Update Showcase
 Something I plan on doing each version going forward
 ```lua
 package.path="?.lua;?/init.lua;?.lua;"..package.path
-local multi,thread = require("multi"):init()
+local multi, thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 t = THREAD:newFunction(function(...)
 	print("This is a system threaded function!",...)
-	THREAD.sleep(1) -- This is handled within a system thread! Note: this creates a system thread that runs then ends. C
+	THREAD.sleep(1) -- This is handled within a system thread! Note: this creates a system thread that runs then ends.
 	return "We done!"
 end)
 print(t("hehe",1,2,3,true).connect(function(...)
@@ -57,7 +57,6 @@ setmetatable(example,{
 		thread.sleep(1)
 		return "You got a string"
 	end,true) -- Tell the code to force a wait. We need to do this for metamethods
-	-- If we don't pass true this is a table with a __call metamethod
 })
 example["test"] = "We set a variable!"
 print(example["test"])
@@ -67,16 +66,16 @@ c,d = test().wait()
 print(c,d)
 a,b = 6,7
 multi:newThread(function()
-	-- a,b = test().wait() -- Will modify Global
-	-- when wait is used the special metamethod routine is not triggered and variables are set as normal
-	a,b = test() -- Will modify GLocal
-	-- the threaded function test triggers a special routine within the metamethod that alters the thread's enviroment instead of the global enviroment. 
+	a,b = test().wait() -- Will modify Global
 	print("Waited:",a,b)
+
 	--This returns instantly even though the function isn't done!
+	print("called")
 	test().connect(function(a,b)
 		print("Connected:",a,b)
 		os.exit()
 	end)
+	print("Returned")
 	-- This waits for the returns since we are demanding them
 end)
 local test = multi:newSystemThreadedJobQueue(4) -- Load up a queue that has 4 running threads
@@ -89,11 +88,73 @@ func2 = test:newFunction("test2",function(a)
 	console = THREAD:getConsole() 
 	console.print("Hello!",true)
 end,true) -- When called internally on the job queue the function is a normal sync function and not an async function.
+multi:scheduleJob({min = 15, hour = 14},function()
+	-- This function will be called once everyday at 2:15
+	-- Using a combination of the values above you are able to schedule a time 
+end)
 print(func("1"))
 print(func("Hello"))
 print(func("sigh"))
+serv = multi:newService(function(self,data)
+	print("Service Uptime: ",self:GetUpTime())
+end)
+serv.OnError(function(...)
+	print(...)
+end)
+serv.OnStarted(function(t)
+	print("Started!",t.Type)
+end)
+serv:Start()
+serv:SetPriority(multi.Priority_Idle)
 multi:mainloop()
 ```
+Going Forward:
+---
+- Finish the network manager
+- Might remove some objects: steps (multi:newStep()), tsteps (multi:newTStep), jobs (Planning to rework this), events (multi:newEvent()), tloop (multi:newTLoop()), triggers (multi:newTrigger())
+
+Added:
+---
+- serv = multi:newService(func)
+	- (func(self,datatable))
+		- self -- Reference to the service
+		- datatable -- internal data space that the service can store data. Is reset/destroyed when the service is stopped.
+	- serv.Type: service
+	- serv.OnError(func) -- Triggered if service crashes
+	- serv.OnStopped(func) -- Triggered if service was stopped (In the case of a crash OnStopped is not called)
+	- serv.OnStarted(func) -- Triggered when the service starts
+	- serv.SetScheme(n) -- How to manage priorities
+		- n: 1 -- **default** uses sleeping to manage priority (Less control, but much less expensive)
+		- n: 2 -- uses skipping to manage priority (Finer control, but more expensive)
+	- serv.Stop() -- Stops the service, the internal data table is wiped
+	- serv.Pause() -- Pauses the service
+	- serv.Resume() -- Resumes the service
+	- serv.Start() -- Starts the service
+	- serv.GetUpTime() -- Gets the uptime of the service. Time is only counted when the service is running, if the service is paused then it is nolonger being counted. If the service is started then the uptime reset!
+	- serv.SetPriority(priority) -- Sets the priority level for the service
+		- multi.Priority_Core
+		- multi.Priority_High
+		- multi.Priority_Above_Normal
+		- multi.Priority_Normal **default**
+		- multi.Priority_Below_Normal
+		- multi.Priority_Low
+		- multi.Priority_Idle
+- jq = multi:newSystemThreadedJobQueue(n) 
+	- jq:newFunction([name optional],func,holup) -- Provides a newFunction like syntax. If name is left blank a unique one is assigned. The second return after the function is the name of the function.
+- console = THREAD:getConsole() -- Now working on lanes and love2d, allows you to print from multiple threads while keeping the console from writing over each other
+	- console.print(...)
+	- console.write(str)
+- multi:scheduleJob(time,func)
+	- time.min -- Minute a value of (0-59)
+	- time.hour -- Hour a value of (0-23)
+	- time.day -- Day of month a value of (1-31)
+	- time.wday -- Weekday a value of (0-6)
+	- time.month -- Month a value of (1-12)
+- THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
+- multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
+- multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
+- multi.OnExit(func) -- A special connection that allows you to connect onto the lua state closing event.
+
 Changed:
 ---
 - threaded functions no longer auto detect the presence of arguments when within a threaded function. However, you can use the holup method to produce the same effect. If you plan on using a function in different ways then you can use .wait() and .connect() without setting the holup argument
@@ -102,94 +163,6 @@ Changed:
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
 - modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
 
-Added:
----
-- jq = multi:newSystemThreadedJobQueue(n) 
-	- jq:newFunction([name optional],func,holup) -- Provides a newFunction like syntax. If name is left blank a unique one is assigned. The second return after the function is the name of the function.
-- console = THREAD:getConsole() -- Now working on lanes and love2d, allows you to print from multiple threads while keeping the console from writing over each other
-	- console.print(...)
-	- console.write(str)
-```lua
-package.path="?.lua;?/init.lua;?.lua;"..package.path
-local multi,thread = require("multi"):init()
-GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
-
-local test = multi:newSystemThreadedJobQueue(4) -- Load up a queue that has 4 running threads
-func = test:newFunction("test",function(a) -- register a function on the queue that has an async function feature
-	test2() -- Call the other registered function on the queue
-	return a..a
-end,true)
-func2 = test:newFunction("test2",function(a)
-	print("ooo")
-	console = THREAD:getConsole() 
-	console.print("Hello!",true)
-end,true) -- When called internally on the job queue the function is a normal sync function and not an async function.
-print(func("1"))
-print(func("Hello"))
-print(func("sigh"))
-```
-- THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
-- multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
-- multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
-- multi.OnExit(func) -- A special connection that allows you to connect onto the lua state closing event.
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-multi,thread = require("multi"):init()
-multi.OnExit(function(n)
-	print("Code Exited")
-end)
-sdf() -- Non existing function being called to trigger an error
-```
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-multi,thread = require("multi"):init()
-multi.OnExit(function(n)
-	print("Code Exited")
-end) -- The code finishing also triggers this event
-```
-- thread enviroments are able to interact with threaded functions and wait when there is the presence of variables. Only works when creating "Globals" inside of a thread. The way the enviroment has been set up is that it sets your "Global" as a "GLocal" a global variable local to the threaded enviroment. This does not have the access speed benifits that using pure locals have.
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-multi,thread = require("multi"):init()
-a,b = 6,7
-multi:newThread(function()
-	function test() -- Auto converts your function into a threaded function
-		thread.sleep(1)
-		return 1,2
-	end
-	-- a,b = test().wait() -- Will modify Global
-	-- when wait is used the special metamethod routine is not triggered and variables are set as normal
-	a,b = test() -- Will modify GLocal
-	-- the threaded function test triggers a special routine within the metamethod that alters the thread's enviroment instead of the global enviroment. 
-	print("Waited:",a,b)
-	--This returns instantly even though the function isn't done!
-	test().connect(function(a,b)
-		print("Connected:",a,b)
-		os.exit()
-	end)
-	-- This waits for the returns since we are demanding them
-end)
-multi:newAlarm(2):OnRing(function()
-	print(a,b)
-end)
-multi:mainloop()
-```
-- multi:scheduleJob(time,func)
-	- time.min -- Minute a value of (0-59)
-	- time.hour -- Hour a value of (0-23)
-	- time.day -- Day of month a value of (1-31)
-	- time.wday -- Weekday a value of (0-6)
-	- time.month -- Month a value of (1-12)
-
-**Usage**
-```lua
-local multi,thread = require("multi"):init()
-multi:scheduleJob({min = 15, hour = 14},function()
-	-- This function will be called once everyday at 2:15
-	-- Using a combination of the values above you are able to schedule a time 
-end)
-multi:mainloop()
-```
 Removed:
 ---
 - multi:newTimeStamper() -- schedulejob replaces timestamper
@@ -230,7 +203,7 @@ Added:
 -- tObj.OnError(self,error) -- returns a reference to self and the error as a string
 -- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. (The way the scheduler works this would happen every cycle and thats no good) Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 7 max.
 - thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function -- Use thread newfunctions for a more powerful version of thread.run()
-- thread:newFunction(FUNCTION; func)
+- thread:newFunction(FUNCTION: func)
 -- returns a function that gives you the option to wait or connect to the returns of the function.
 -- func().wait() -- waits for the function to return works both within a thread and outside of one
 -- func().connect() -- connects to the function finishing

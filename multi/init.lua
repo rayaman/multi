@@ -28,8 +28,8 @@ local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
-multi.Version = "14.0.0"
-multi._VERSION = "14.0.0"
+multi.Version = "14.1.0"
+multi._VERSION = "14.1.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
@@ -1811,6 +1811,70 @@ function multi:threadloop()
 	multi.initThreads(true)
 end
 multi.OnError=multi:newConnection()
+function multi:newService(func) -- Priority managed threads
+	local c = {}
+	c.Type = "service"
+	c.OnError = multi:newConnection()
+	c.OnStopped = multi:newConnection()
+	c.OnStarted = multi:newConnection()
+	local data = {}
+	local active = false
+	local time = multi:newTimer()
+	local p = multi.Priority_Normal
+	local scheme = 1
+	local function process()
+		thread.hold(function()
+			return active
+		end)
+		func(c,data)
+		if scheme == 1 then
+			if (p^(1/3))/10 == .1 then
+				thread.yield()
+			else
+				thread.sleep((p^(1/3))/10)
+			end
+		elseif scheme == 2 then
+			thread.skip(math.abs(p-1)*32+1)
+		end
+	end
+	multi:newThread(function()
+		while true do
+			process()
+		end
+	end).OnError = c.OnError -- use the threads onerror as our own
+	function c.SetScheme(n)
+		scheme = n
+	end
+	function c.Stop()
+		c:OnStopped(c)
+		time:Reset()
+		time:Pause()
+		data = {}
+		time = {}
+		active = false
+	end
+	function c.Pause()
+		time:Pause()
+		active = false
+	end
+	function c.Resume()
+		time:Resume()
+		active = true
+	end
+	function c.Start()
+		c:OnStarted(c)
+		time:Start()
+		active = true
+	end 
+	function c.GetUpTime()
+		return time:Get()
+	end
+	function c:SetPriority(pri)
+		if type(self)=="number" then pri = self end
+		p = pri
+	end
+	return c
+end
 function multi:newThreadedProcess(name)
 	local c = {}
 	local holding = false
