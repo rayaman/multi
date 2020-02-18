@@ -54,7 +54,7 @@ function multi:newService(func) -- Priority managed threads
 		c:OnStarted(c)
 		time:Start()
 		active = true
-	end
+	end 
 	function c.getUpTime()
 		return time:Get()
 	end

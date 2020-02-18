@@ -135,14 +135,13 @@ function multi:newSystemThreadedJobQueue(n)
 			end
 		end
 	end)
-	print("Cores: ",c.cores)
 	for i=1,c.cores do
 		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
 			local multi, thread = require("multi"):init()
+			require("love.timer")
 			local function atomic(channel)
 				return channel:pop()
 			end
-			require("love.timer")
 			local clock = os.clock
 			local funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
 			local queue = love.thread.getChannel("__JobQueue_"..jqc.."_queue")
