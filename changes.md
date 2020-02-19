@@ -113,6 +113,7 @@ multi:lightloop()
 Going Forward:
 ---
 - Finish the network manager
+- Planning on finishing sterilization for the library.
 - Might remove some objects: steps (multi:newStep()), tsteps (multi:newTStep), jobs (Planning to rework this), events (multi:newEvent()), tloop (multi:newTLoop()), triggers (multi:newTrigger())
 
 Modified:
