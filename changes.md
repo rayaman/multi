@@ -96,13 +96,15 @@ print(func("1"))
 print(func("Hello"))
 print(func("sigh"))
 serv = multi:newService(function(self,data)
-	print("Service Uptime: ",self:GetUpTime())
+	print("Service Uptime: ",self:GetUpTime(),data.test)
 end)
 serv.OnError(function(...)
 	print(...)
 end)
-serv.OnStarted(function(t)
-	print("Started!",t.Type)
+serv.OnStarted(function(self,data)
+	print("Started!",self.Type,data)
+	data.test = "Testing..."
+	-- self as reference to the object and data is a reference to the datatable that the service has access to
 end)
 serv:Start()
 serv:SetPriority(multi.Priority_Idle)
@@ -113,25 +115,40 @@ Going Forward:
 - Finish the network manager
 - Might remove some objects: steps (multi:newStep()), tsteps (multi:newTStep), jobs (Planning to rework this), events (multi:newEvent()), tloop (multi:newTLoop()), triggers (multi:newTrigger())
 
+Modified:
+---
+- 2 new priority options have been added. This addition modified how all options except Core behave. Core is still the highest and Idle is still the lowest!
+	- multi.Priority_Core — Same: 1
+	- multi.Priority_Very_High — Added: 4
+	- multi.Priority_High — Was: 4 Now: 16
+	- multi.Priority_Above_Normal — Was: 16 Now: 64
+	- multi.Priority_Normal — Was: 64 Now: 256
+	- multi.Priority_Below_Normal — Was: 256 Now: 1024
+	- multi.Priority_Low — Was: 1024 Now: 4096
+	- multi.Priority_Very_Low — Added: 16384
+	- multi.Priority_Idle — Was: 4096 Now: 65536
+
 Added:
 ---
+- multi:lightloop() — Works like multi:mainloop()
+	- Removes the extra features like priority management, load balancing and what not. Only the bare minimum is processed. If Priority management is something you liked to use the new Service object provides those features. You could alternatively use multi:mainloop() instead to use the non light features.
 - serv = multi:newService(func)
 	- (func(self,datatable))
-		- self -- Reference to the service
-		- datatable -- internal data space that the service can store data. Is reset/destroyed when the service is stopped.
+		- self — Reference to the service
+		- datatable — internal data space that the service can store data. Is reset/destroyed when the service is stopped.
 	- serv.Type: service
-	- serv.OnError(func) -- Triggered if service crashes
-	- serv.OnStopped(func) -- Triggered if service was stopped (In the case of a crash OnStopped is not called)
-	- serv.OnStarted(func) -- Triggered when the service starts
-	- serv.SetScheme(n) -- How to manage priorities
-		- n: 1 -- **default** uses sleeping to manage priority (Less control, but much less expensive)
-		- n: 2 -- uses skipping to manage priority (Finer control, but more expensive)
-	- serv.Stop() -- Stops the service, the internal data table is wiped
-	- serv.Pause() -- Pauses the service
-	- serv.Resume() -- Resumes the service
-	- serv.Start() -- Starts the service
-	- serv.GetUpTime() -- Gets the uptime of the service. Time is only counted when the service is running, if the service is paused then it is nolonger being counted. If the service is started then the uptime reset!
-	- serv.SetPriority(priority) -- Sets the priority level for the service
+	- serv.OnError(func) — Triggered if service crashes
+	- serv.OnStopped(func) — Triggered if service was stopped (In the case of a crash OnStopped is not called)
+	- serv.OnStarted(func) — Triggered when the service starts
+	- serv.SetScheme(n) — How to manage priorities
+		- n: 1 — **default** uses sleeping to manage priority (Less control, but much less expensive)
+		- n: 2 — uses skipping to manage priority (Finer control, but more expensive)
+	- serv.Stop() — Stops the service, the internal data table is wiped
+	- serv.Pause() — Pauses the service
+	- serv.Resume() — Resumes the service
+	- serv.Start() — Starts the service
+	- serv.GetUpTime() — Gets the uptime of the service. Time is only counted when the service is running, if the service is paused then it is nolonger being counted. If the service is started then the uptime reset!
+	- serv.SetPriority(priority) — Sets the priority level for the service
 		- multi.Priority_Core
 		- multi.Priority_High
 		- multi.Priority_Above_Normal
@@ -140,32 +157,32 @@ Added:
 		- multi.Priority_Low
 		- multi.Priority_Idle
 - jq = multi:newSystemThreadedJobQueue(n) 
-	- jq:newFunction([name optional],func,holup) -- Provides a newFunction like syntax. If name is left blank a unique one is assigned. The second return after the function is the name of the function.
-- console = THREAD:getConsole() -- Now working on lanes and love2d, allows you to print from multiple threads while keeping the console from writing over each other
+	- jq:newFunction([name optional],func,holup) — Provides a newFunction like syntax. If name is left blank a unique one is assigned. The second return after the function is the name of the function.
+- console = THREAD:getConsole() — Now working on lanes and love2d, allows you to print from multiple threads while keeping the console from writing over each other
 	- console.print(...)
 	- console.write(str)
 - multi:scheduleJob(time,func)
-	- time.min -- Minute a value of (0-59)
-	- time.hour -- Hour a value of (0-23)
-	- time.day -- Day of month a value of (1-31)
-	- time.wday -- Weekday a value of (0-6)
-	- time.month -- Month a value of (1-12)
-- THREAD:newFunction(func,holup) -- A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
-- multi:loveloop() -- Handles the run function for love2d as well as run the multi mainloop.
-- multi.OnLoad(func) -- A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
-- multi.OnExit(func) -- A special connection that allows you to connect onto the lua state closing event.
+	- time.min — Minute a value of (0-59)
+	- time.hour — Hour a value of (0-23)
+	- time.day — Day of month a value of (1-31)
+	- time.wday — Weekday a value of (0-6)
+	- time.month — Month a value of (1-12)
+- THREAD:newFunction(func,holup) — A system threaded based variant to thread:newFunction(func,holup) works the same way. Though this should only be used for intensive functions! Calling a STfunction has a decent amount of overhead, use wisely. System threaded jobqueue may be a better choice depending on what you are planning on doing.
+- multi:loveloop() — Handles the run function for love2d as well as run the multi mainloop.
+- multi.OnLoad(func) — A special connection that allows you to connect to the an event that triggers when the multi engine starts! This is slightly different from multi.PreLoad(func) Which connects before any variables have been set up in the multi table, before any settings are cemented into the core. In most cases they will operate exactly the same. This is a feature that was created with module creators in mind. This way they can have code be loaded and managed before the main loop starts.
+- multi.OnExit(func) — A special connection that allows you to connect onto the lua state closing event.
 
 Changed:
 ---
 - threaded functions no longer auto detect the presence of arguments when within a threaded function. However, you can use the holup method to produce the same effect. If you plan on using a function in different ways then you can use .wait() and .connect() without setting the holup argument
-- thread:newFunction(func,holup) -- Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
-- multi:newConnection(protect,callback,kill) -- Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
+- thread:newFunction(func,holup) — Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
+- multi:newConnection(protect,callback,kill) — Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
 - modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
 
 Removed:
 ---
-- multi:newTimeStamper() -- schedulejob replaces timestamper
+- multi:newTimeStamper() — schedulejob replaces timestamper
 
 Fixed:
 ---
@@ -173,8 +190,8 @@ Fixed:
 - Issue where async functions connect wasn't properly triggering when a function returned
 - Issue where async functions were not passing arguments properly.
 - Issue where async functions were not handling errors properly
-	- nil, err = func().wait() -- When waiting
-	- func().connect(function(err) end) -- When connection
+	- nil, err = func().wait() — When waiting
+	- func().connect(function(err) end) — When connection
 - Love2d had an issue where threads crashing would break the mainloop
 - Issue where systemthreadedjobqueues pushJob() was not returning the jobID of the job that was pushed!
 - Fixed bugs within the extensions.lua file for love threading
@@ -189,25 +206,25 @@ Fixed:
 
 
 # Update 14.0.0 - Consistency, Additions and Stability
--------------
+
 Added:
 ---
-- multi.init() -- Initlizes the library! Must be called for multiple files to have the same handle. Example below
-- thread.holdFor(NUMBER sec, FUNCTION condition) -- Works like hold, but timesout when a certain amount of time has passed!
-- multi.hold(function or number) -- It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
-- thread.holdWithin(NUMBER; cycles,FUNCTION; condition) -- Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
-- multi.holdFor(NUMBER; seconds,FUNCTION; condition) -- Follows the same rules as multi.hold while mimicing the functionality of thread.holdWithin
+- multi.init() — Initlizes the library! Must be called for multiple files to have the same handle. Example below
+- thread.holdFor(NUMBER sec, FUNCTION condition) — Works like hold, but timesout when a certain amount of time has passed!
+- multi.hold(function or number) — It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
+- thread.holdWithin(NUMBER; cycles,FUNCTION; condition) — Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
+- multi.holdFor(NUMBER; seconds,FUNCTION; condition) — Follows the same rules as multi.hold while mimicing the functionality of thread.holdWithin
 **Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
 - thread objects now have hooks that allow you to interact with it in more refined ways!
--- tObj.OnDeath(self,status,returns[...]) -- This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
--- tObj.OnError(self,error) -- returns a reference to self and the error as a string
+-- tObj.OnDeath(self,status,returns[...]) — This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
+-- tObj.OnError(self,error) — returns a reference to self and the error as a string
 -- **Limitations:** only 7 returns are possible! This was done because creating and destroying table objects are slow. (The way the scheduler works this would happen every cycle and thats no good) Instead I capture the return values from coroutine.resume into local variables and only allowed it to collect 7 max.
-- thread.run(function) -- Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function -- Use thread newfunctions for a more powerful version of thread.run()
+- thread.run(function) — Can only be used within a thread, creates another thread that can do work, but automatically returns whatever from the run function — Use thread newfunctions for a more powerful version of thread.run()
 - thread:newFunction(FUNCTION: func)
 -- returns a function that gives you the option to wait or connect to the returns of the function.
--- func().wait() -- waits for the function to return works both within a thread and outside of one
--- func().connect() -- connects to the function finishing
--- func() -- If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
+-- func().wait() — waits for the function to return works both within a thread and outside of one
+-- func().connect() — connects to the function finishing
+-- func() — If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
 -- If the created function encounters an error, it will return nil, the error message!
 - special variable multi.NIL was added to allow error handling in threaded functions.
 -- multi.NIL can be used in to force a nil value when using thread.hold()
@@ -285,8 +302,8 @@ Fixed:
 
 Removed:
 ---
-- multi:newWatcher() -- No real use
-- multi:newCustomObject() -- No real use
+- multi:newWatcher() — No real use
+- multi:newCustomObject() — No real use
 
 Changed:
 ---
@@ -332,12 +349,12 @@ Going forward:
 -------------
 Added:
 ---
-- Connections:Lock() -- Prevents a connection object form being fired
-- Connections:Unlock() -- Removes the restriction imposed by conn:Lock()
+- Connections:Lock() — Prevents a connection object form being fired
+- Connections:Unlock() — Removes the restriction imposed by conn:Lock()
 - new fucntions added to the thread namespace
--- thread.request(THREAD handle,STRING cmd,VARARGS args) -- allows you to push thread requests from outside the running thread! Extremely powerful.
--- thread.exec(FUNCTION func) -- Allows you to push code to run within the thread execution block!
-- handle = multi:newThread() -- now returns a thread handle to interact with the object outside fo the thread
+-- thread.request(THREAD handle,STRING cmd,VARARGS args) — allows you to push thread requests from outside the running thread! Extremely powerful.
+-- thread.exec(FUNCTION func) — Allows you to push code to run within the thread execution block!
+- handle = multi:newThread() — now returns a thread handle to interact with the object outside fo the thread
 -- handle:Pause()
 -- handle:Resume()
 -- handle:Kill()
@@ -354,10 +371,10 @@ Changed:
 ---
 - getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
-- thread.hold() -- As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
+- thread.hold() — As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
 - You should notice some faster code execution from threads, the changes improve preformance of threads greatly. They are now much faster than before!
-- multi:threadloop() -- No longer runs normal multi objects at all! The new change completely allows the multi objects to be seperated from the thread objects!
-- local multi, thread = require("multi") -- Since coroutine based threading has seen a change to how it works, requring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
+- multi:threadloop() — No longer runs normal multi objects at all! The new change completely allows the multi objects to be seperated from the thread objects!
+- local multi, thread = require("multi") — Since coroutine based threading has seen a change to how it works, requring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
 
 
 Tasks Details Table format
@@ -445,16 +462,16 @@ print(func()) -- nil, true
 
 Removed:
 ---
-- Ranges and conditions -- corutine based threads can emulate what these objects did and much better!
+- Ranges and conditions — corutine based threads can emulate what these objects did and much better!
 - Due to the creation of hyper threaded processes the following objects are no more!
--- ~~multi:newThreadedEvent()~~
--- ~~multi:newThreadedLoop()~~
--- ~~multi:newThreadedTLoop()~~
--- ~~multi:newThreadedStep()~~
--- ~~multi:newThreadedTStep()~~
--- ~~multi:newThreadedAlarm()~~
--- ~~multi:newThreadedUpdater()~~
--- ~~multi:newTBase()~~ -- Acted as the base for creating the other objects
+	- ~~multi:newThreadedEvent()~~
+	- ~~multi:newThreadedLoop()~~
+	- ~~multi:newThreadedTLoop()~~
+	- ~~multi:newThreadedStep()~~
+	- ~~multi:newThreadedTStep()~~
+	- ~~multi:newThreadedAlarm()~~
+	- ~~multi:newThreadedUpdater()~~
+	- ~~multi:newTBase()~~ — Acted as the base for creating the other objects
 
 These didn't have much use in their previous form, but with the addition of hyper threaded processes the goals that these objects aimed to solve are now possible using a process
 
@@ -469,25 +486,25 @@ Fixed:
 - Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
 - Fixed a bug where pause and resume would duplicate objects! Not good
 - Noticed that the switching of lua states, corutine based threading, is slower than multi-objs (Not by much though).
-- multi:newSystemThreadedConnection(name,protect) -- I did it! It works and I believe all the gotchas are fixed as well.
--- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
--- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
+- multi:newSystemThreadedConnection(name,protect) — I did it! It works and I believe all the gotchas are fixed as well.
+	- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
+	- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
 
 Added:
 ---
 - Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
-- multi:newHyperThreadedProcess(STRING name) -- This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
-- multi:newConnector() -- A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
-- multi:purge() -- Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
-- multi:getTasksDetails(STRING format) -- Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
-- multi:endTask(TID) -- Use multi:getTasksDetails("t") to get the tid of a task
-- multi:enableLoadDetection() -- Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
-- THREAD.getID() -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
+- multi:newHyperThreadedProcess(STRING name) — This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
+- multi:newConnector() — A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
+- multi:purge() — Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
+- multi:getTasksDetails(STRING format) — Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
+- multi:endTask(TID) — Use multi:getTasksDetails("t") to get the tid of a task
+- multi:enableLoadDetection() — Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
+- THREAD.getID() — returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
 - multi.print(...) works like normal print, but only prints if the setting print is set to true
 - setting: `print` enables multi.print() to work
 - STC: IgnoreSelf defaults to false, if true a Fire command will not be sent to the self
-- STC: OnConnectionAdded(function(connID)) -- Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are genereated for you.
-- STC: FireTo(id,...) -- Described above.
+- STC: OnConnectionAdded(function(connID)) — Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are genereated for you.
+- STC: FireTo(id,...) — Described above.
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -536,13 +553,13 @@ Table format for getTasksDetails(STRING format)
 - finish documentstion
 
 # Update 12.2.2 - Time for some more bug fixes!
--------------
+
 Fixed:
 --- 
 - multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 
 # Update 12.2.1 - Time for some bug fixes!
--------------
+
 Fixed: SystemThreadedJobQueues
 - You can now make as many job queues as you want! Just a warning when using a large amount of cores for the queue it takes a second or 2 to set up the jobqueues for data transfer. I am unsure if this is a lanes thing or not, but love2d has no such delay when setting up the jobqueue!
 - You now connect to the OnReady in the jobqueue object. No more holding everything else as you wait for a job queue to be ready
@@ -583,11 +600,11 @@ multi:mainloop()
 - multi.nextStep(func)
 - Method chaining
 - Priority 3 has been added!
-- ResetPriority() -- This will set a flag for a process to be re evaluated for how much of an impact it is having on the performance of the system.
-- setting: auto_priority added! -- If only lua os.clock was more fine tuned... milliseconds are not enough for this to work
-- setting: auto_lowerbound added! -- when using auto_priority this will allow you to set the lowbound for pirority. The defualt is a hyrid value that was calculated to reach the max potential with a delay of .001, but can be changed to whatever. Remember this is set to processes that preform really badly! If lua could handle more detail in regards to os.clock() then i would set the value a bit lower like .0005 or something like that
-- setting: auto_stretch added! -- This is another way to modify the extent of the lowest setting. This reduces the impact that a low preforming process has! Setting this higher reduces the number of times that a process is called. Only in effect when using auto_priotity
-- setting: auto_delay added! -- sets the time in seconds that the system will recheck for low performing processes and manage them. Will also upgrade a process if it starts to run better.
+- ResetPriority() — This will set a flag for a process to be re evaluated for how much of an impact it is having on the performance of the system.
+- setting: auto_priority added! — If only lua os.clock was more fine tuned... milliseconds are not enough for this to work
+- setting: auto_lowerbound added! — when using auto_priority this will allow you to set the lowbound for pirority. The defualt is a hyrid value that was calculated to reach the max potential with a delay of .001, but can be changed to whatever. Remember this is set to processes that preform really badly! If lua could handle more detail in regards to os.clock() then i would set the value a bit lower like .0005 or something like that
+- setting: auto_stretch added! — This is another way to modify the extent of the lowest setting. This reduces the impact that a low preforming process has! Setting this higher reduces the number of times that a process is called. Only in effect when using auto_priotity
+- setting: auto_delay added! — sets the time in seconds that the system will recheck for low performing processes and manage them. Will also upgrade a process if it starts to run better.
 ```lua
 -- All methods that did not return before now return a copy of itself. Thus allowing chaining. Most if not all mutators returned nil, so chaining can now be done. I will eventually write up a full documentation of everything which will show this.
 multi = require("multi")
@@ -698,10 +715,10 @@ Added:
 - `node = multi:newNode(tbl: settings)`
 - `master = multi:newMaster(tbl: settings)`
 - `multi:nodeManager(port)`
-- `thread.isThread()` -- for coroutine based threads
+- `thread.isThread()` — for coroutine based threads
 - New setting to the main loop, stopOnError which defaults to true. This will cause the objects that crash, when under protect, to be destroyed. So the error does not keep happening.
 - multi:threadloop(settings) works just like mainloop, but prioritizes (corutine based) threads. Regular multi-objects will still work. This improves the preformance of (coroutine based) threads greatly.
-- multi.OnPreLoad -- an event that is triggered right before the mainloop starts
+- multi.OnPreLoad — an event that is triggered right before the mainloop starts
 
 Changed:
 - When a (corutine based)thread errors it does not print anymore! Conect to multi.OnError() to get errors when they happen!
@@ -716,7 +733,7 @@ Node:
 - node:pushTo(name,data)
 - node:peek()
 - node:pop()
-- node:getConsole() -- has only 1 function print which allows you to print to the master.
+- node:getConsole() — has only 1 function print which allows you to print to the master.
 
 Master:
 ---
@@ -730,7 +747,7 @@ Master:
 - master:pushTo(name,data)
 - master:peek()
 - master:pop()
-- master:OnError(nodename, error) -- if a node has an error this is triggered.
+- master:OnError(nodename, error) — if a node has an error this is triggered.
 
 Bugs
 ---
@@ -763,7 +780,7 @@ nGLOBAL = require("multi.integration.networkManager").init()
 multi:nodeManager(12345) -- Host a node manager on port: 12345
 print("Node Manager Running...")
 settings = {
-	priority = 0, -- 1 or 2
+	priority = 0, — 1 or 2
 	protect = false,
 }
 multi:mainloop(settings)
@@ -842,8 +859,8 @@ multi:mainloop(settings)
 
 Changed:
 ---
-- multi:mainloop(settings) -- now takes a table of settings
-- multi:uManager(settings) -- now takes a table of settings
+- multi:mainloop(settings) — now takes a table of settings
+- multi:uManager(settings) — now takes a table of settings
 - connections:holdUT(n) can take a number now. Where they will not continue until it gets triggered **n** times Added 3 updated ago, forgot to list it as a new feature
 - The way you require the library has changed a bit! This will change how you start your code, but it isn't a big change.
 - These changes have led to significant performance improvements
@@ -874,8 +891,8 @@ Improvements:
 
 Removed:
 ---
-- require("multi.all") -- We are going into a new version of the library so this is nolonger needed
-- require("multi.compat.backwards[1,5,0]") -- This is really old and is no longer supported going forward
+- require("multi.all") — We are going into a new version of the library so this is nolonger needed
+- require("multi.compat.backwards[1,5,0]") — This is really old and is no longer supported going forward
 - multi:Do_Order()
 - multi:enablePriority()
 - multi:enablePriority2()
@@ -886,11 +903,11 @@ Removed:
 - multi:prioritizedMainloop1()
 - multi:prioritizedMainloop2()
 - Removed Tasks
-- multi:oneTime(func,...) -- never seen use of this, plus multi-functions can do this by pausing the function after the first use, and is much faster anyway
-- multi:reboot() -- removed due to having no real use
-- multi:hold() -- removed due to threads being able to do the same thing and way better too
-- multi:waitFor() -- the thread variant does something completely different
-- multi.resurrect() -- removed due to being useless
+- multi:oneTime(func,...) — never seen use of this, plus multi-functions can do this by pausing the function after the first use, and is much faster anyway
+- multi:reboot() — removed due to having no real use
+- multi:hold() — removed due to threads being able to do the same thing and way better too
+- multi:waitFor() — the thread variant does something completely different
+- multi.resurrect() — removed due to being useless
 
 The new settings table makes all of these possible and removes a lot of function overhead that was going on before.
 
@@ -933,7 +950,7 @@ TODO: Add auto priority adjustments when working with priority and stuff... If t
 
 # Update: 1.11.0
 Added:
-- SystemThreadedConsole(name) -- Allow each thread to print without the sync issues that make prints merge and hard to read.
+- SystemThreadedConsole(name) — Allow each thread to print without the sync issues that make prints merge and hard to read.
 
 ```lua
 -- MainThread:
@@ -966,7 +983,7 @@ end
 Added:
 ---
 - isMainThread true/nil
-- multi:newSystemThreadedConnection(name,protect) -- Works like normal connections, but are able to trigger events across threads
+- multi:newSystemThreadedConnection(name,protect) — Works like normal connections, but are able to trigger events across threads
 
 Example of threaded connections
 ```lua
@@ -1089,8 +1106,8 @@ Updated:
 # Update: 1.9.0
 Added:
 ---
-- multiobj:ToString() -- returns a string representing the object
-- multi:newFromString(str) -- creates an object from a string
+- multiobj:ToString() — returns a string representing the object
+- multi:newFromString(str) — creates an object from a string
 
 Works on threads and regular objects. Requires the latest bin library to work!
 ```lua
@@ -1237,11 +1254,11 @@ That’s it from this version!
 Added:
 ---
 **New Mainloop functions** Below you can see the slight differences... Function overhead is not too bad in lua but has a real difference. multi:mainloop() and multi:unprotectedMainloop() use the same algorithm yet the dedicated unprotected one is slightly faster due to having less function overhead.
-- multi:mainloop()\* -- Bench:  16830003 Steps in 3 second(s)!
-- multi:protectedMainloop() -- Bench:  16699308 Steps in 3 second(s)!
-- multi:unprotectedMainloop() -- Bench:  16976627 Steps in 3 second(s)!
-- multi:prioritizedMainloop1() -- Bench:  15007133 Steps in 3 second(s)!
-- multi:prioritizedMainloop2() -- Bench:  15526248 Steps in 3 second(s)!
+- multi:mainloop()\* — Bench:  16830003 Steps in 3 second(s)!
+- multi:protectedMainloop() — Bench:  16699308 Steps in 3 second(s)!
+- multi:unprotectedMainloop() — Bench:  16976627 Steps in 3 second(s)!
+- multi:prioritizedMainloop1() — Bench:  15007133 Steps in 3 second(s)!
+- multi:prioritizedMainloop2() — Bench:  15526248 Steps in 3 second(s)!
 
 \* The OG mainloop function remains the same and old methods to achieve what we have with the new ones still exist
 
@@ -1327,7 +1344,7 @@ Added:</br>
 - multi:newSystemThreadedQueue()
 - multi:systemThreadedBenchmark()
 - More example files
-- multi:canSystemThread() -- true if an integration was added false otherwise (For module creation)
+- multi:canSystemThread() — true if an integration was added false otherwise (For module creation)
 - Fixed a few bugs in the loveManager
 
 Using multi:systemThreadedBenchmark()
@@ -1453,7 +1470,7 @@ Fixed:
 Typos like always
 Added:
 ---
-- multi:getPlatform() -- returns "love2d" if using the love2d platform or returns "lanes" if using lanes for threading
+- multi:getPlatform() — returns "love2d" if using the love2d platform or returns "lanes" if using lanes for threading
 - examples files
 - In Events added method setTask(func) --The old way still works and is more convent to be honest, but I felt a method to do this was needed for completeness.
 
@@ -1580,12 +1597,12 @@ thread is the interface for multithreads as seen in the threading section</br>
 GLOBAL a table that can be used throughout each and every thread
 
 sThreads have a few methods</br>
-sThread.set(name,val) -- you can use the GLOBAL table instead modifies the same table anyway</br>
-sThread.get(name) -- you can use the GLOBAL table instead modifies the same table anyway</br>
-sThread.waitFor(name) -- waits until a value exists, if it does it returns it</br>
-sThread.getCores() -- returns the number of cores on your cpu</br>
-sThread.sleep(n) -- sleeps for a bit stopping the entire thread from running</br>
-sThread.hold(n) -- sleeps until a condition is met</br>
+sThread.set(name,val) — you can use the GLOBAL table instead modifies the same table anyway</br>
+sThread.get(name) — you can use the GLOBAL table instead modifies the same table anyway</br>
+sThread.waitFor(name) — waits until a value exists, if it does it returns it</br>
+sThread.getCores() — returns the number of cores on your cpu</br>
+sThread.sleep(n) — sleeps for a bit stopping the entire thread from running</br>
+sThread.hold(n) — sleeps until a condition is met</br>
 ```lua
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 require("multi.all")
@@ -1677,8 +1694,8 @@ Upcomming:
 # Update: 1.4.0 (3/20/2017)
 Added:
 ---
-- multiobj:reallocate(ProcessObj) -- changes the parent process of an object
-- ProcessObj:getController() -- returns the mThread so you can opperate on it like a multiobj
+- multiobj:reallocate(ProcessObj) — changes the parent process of an object
+- ProcessObj:getController() — returns the mThread so you can opperate on it like a multiobj
 Example 1
 ---
 ```lua
@@ -1737,16 +1754,16 @@ multi:mainloop()
 Added:
 ---
 - Load detection!
-	- multi.threshold -- minimum amount of cycles that all mObjs should be allotted before the Manager is considered burdened. Defualt: 256
-	- multi.threstimed -- amount of time when counting the number of cycles, Greater gives a more accurate view of the load, but takes more time. Defualt: .001
-	- multi:setThreshold(n) -- method used to set multi.threshold
-	- multi:setThrestimed(n) -- method used to set multi.threstimed
-	- multi:getLoad() -- returns a number between 0 and 100
+	- multi.threshold — minimum amount of cycles that all mObjs should be allotted before the Manager is considered burdened. Defualt: 256
+	- multi.threstimed — amount of time when counting the number of cycles, Greater gives a more accurate view of the load, but takes more time. Defualt: .001
+	- multi:setThreshold(n) — method used to set multi.threshold
+	- multi:setThrestimed(n) — method used to set multi.threstimed
+	- multi:getLoad() — returns a number between 0 and 100
 
 # Update: 1.2.0 (12.31.2016)
 Added:
 ---
-- connectionobj.getConnection(name) -- returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name) if you can orginize data before hand you can route info to certain connections thus saving a lot of cpu time. 
+- connectionobj.getConnection(name) — returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name) if you can orginize data before hand you can route info to certain connections thus saving a lot of cpu time. 
 **NOTE:** Only one name per each connection... you can't have 2 of the same names in a dictonary... the last one will be used
 Changed:
 ---
@@ -1758,7 +1775,7 @@ Changed:
 # Update: 1.1.0
 Changed:
 ---
-- multi:newConnection(protect) -- Changed the way you are able to interact with it by adding the __call metamethod
+- multi:newConnection(protect) — Changed the way you are able to interact with it by adding the __call metamethod
 Old Usage:
 ```lua
 OnUpdate=multi:newConnection()
@@ -1810,14 +1827,14 @@ Added:
 ---
 - Love2d support basic
 - event:benchMark()
-- event:lManager() -- like uManager, but for love2d
-- event:uManager(dt) -- you could pass the change in time to the method
+- event:lManager() — like uManager, but for love2d
+- event:uManager(dt) — you could pass the change in time to the method
 - event:cManager()
-- event:manager() -- old version of mainloop()
-- @onClose(func) -- modifidable
+- event:manager() — old version of mainloop()
+- @onClose(func) — modifidable
 - event:onDraw(func)
 - event:onUpdate(func)
-- @event:onStart() -- modifidable
+- @event:onStart() — modifidable
 - event:stop()
 - event:createTrigger(func)
 - event:createTStep(start,reset,timer,count)
@@ -1826,7 +1843,7 @@ Added:
 - event:newTask(func)
 - event:newAlarm(set,func,start)
 - event:hold(task)
-- event:oneETime(func) -- One time function call
+- event:oneETime(func) — One time function call
 - event:oneTime(func)
 # Update: EventManager 1.2.0
 Changed:
@@ -1839,14 +1856,14 @@ Note: Weird period where both fuction based and object based features worked!
 Added:
 ---
 - event:Hold(task)
-- event:destroyEvent(tag) -- destroys an event
+- event:destroyEvent(tag) — destroys an event
 
 # Update: EventManager 1.1.0
 Added:
 ---
-- LoadOrder -- allow you to change what was processed first events, steps, or updates
-- event:setLoadOrder(str) -- ESU,EUS,USE,UES,SEU,SUE
-- event:createTStep(tag,reset,timer,endc) -- works like steps but sleeps between loops
+- LoadOrder — allow you to change what was processed first events, steps, or updates
+- event:setLoadOrder(str) — ESU,EUS,USE,UES,SEU,SUE
+- event:createTStep(tag,reset,timer,endc) — works like steps but sleeps between loops
 # Update: EventManager 1.0.0 - Error checking
 Changed:
 ---

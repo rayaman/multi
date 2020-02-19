@@ -58,14 +58,15 @@ multi.defaultSettings = {
 	priority = 0,
 	protect = false,
 }
---Do not change these ever...Any other number will not work (Unless you are using enablePriority2())
 multi.Priority_Core = 1
-multi.Priority_High = 4
-multi.Priority_Above_Normal = 16
-multi.Priority_Normal = 64
-multi.Priority_Below_Normal = 256
-multi.Priority_Low = 1024
-multi.Priority_Idle = 4096
+multi.Priority_Very_High = 4
+multi.Priority_High = 16
+multi.Priority_Above_Normal = 64
+multi.Priority_Normal = 256
+multi.Priority_Below_Normal = 1024
+multi.Priority_Low = 4096
+multi.Priority_Very_Low = 16384
+multi.Priority_Idle = 65536
 thread.Priority_Core = 3
 thread.Priority_High = 2
 thread.Priority_Above_Normal = 1
@@ -786,7 +787,7 @@ function multi:newConnection(protect,func,kill)
 		if type(t)=="table" then
 			for i,v in pairs(t) do
 				if v==self then
-					return self:Fire(...)
+					return self:Fire(select(2,...))
 				end
 			end
 			return self:connect(...)
@@ -1817,40 +1818,50 @@ function multi:newService(func) -- Priority managed threads
 	c.OnError = multi:newConnection()
 	c.OnStopped = multi:newConnection()
 	c.OnStarted = multi:newConnection()
-	local data = {}
-	local active = false
-	local time = multi:newTimer()
+	local Service_Data = {}
+	local active
+	local time
 	local p = multi.Priority_Normal
+	local ap
+	local task
 	local scheme = 1
+	function c.Start()
+		time = multi:newTimer()
+		time:Start()
+		active = true
+		print("INTERNAL:",Service_Data,active,time,p,scheme)
+		c:OnStarted(c,Service_Data)
+	end 
 	local function process()
 		thread.hold(function()
 			return active
 		end)
-		func(c,data)
-		if scheme == 1 then
-			if (p^(1/3))/10 == .1 then
-				thread.yield()
-			else
-				thread.sleep((p^(1/3))/10)
-			end
-		elseif scheme == 2 then
-			thread.skip(math.abs(p-1)*32+1)
-		end
+		func(c,Service_Data)
+		task(ap)
 	end
 	multi:newThread(function()
 		while true do
 			process()
 		end
 	end).OnError = c.OnError -- use the threads onerror as our own
-	function c.SetScheme(n)
+	function c:SetScheme(n)
+		if type(self)=="number" then n = self end
 		scheme = n
+		if math.abs(n)==1 then
+			ap = (p^(1/3))/10
+			if ap==.1 then task = thread.yield end
+			task = thread.sleep
+		elseif math.abs(n)==2 then
+			ap = math.abs(p-1)*32+1
+			task = thread.skip
+		end
 	end
 	function c.Stop()
 		c:OnStopped(c)
+		Service_Data = {}
 		time:Reset()
 		time:Pause()
-		data = {}
-		time = {}
+		time = nil
 		active = false
 	end
 	function c.Pause()
@@ -1861,17 +1872,13 @@ function multi:newService(func) -- Priority managed threads
 		time:Resume()
 		active = true
 	end
-	function c.Start()
-		c:OnStarted(c)
-		time:Start()
-		active = true
-	end 
 	function c.GetUpTime()
 		return time:Get()
 	end
 	function c:SetPriority(pri)
 		if type(self)=="number" then pri = self end
 		p = pri
+		c.SetScheme(scheme)
 	end
 	return c
 end
