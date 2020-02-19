@@ -534,6 +534,7 @@ function multi:SetTime(n)
 			for i=1,#self.link.funcTM do
 				self.link.funcTM[i](self.link)
 			end
+			
 			self:Destroy()
 		end
 	end
@@ -2485,39 +2486,5 @@ function multi:uManagerRef(settings)
 			end
 		end
 	end
-end
--- State Saving Stuff
-function multi:IngoreObject()
-	--
-end
-function multi:ToString()
-	--
-end
-function multi:newFromString(str)
-	--
-end
-function multi:Important(varname)
-	--
-end
-function multi:ToFile(path)
-	--
-end
-function multi:fromFile(path)
-	--
-end
-function multi:SetStateFlag(opt)
-	--
-end
-function multi:quickStateSave(b)
-	--
-end
-function multi:saveState(path,opt)
-	--
-end
-function multi:loadState(path)
-	--
-end
-function multi:setDefualtStateFlag(opt)
-	--
 end
 return multi
