@@ -58,6 +58,7 @@ multi.defaultSettings = {
 	priority = 0,
 	protect = false,
 }
+
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
 multi.Priority_High = 16
@@ -67,13 +68,7 @@ multi.Priority_Below_Normal = 1024
 multi.Priority_Low = 4096
 multi.Priority_Very_Low = 16384
 multi.Priority_Idle = 65536
-thread.Priority_Core = 3
-thread.Priority_High = 2
-thread.Priority_Above_Normal = 1
-thread.Priority_Normal = 0
-thread.Priority_Below_Normal = -1
-thread.Priority_Low = -2
-thread.Priority_Idle = -3
+
 multi.PriorityResolve = {
 	[1]="Core",
 	[4]="High",
@@ -1829,7 +1824,6 @@ function multi:newService(func) -- Priority managed threads
 		time = multi:newTimer()
 		time:Start()
 		active = true
-		print("INTERNAL:",Service_Data,active,time,p,scheme)
 		c:OnStarted(c,Service_Data)
 	end 
 	local function process()
@@ -2058,6 +2052,13 @@ function multi:lightloop()
 	if not isRunning then
 		local Loop=self.Mainloop
 		while true do
+			if next then
+				local DD = table.remove(next,1)
+				while DD do
+					DD()
+					DD = table.remove(next,1)
+				end
+			end
 			for _D=#Loop,1,-1 do
 				if Loop[_D].Active then
 					self.CID=_D

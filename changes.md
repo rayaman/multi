@@ -12,6 +12,19 @@ Something I plan on doing each version going forward
 package.path="?.lua;?/init.lua;?.lua;"..package.path
 local multi, thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
+serv = multi:newService(function(self,data)
+	print("Service Uptime: ",self:GetUpTime(),data.test)
+end)
+serv.OnError(function(...)
+	print(...)
+end)
+serv.OnStarted(function(self,data)
+	print("Started!",self.Type,data)
+	data.test = "Testing..."
+	-- self as reference to the object and data is a reference to the datatable that the service has access to
+end)
+serv:Start()
+serv:SetPriority(multi.Priority_Idle)
 t = THREAD:newFunction(function(...)
 	print("This is a system threaded function!",...)
 	THREAD.sleep(1) -- This is handled within a system thread! Note: this creates a system thread that runs then ends.
@@ -95,20 +108,7 @@ end)
 print(func("1"))
 print(func("Hello"))
 print(func("sigh"))
-serv = multi:newService(function(self,data)
-	print("Service Uptime: ",self:GetUpTime(),data.test)
-end)
-serv.OnError(function(...)
-	print(...)
-end)
-serv.OnStarted(function(self,data)
-	print("Started!",self.Type,data)
-	data.test = "Testing..."
-	-- self as reference to the object and data is a reference to the datatable that the service has access to
-end)
-serv:Start()
-serv:SetPriority(multi.Priority_Idle)
-multi:mainloop()
+multi:lightloop()
 ```
 Going Forward:
 ---
@@ -117,6 +117,7 @@ Going Forward:
 
 Modified:
 ---
+- thread.Priority_* has been moved into THREAD since it pertains to system threads. This only applies to lanes threads!
 - 2 new priority options have been added. This addition modified how all options except Core behave. Core is still the highest and Idle is still the lowest!
 	- multi.Priority_Core — Same: 1
 	- multi.Priority_Very_High — Added: 4
@@ -186,6 +187,7 @@ Removed:
 
 Fixed:
 ---
+- Issue where setting the priority of lanes Threads were not working since we were using the data before one could have a chance to set it. This has been resolved!
 - Issue where connections object:conn() was firing based on the existance of a Type field. Now this only fires if the table contains a reference to itself. Otherwise it will connect instead of firing
 - Issue where async functions connect wasn't properly triggering when a function returned
 - Issue where async functions were not passing arguments properly.

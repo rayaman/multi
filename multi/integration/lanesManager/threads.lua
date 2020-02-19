@@ -30,6 +30,13 @@ local function getOS()
 end
 local function INIT(__GlobalLinda,__SleepingLinda)
     local THREAD = {}
+    THREAD.Priority_Core = 3
+    THREAD.Priority_High = 2
+    THREAD.Priority_Above_Normal = 1
+    THREAD.Priority_Normal = 0
+    THREAD.Priority_Below_Normal = -1
+    THREAD.Priority_Low = -2
+    THREAD.Priority_Idle = -3
     function THREAD.set(name, val)
         __GlobalLinda:set(name, val)
     end

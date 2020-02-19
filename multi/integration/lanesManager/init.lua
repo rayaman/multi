@@ -61,6 +61,7 @@ function THREAD:newFunction(func,holup)
 			return func(...)
 		end,...)
 		return thread:newFunction(function()
+			thread.hold(function() return t.thread end)
 			return thread.hold(function()
 				return t.thread:join(.001)
 			end)
@@ -80,15 +81,21 @@ function multi:newSystemThread(name, func, ...)
 	c.Type = "sthread"
 	c.creationTime = os.clock()
 	c.alive = true
-	c.priority = thread.Priority_Normal
+	c.priority = THREAD.Priority_Normal
 	local args = {...}
-	c.thread = lanes.gen(table.concat(c.loadString,","),{globals={
-		THREAD_NAME=name,
-		THREAD_ID=count,
-		THREAD = THREAD,
-		GLOBAL = GLOBAL,
-		_Console = __ConsoleLinda
-	},priority=c.priority}, func)(unpack(args))
+	multi:newThread(function()
+		print("I am here!")
+		c.thread = lanes.gen(table.concat(c.loadString,","),
+		{
+			globals={
+			THREAD_NAME=name,
+			THREAD_ID=count,
+			THREAD = THREAD,
+			GLOBAL = GLOBAL,
+			_Console = __ConsoleLinda
+		},priority=c.priority}, func)(unpack(args))
+		thread.kill()
+	end)
 	count = count + 1
 	function c:kill()
 		self.thread:cancel()
