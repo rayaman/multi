@@ -78,13 +78,14 @@ multi.PriorityResolve = {
 	[1024]="Low",
 	[4096]="Idle",
 }
+
 multi.PStep = 1
 multi.PList = {multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
---^^^^
-multi.PriorityTick=1 -- Between 1, 2 and 4
+multi.PriorityTick=1
 multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
+
 function multi.init()
 	multi.NIL = {Type="NIL"}
 	return _G["$multi"].multi,_G["$multi"].thread
@@ -418,6 +419,7 @@ function multi:getTasksDetails(t)
 end
 function multi:endTask(TID)
 	self.Mainloop[TID]:Destroy()
+	return self
 end
 function multi.startFPSMonitior()
 	if not multi.runFPS then
@@ -458,6 +460,7 @@ end
 multi.Reallocate=multi.Reallocate
 function multi:setJobSpeed(n)
 	self.jobUS=n
+	return self
 end
 function multi:hasJobs()
 	return #self.Jobs>0,#self.Jobs
@@ -720,10 +723,7 @@ function multi:newProcessor(file)
 		self.Cself=c
 		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
 	end
-	-- c.__Destroy = self.Destroy
-	-- c.Destroy = c.Remove
 	self:create(c)
---~ 	c:IngoreObject()
 	return c
 end
 function multi:newTimer()
@@ -1825,6 +1825,7 @@ function multi:newService(func) -- Priority managed threads
 		time:Start()
 		active = true
 		c:OnStarted(c,Service_Data)
+		return c
 	end 
 	local function process()
 		thread.hold(function()
@@ -1832,6 +1833,7 @@ function multi:newService(func) -- Priority managed threads
 		end)
 		func(c,Service_Data)
 		task(ap)
+		return c
 	end
 	multi:newThread(function()
 		while true do
@@ -1849,6 +1851,7 @@ function multi:newService(func) -- Priority managed threads
 			ap = math.abs(p-1)*32+1
 			task = thread.skip
 		end
+		return c
 	end
 	function c.Stop()
 		c:OnStopped(c)
@@ -1857,23 +1860,26 @@ function multi:newService(func) -- Priority managed threads
 		time:Pause()
 		time = nil
 		active = false
+		return c
 	end
 	function c.Pause()
 		time:Pause()
 		active = false
+		return c
 	end
 	function c.Resume()
 		time:Resume()
 		active = true
+		return c
 	end
 	function c.GetUpTime()
 		return time:Get()
 	end
 	function c:SetPriority(pri)
 		if type(self)=="number" then pri = self end
-		p = pri
-		c.SetScheme(scheme)
-	end
+			p = pri
+			c.SetScheme(scheme)
+		end
 	return c
 end
 function multi:newThreadedProcess(name)
@@ -2482,183 +2488,22 @@ function multi:uManagerRef(settings)
 end
 -- State Saving Stuff
 function multi:IngoreObject()
-	self.Ingore=true
-	return self
+	--
 end
 function multi:ToString()
-	if self.Ingore then return end
-	local t=self.Type
-	local data;
-	multi.print(t)
-	if t:sub(-6)=="Thread" then
-		data={
-			Type=t,
-			rest=self.rest,
-			updaterate=self.updaterest,
-			restrate=self.restrate,
-			name=self.name,
-			func=self.func,
-			important=self.important,
-			Active=self.Active,
-			ender=self.ender,
-			held=self.held,
-		}
-	else
-		data={
-			Type=t,
-			func=self.func,
-			funcTM=self.funcTM,
-			funcTMR=self.funcTMR,
-			important=self.important,
-			ender=self.ender,
-			held=self.held,
-		}
-	end
-	if t=="eventThread" or t=="event" then
-		table.merge(data,{
-			Task=self.Task,
-		})
-	elseif t=="loopThread" or t=="loop" then
-		table.merge(data,{
-			Start=self.Start,
-		})
-	elseif t=="stepThread" or t=="step" then
-		table.merge(data,{
-			funcE=self.funcE,
-			funcS=self.funcS,
-			pos=self.pos,
-			endAt=self.endAt,
-			start=self.start,
-			spos=self.spos,
-			skip=self.skip,
-			count=self.count,
-		})
-	elseif t=="tloopThread" then
-		table.merge(data,{
-			restN=self.restN,
-		})
-	elseif t=="tloop" then
-		table.merge(data,{
-			set=self.set,
-			life=self.life,
-		})
-	elseif t=="tstepThread" or t=="tstep" then
-		table.merge(data,{
-			funcE=self.funcE,
-			funcS=self.funcS,
-			pos=self.pos,
-			endAt=self.endAt,
-			start=self.start,
-			spos=self.spos,
-			skip=self.skip,
-			count=self.count,
-			timer=self.timer,
-			set=self.set,
-			reset=self.reset,
-		})
-	elseif t=="updaterThread" or t=="updater" then
-		table.merge(data,{
-			pos=self.pos,
-			skip=self.skip,
-		})
-	elseif t=="alarmThread" or t=="alarm" then
-		table.merge(data,{
-			set=self.set,
-		})
-	elseif t=="timemaster" then
-		-- Weird stuff is going on here!
-		-- Need to do some testing
-		table.merge(data,{
-			timer=self.timer,
-			_timer=self._timer,
-			set=self.set,
-			link=self.link,
-		})
-	elseif t=="process" or t=="mainprocess" then
-		local loop=self.Mainloop
-		local dat={}
-		for i=1,#loop do
-			local ins=loop[i]:ToString()
-			if ins~=nil then
-				table.insert(dat,ins)
-			end
-		end
-		local str=bin.new()
-		str:addBlock({Type=t})
-		str:addBlock(#dat,4,"n")
-		for i=1,#dat do
-			str:addBlock(#dat[i],4,"n")
-			str:addBlock(dat[i])
-		end
-		return str.data
-	end
-	for i,v in pairs(self.important) do
-		data[v]=self[v]
-	end
-	local str=bin.new()
-	str:addBlock(data)
-	return str.data
+	--
 end
 function multi:newFromString(str)
-	if type(str)=="table" then
-		if str.Type=="bin" then
-			str=str.data
-		end
-	end
-	local handle=bin.new(str)
-	local data=handle:getBlock("t")
-	local t=data.Type
-	if t=="mainprocess" then
-		local objs=handle:getBlock("n",4)
-		for i=1,objs do
-			self:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
-		end
-		return self
-	elseif  t=="process" then
-		local temp=multi:newProcessor()
-		local objs=handle:getBlock("n",4)
-		for i=1,objs do
-			temp:newFromString(handle:getBlock("s",(handle:getBlock("n",4))))
-		end
-		return temp
-	elseif t=="step" then -- GOOD
-		local item=self:newStep()
-		table.merge(item,data)
-		return item
-	elseif t=="tstep" then -- GOOD
-		local item=self:newTStep()
-		table.merge(item,data)
-		return item
-	elseif t=="tloop" then -- GOOD
-		local item=self:newTLoop()
-		table.merge(item,data)
-		return item
-	elseif t=="event" then -- GOOD
-		local item=self:newEvent(data.task)
-		table.merge(item,data)
-		return item
-	elseif t=="alarm" then -- GOOD
-		local item=self:newAlarm()
-		table.merge(item,data)
-		return item
-	elseif t=="updater" then -- GOOD
-		local item=self:newUpdater()
-		table.merge(item,data)
-		return item
-	elseif t=="loop" then -- GOOD
-		local item=self:newLoop()
-		table.merge(item,data)
-		return item
-	end
+	--
 end
 function multi:Important(varname)
-	table.insert(important,varname)
+	--
 end
 function multi:ToFile(path)
-	bin.new(self:ToString()):tofile(path)
+	--
 end
 function multi:fromFile(path)
-	self:newFromString(bin.load(path))
+	--
 end
 function multi:SetStateFlag(opt)
 	--
