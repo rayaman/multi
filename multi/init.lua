@@ -1819,7 +1819,7 @@ function multi:newService(func) -- Priority managed threads
 	local time
 	local p = multi.Priority_Normal
 	local ap
-	local task
+	local task = thread.sleep
 	local scheme = 1
 	function c.Start()
 		time = multi:newTimer()
