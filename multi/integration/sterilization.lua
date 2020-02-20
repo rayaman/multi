@@ -21,37 +21,45 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+local bin = pcall(require,"bin")
+if not bin then return error("The bin library is required to use sterilization!") end
 local multi,thread = require("multi"):init()
+local sterilizer = {}
 ---------------------
 -- State Saving Stuff
 ---------------------
-function multi:IngoreObject()
+multi.OnObjectCreated(function(obj)
+	print(obj.Type)
+end)
+
+function IngoreObject()
 	-- Tells system to not sterilize this object
 end
-function multi:ToString()
+function sterilizer:ToString()
 	-- Turns the object into a string
 end
-function multi:newFromString(str)
+function sterilizer:newFromString(str)
 	-- Creates an object from string
 end
-function multi:ToFile(path)
+function sterilizer:ToFile(path)
 	-- Turns multi object into a string
 end
-function multi:fromFile(path)
+function sterilizer:fromFile(path)
 	-- Loads multi object form file
 end
-function multi:SetStateFlag(opt)
+function sterilizer:SetStateFlag(opt)
 	-- manage the states
 end
-function multi:quickStateSave(b)
+function sterilizer:quickStateSave(b)
 	-- enables quick state saving
 end
-function multi:saveState(path,opt)
+function sterilizer:saveState(path,opt)
 	-- Saves entire state to file
 end
-function multi:loadState(path)
+function sterilizer:loadState(path)
 	-- Loads entire state from file
 end
-function multi:setDefualtStateFlag(opt)
+function sterilizer:setDefualtStateFlag(opt)
 	-- sets the default flags for managing states
 end
+return sterilizer

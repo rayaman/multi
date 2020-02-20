@@ -21,7 +21,6 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-local bin = pcall(require,"bin")
 local multi = {}
 local clock = os.clock
 local thread = {}
@@ -42,9 +41,7 @@ multi.fps = 60
 multi.Type = "mainprocess"
 multi.Rest = 0
 multi._type = type
-multi.Jobs = {}
 multi.queue = {}
-multi.jobUS = 2
 multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
@@ -198,6 +195,8 @@ function multi:setPriority(s)
 	elseif type(s)=='string' then
 		if s:lower()=='core' or s:lower()=='c' then
 			self.Priority=self.Priority_Core
+		elseif s:lower()=="very high" or s:lower()=="vh" then
+			self.Priority=self.Priority_Very_High
 		elseif s:lower()=='high' or s:lower()=='h' then
 			self.Priority=self.Priority_High
 		elseif s:lower()=='above' or s:lower()=='a' then
@@ -208,6 +207,8 @@ function multi:setPriority(s)
 			self.Priority=self.Priority_Below_Normal
 		elseif s:lower()=='low' or s:lower()=='l' then
 			self.Priority=self.Priority_Low
+		elseif s:lower()=="very low" or s:lower()=="vl" then
+			self.Priority=self.Priority_Very_Low
 		elseif s:lower()=='idle' or s:lower()=='i' then
 			self.Priority=self.Priority_Idle
 		end
@@ -458,26 +459,6 @@ function multi:reallocate(o,n)
 	self.Active=true
 end
 multi.Reallocate=multi.Reallocate
-function multi:setJobSpeed(n)
-	self.jobUS=n
-	return self
-end
-function multi:hasJobs()
-	return #self.Jobs>0,#self.Jobs
-end
-function multi:getJobs()
-	return #self.Jobs
-end
-function multi:removeJob(name)
-	local count = 0
-	for i=#self.Jobs,1,-1 do
-		if self.Jobs[i][2]==name then
-			table.remove(self.Jobs,i)
-			count = count + 1
-		end
-	end
-	return count
-end
 function multi:FreeMainEvent()
 	self.func={}
 end
@@ -656,116 +637,6 @@ function multi:newBase(ins)
 	_tid = _tid + 1
 	return c
 end
-function multi:newProcessor(file)
-	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
-	local c = {}
-	setmetatable(c, self)
-	c.Parent=self
-	c.Active=true
-	c.func={}
-	c.Type='process'
-	c.Mainloop={}
-	c.Garbage={}
-	c.Children={}
-	c.Active=false
-	c.Rest=0
-	c.Jobs={}
-	c.queue={}
-	c.jobUS=2
-	c.l=self:newLoop(function(self,dt)
-		if self.link.Active then
-			c:uManager()
-		end
-	end)
-	c.l.link = c
-	c.l.Type = "processor"
-	function c:getController()
-		return c.l
-	end
-	function c:Start()
-		self.Active = true
-		return self
-	end
-	function c:Resume()
-		self.Active = false
-		return self
-	end
-	function c:setName(name)
-		c.l.Name = name
-		return self
-	end
-	function c:Pause()
-		if self.l then
-			self.l:Pause()
-		end
-		return self
-	end
-	function c:Remove()
-		if self.Type == "process" then
-			self:__Destroy()
-			self.l:Destroy()
-		else
-			self:__Destroy()
-		end
-	end
-	function c:Destroy()
-		if self == c then
-			self.l:Destroy()
-		else
-			for i = #c.Mainloop,1,-1 do
-				if c.Mainloop[i] == self then
-					table.remove(c.Mainloop,i)
-					break
-				end
-			end
-		end
-	end
-	if file then
-		self.Cself=c
-		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
-	end
-	self:create(c)
-	return c
-end
-function multi:newTimer()
-	local c={}
-	c.Type='timer'
-	local time=0
-	local count=0
-	local paused=false
-	function c:Start()
-		time=os.clock()
-		return self
-	end
-	function c:Get()
-		if self:isPaused() then return time end
-		return (clock()-time)+count
-	end
-	function c:isPaused()
-		return paused
-	end
-	c.Reset=c.Start
-	function c:Pause()
-		time=self:Get()
-		paused=true
-		return self
-	end
-	function c:Resume()
-		paused=false
-		time=os.clock()-time
-		return self
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		count=count+self:Get()
-		m:addBlock(self.Type)
-		m:addBlock(count)
-		m:tofile(path)
-		return self
-	end
-	self:create(c)
-	return c
-end
 function multi:newConnector()
 	local c = {Type = "connector"}
 	return c
@@ -773,6 +644,7 @@ end
 local CRef = {
 	Fire = function() end
 }
+local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
 	c.callback = func
@@ -939,39 +811,121 @@ function multi:newConnection(protect,func,kill)
 		m:tofile(path)
 		return self
 	end
+	if not(ignoreconn) then
+		multi:create(c)
+	end
 	return c
 end
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
-function multi:newJob(func,name)
-	if not(self.Type=='mainprocess' or self.Type=='process') then error('Can only create an object on multi or an interface obj') return false end
+ignoreconn = false
+function multi:newProcessor(file)
+	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
 	local c = {}
-    if self.Type=='process' then
-		setmetatable(c, self.Parent)
-	else
-		setmetatable(c, self)
-	end
+	setmetatable(c, self)
+	c.Parent=self
 	c.Active=true
 	c.func={}
-	c.Parent=self
-	c.Type='job'
-	c.trigfunc=func or function() end
-	function c:Act()
-		self:trigfunc(self)
+	c.Type='process'
+	c.Mainloop={}
+	c.Garbage={}
+	c.Children={}
+	c.Active=false
+	c.Rest=0
+	c.queue={}
+	c.l=self:newLoop(function(self,dt)
+		if self.link.Active then
+			c:uManager()
+		end
+	end)
+	c.l.link = c
+	c.l.Type = "processor"
+	function c:getController()
+		return c.l
 	end
-	table.insert(self.Jobs,{c,name})
-	if self.JobRunner==nil then
-		self.JobRunner=self:newAlarm(self.jobUS):setName("multi.jobHandler")
-		self.JobRunner:OnRing(function(self)
-			if #self.Parent.Jobs>0 then
-				if self.Parent.Jobs[1] then
-					self.Parent.Jobs[1][1]:Act()
-					table.remove(self.Parent.Jobs,1)
+	function c:Start()
+		self.Active = true
+		return self
+	end
+	function c:Resume()
+		self.Active = false
+		return self
+	end
+	function c:setName(name)
+		c.l.Name = name
+		return self
+	end
+	function c:Pause()
+		if self.l then
+			self.l:Pause()
+		end
+		return self
+	end
+	function c:Remove()
+		if self.Type == "process" then
+			self:__Destroy()
+			self.l:Destroy()
+		else
+			self:__Destroy()
+		end
+	end
+	function c:Destroy()
+		if self == c then
+			self.l:Destroy()
+		else
+			for i = #c.Mainloop,1,-1 do
+				if c.Mainloop[i] == self then
+					table.remove(c.Mainloop,i)
+					break
 				end
 			end
-			self:Reset(self.Parent.jobUS)
-		end)
+		end
 	end
+	if file then
+		self.Cself=c
+		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
+	end
+	self:create(c)
+	return c
+end
+function multi:newTimer()
+	local c={}
+	c.Type='timer'
+	local time=0
+	local count=0
+	local paused=false
+	function c:Start()
+		time=os.clock()
+		return self
+	end
+	function c:Get()
+		if self:isPaused() then return time end
+		return (clock()-time)+count
+	end
+	function c:isPaused()
+		return paused
+	end
+	c.Reset=c.Start
+	function c:Pause()
+		time=self:Get()
+		paused=true
+		return self
+	end
+	function c:Resume()
+		paused=false
+		time=os.clock()-time
+		return self
+	end
+	function c:tofile(path)
+		local m=bin.new()
+		count=count+self:Get()
+		m:addBlock(self.Type)
+		m:addBlock(count)
+		m:tofile(path)
+		return self
+	end
+	self:create(c)
+	return c
 end
 function multi.nextStep(func)
 	ncount = ncount+1
@@ -1093,6 +1047,7 @@ end
 function multi:newFunction(func)
 	local c={}
 	c.func=func
+	c.Type = "mfunc"
 	mt={
 		__index=multi,
 		__call=function(self,...)
@@ -1224,17 +1179,6 @@ function multi:newTLoop(func,set)
 end
 function multi:setTimeout(func,t)
 	multi:newThread(function() thread.sleep(t) func() end)
-end
-function multi:newTrigger(func)
-	local c={}
-	c.Type='trigger'
-	c.trigfunc=func or function() end
-	function c:Fire(...)
-		self:trigfunc(...)
-		return self
-	end
-	self:create(c)
-	return c
 end
 function multi:newTStep(start,reset,count,set)
 	local c=self:newBase()
@@ -1643,6 +1587,7 @@ function multi:newThread(name,func,...)
 	end
 	c.creationTime = os.clock()
 	threadid = threadid + 1
+	multi.create(multi,c)
 	return c
 end
 function multi.initThreads(justThreads)
@@ -1819,7 +1764,7 @@ function multi:newService(func) -- Priority managed threads
 	local time
 	local p = multi.Priority_Normal
 	local ap
-	local task
+	local task = thread.sleep
 	local scheme = 1
 	function c.Start()
 		time = multi:newTimer()
@@ -1878,11 +1823,48 @@ function multi:newService(func) -- Priority managed threads
 	end
 	function c:SetPriority(pri)
 		if type(self)=="number" then pri = self end
-			p = pri
-			c.SetScheme(scheme)
-		end
+		p = pri
+		c.SetScheme(scheme)
+	end
+	multi.create(multi,c)
 	return c
 end
+multi.Jobs = multi:newService(function(self,jobs)
+	local job = table.remove(jobs,1)
+	if job and job.removed==nil then
+		job.func()
+	end
+end)
+multi.Jobs.OnStarted(function(self,jobs)
+	function self:newJob(func,name)
+		table.insert(jobs,{
+			func = func,
+			name = name,
+			removeJob = function(self) self.removed = true end
+		})
+	end
+	function self:getJobs(name)
+		local tab = {}
+		if not name then return jobs end
+		for i=1,#jobs do
+			if name == jobs[i].name then
+				table.insert(tab,jobs[i])
+			end
+		end
+		return tab
+	end
+	function self:removeJobs(name)
+		for i=1,#jobs do
+			if name ~= nil and name == jobs[i].name then
+				jobs[i]:removeJob()
+			elseif name == nil then
+				jobs[i]:removeJob()
+			end
+		end
+	end
+end)
+multi.Jobs.SetPriority(multi.Priority_Normal)
+multi.Jobs.Start()
 function multi:newThreadedProcess(name)
 	local c = {}
 	local holding = false
@@ -1911,9 +1893,7 @@ function multi:newThreadedProcess(name)
 	c.Rest=0
 	c.updaterate=.01
 	c.restRate=.1
-	c.Jobs={}
 	c.queue={}
-	c.jobUS=2
 	c.rest=false
 	function c:getController()
 		return nil
@@ -1962,6 +1942,7 @@ function multi:newThreadedProcess(name)
 			c:uManager()
 		end
 	end)
+	multi:create(c)
 	return c
 end
 function multi:newHyperThreadedProcess(name)
@@ -2008,9 +1989,7 @@ function multi:newHyperThreadedProcess(name)
 	c.Rest=0
 	c.updaterate=.01
 	c.restRate=.1
-	c.Jobs={}
 	c.queue={}
-	c.jobUS=2
 	c.rest=false
 	function c:getController()
 		return nil
@@ -2052,6 +2031,7 @@ function multi:newHyperThreadedProcess(name)
 		return self
 	end
 	c.Hold=c.Sleep
+	multi:create(c)
 	return c
 end
 -- Multi runners
