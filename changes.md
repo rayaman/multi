@@ -8,19 +8,43 @@ Table of contents
 Full Update Showcase
 ---
 ```lua
-package.path="?.lua;?/init.lua;?.lua;"..package.path
-local multi, thread = require("multi"):init()
-GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+local multi,thread = require("multi"):init()
+
+function pushJobs()
+	multi.Jobs:newJob(function()
+		print("job called")
+	end) -- No name job
+	multi.Jobs:newJob(function()
+        print("job called2")
+        os.exit() -- This is the last thing callec. I link to end the loop when doing examples
+	end,"test")
+	multi.Jobs:newJob(function()
+		print("job called3")
+	end,"test2")
+end
+pushJobs()
+pushJobs()
+local jobs = multi.Jobs:getJobs() -- gets all jobs
+local jobsn = multi.Jobs:getJobs("test") -- gets all jobs names 'test'
+jobsn[1]:removeJob() -- Select a job and remove it
+multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
+multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
+multi.Jobs.SetPriority(multi.Priority_Core)
+
+multi:lightloop()
 ```
 Going Forward:
 ---
 - 
 Added:
 ---
-- 
+- Type: destroyed
+	- A special state of an object that causes that object to become immutable and callable. The object Type is always "destroyed" it cannot be changed. The object can be indexed to infinity without issue. Every part of the object can be called as if it were a function including the indexed parts. This is done incase you destroy an object and still use it somewhere. However, if you are expecting something from the object then you may still encounter an error, though the returned type is an instance of the destroyed object which can be indexed and called like normal. This object can be used in any way and no errors will come about with it.
 Changed:
 ---
-- 
+- Revamped the job system
+	- multi.Jobs:newJob()
 Removed:
 ---
 - multi:newTrigger() — Connections do everything this thing could do and more. I plan on removing bloat features from the library anyway

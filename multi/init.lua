@@ -46,6 +46,18 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
+multi.DestroyedObj = {
+	Type = "destroyed",
+}
+local function uni()
+	return multi.DestroyedObj
+end
+
+setmetatable(multi.DestroyedObj, {
+	__index = function(t,k)
+		return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
+	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
+})
 math.randomseed(os.time())
 local mainloopActive = false
 local isRunning = false
@@ -804,13 +816,6 @@ function multi:newConnection(protect,func,kill)
 	end
 	c.Connect=c.connect
 	c.GetConnection=c.getConnection
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:tofile(path)
-		return self
-	end
 	if not(ignoreconn) then
 		multi:create(c)
 	end
@@ -914,14 +919,6 @@ function multi:newTimer()
 	function c:Resume()
 		paused=false
 		time=os.clock()-time
-		return self
-	end
-	function c:tofile(path)
-		local m=bin.new()
-		count=count+self:Get()
-		m:addBlock(self.Type)
-		m:addBlock(count)
-		m:tofile(path)
 		return self
 	end
 	self:create(c)
@@ -1587,7 +1584,7 @@ function multi:newThread(name,func,...)
 	end
 	c.creationTime = os.clock()
 	threadid = threadid + 1
-	multi.create(multi,c)
+	self:create(c)
 	return c
 end
 function multi.initThreads(justThreads)
