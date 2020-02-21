@@ -1,10 +1,19 @@
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 --local sterilizer = require("multi.integration.sterilization")
 local multi,thread = require("multi"):init()
-bin = multi.DestroyedObj
-local file = bin.new()
-local data = file:getData()
-print(data)
+local test = multi:newThread(function()
+    while true do
+        thread.sleep(1)
+        print("Hello!")
+    end
+end)
+local alarm = multi:newAlarm(4):OnRing(function(a)
+    print(a.Type)
+    a:Destroy()
+    print(a.Type)
+    test:Destroy()
+end)
+multi:lightloop()
 -- function pushJobs()
 -- 	multi.Jobs:newJob(function()
 -- 		print("job called")

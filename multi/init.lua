@@ -22,13 +22,14 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi = {}
+local mainloopActive = false
+local isRunning = false
 local clock = os.clock
 local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 multi.Version = "14.2.0"
-multi._VERSION = "14.2.0"
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
@@ -37,7 +38,6 @@ multi.Garbage = {}
 multi.ender = {}
 multi.Children = {}
 multi.Active = true
-multi.fps = 60
 multi.Type = "mainprocess"
 multi.Rest = 0
 multi._type = type
@@ -46,28 +46,6 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
-multi.DestroyedObj = {
-	Type = "destroyed",
-}
-local function uni()
-	return multi.DestroyedObj
-end
-
-setmetatable(multi.DestroyedObj, {
-	__index = function(t,k)
-		return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
-	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
-})
-math.randomseed(os.time())
-local mainloopActive = false
-local isRunning = false
-local next
-local ncount = 0
-multi.defaultSettings = {
-	priority = 0,
-	protect = false,
-}
-
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
 multi.Priority_High = 16
@@ -94,266 +72,18 @@ multi.PriorityTick=1
 multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
-
+	
 function multi.init()
 	multi.NIL = {Type="NIL"}
 	return _G["$multi"].multi,_G["$multi"].thread
 end
-function multi.queuefinal(self)
-	self:Destroy()
-	if self.Parent.Mainloop[#self.Parent.Mainloop] then
-		if self.Parent.Mainloop[#self.Parent.Mainloop].Type=="alarm" then
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Reset()
-			self.Parent.Mainloop[#self.Parent.Mainloop].Active=true
-		else
-			self.Parent.Mainloop[#self.Parent.Mainloop]:Resume()
-		end
-	else
-		for i=1,#self.Parent.funcE do
-			self.Parent.funcE[i](self)
-		end
-		self.Parent:Remove()
-	end
-end
-if table.unpack and not unpack then
-	unpack=table.unpack
-end
-function table.merge(t1, t2)
-    for k,v in pairs(t2) do
-    	if type(v) == 'table' then
-    		if type(t1[k] or false) == 'table' then
-    			table.merge(t1[k] or {}, t2[k] or {})
-    		else
-    			t1[k] = v
-    		end
-    	else
-    		t1[k] = v
-    	end
-    end
-    return t1
-end
-function multi:setThrestimed(n)
-	self.deltaTarget=n or .1
-end
-function multi:enableLoadDetection()
-	if multi.maxSpd then return end
-	-- here we are going to run a quick benchMark solo
-	local temp = multi:newProcessor()
-	temp:Start()
-	local t = os.clock()
-	local stop = false
-	temp:benchMark(.01):OnBench(function(time,steps)
-		stop = steps
-	end)
-	while not stop do
-		temp:uManager()
-	end
-	temp:Destroy()
-	multi.maxSpd = stop
-end
-local MaxLoad = nil
-function multi:setLoad(n)
-	MaxLoad = n
-end
-local busy = false
-local lastVal = 0
-local bb = 0
-function multi:getLoad()
-	if not multi.maxSpd then multi:enableLoadDetection() end
-	if busy then return lastVal end
-	local val = nil
-	if thread.isThread() then
-		local bench
-		multi:benchMark(.01):OnBench(function(time,steps)
-			bench = steps
-			bb = steps
-		end)
-		thread.hold(function()
-			return bench
-		end)
-		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
-	else
-		busy = true
-		local bench
-		multi:benchMark(.01):OnBench(function(time,steps)
-			bench = steps
-			bb = steps
-		end)
-		while not bench do
-			multi:uManager()
-		end
-		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
-		busy = false
-	end
-	if val<0 then val = 0 end
-	if val > 100 then val = 100 end
-	lastVal = val
-	return val,bb*100
-end
-function multi:setDomainName(name)
-	self[name]={}
-end
-function multi:linkDomain(name)
-	return self[name]
-end
-function multi:_Pause()
-	self.Active=false
-end
-function multi:setPriority(s)
-	if type(s)==number then
-		self.Priority=s
-	elseif type(s)=='string' then
-		if s:lower()=='core' or s:lower()=='c' then
-			self.Priority=self.Priority_Core
-		elseif s:lower()=="very high" or s:lower()=="vh" then
-			self.Priority=self.Priority_Very_High
-		elseif s:lower()=='high' or s:lower()=='h' then
-			self.Priority=self.Priority_High
-		elseif s:lower()=='above' or s:lower()=='a' then
-			self.Priority=self.Priority_Above_Normal
-		elseif s:lower()=='normal' or s:lower()=='n' then
-			self.Priority=self.Priority_Normal
-		elseif s:lower()=='below' or s:lower()=='b' then
-			self.Priority=self.Priority_Below_Normal
-		elseif s:lower()=='low' or s:lower()=='l' then
-			self.Priority=self.Priority_Low
-		elseif s:lower()=="very low" or s:lower()=="vl" then
-			self.Priority=self.Priority_Very_Low
-		elseif s:lower()=='idle' or s:lower()=='i' then
-			self.Priority=self.Priority_Idle
-		end
-		self.solid = true
-	end
-	if not self.PrioritySet then
-		self.defPriority = self.Priority
-		self.PrioritySet = true
-	end
-end
-function multi:ResetPriority()
-	self.Priority = self.defPriority
-end
+
 -- System
-function os.getOS()
-	if package.config:sub(1,1)=='\\' then
-		return 'windows'
-	else
-		return 'unix'
-	end
-end
-if os.getOS()=='windows' then
-	function os.sleep(n)
-		if n > 0 then os.execute('ping -n ' .. tonumber(n+1) .. ' localhost > NUL') end
-	end
-else
-	function os.sleep(n)
-		os.execute('sleep ' .. tonumber(n))
-	end
-end
-function multi.randomString(n)
-	local str = ''
-	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-	for i=1,n do
-		str = str..''..strings[math.random(1,#strings)]
-	end
-	return str
-end
-function multi:getParentProcess()
-	return self.Mainloop[self.CID]
-end
-multi.GetParentProcess=multi.getParentProcess
 function multi.Stop()
 	mainloopActive=false
 end
-function multi:isHeld()
-	return self.held
-end
-multi.important={}
-multi.IsHeld=multi.isHeld
-function multi.executeFunction(name,...)
-	if type(_G[name])=='function' then
-		_G[name](...)
-	else
-		multi.print('Error: Not a function')
-	end
-end
-function multi:getChildren()
-	return self.Mainloop
-end
-function multi:getVersion()
-	return multi.Version
-end
-function multi:getPlatform()
-	if love then
-		if love.thread then
-			return "love2d"
-		end
-	else
-		return "lanes"
-	end
-end
-function multi:canSystemThread()
-	return false
-end
+
 --Processor
-function multi:getError()
-	if self.error then
-		return self.error
-	end
-end
-function multi:benchMark(sec,p,pt)
-	local c = 0
-	local temp=self:newLoop(function(self,t)
-		if t>sec then
-			if pt then
-				multi.print(pt.." "..c.." Steps in "..sec.." second(s)!")
-			end
-			self.tt(sec,c)
-			self:Destroy()
-		else
-			c=c+1
-		end
-	end)
-	temp:setPriority(p or 1)
-	function temp:OnBench(func)
-		self.tt=func
-	end
-	self.tt=function() end
-	return temp
-end
-function multi.Round(num, numDecimalPlaces)
-  local mult = 10^(numDecimalPlaces or 0)
-  return math.floor(num * mult + 0.5) / mult
-end
-function multi.AlignTable(tab)
-	local longest = {}
-	local columns = #tab[1]
-	local rows = #tab
-	for i=1, columns do
-		longest[i] = -math.huge
-	end
-	for i = 1,rows do
-		for j = 1,columns do
-			tab[i][j] = tostring(tab[i][j])
-			if #tab[i][j]>longest[j] then
-				longest[j] = #tab[i][j]
-			end
-		end
-	end
-	for i = 1,rows do
-		for j = 1,columns do
-			if tab[i][j]~=nil and #tab[i][j]<longest[j] then
-				tab[i][j]=tab[i][j]..string.rep(" ",longest[j]-#tab[i][j])
-			end
-		end
-	end
-	local str = {}
-	for i = 1,rows do
-		str[#str+1] = table.concat(tab[i]," ")
-	end
-	return table.concat(str,"\n")
-end
 local priorityTable = {[0]="Round-Robin",[1]="Just-Right",[2]="Top-heavy",[3]="Timed-Based-Balancer"}
 local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
 function multi:getTasksDetails(t)
@@ -430,63 +160,8 @@ function multi:getTasksDetails(t)
 		return str
 	end
 end
-function multi:endTask(TID)
-	self.Mainloop[TID]:Destroy()
-	return self
-end
-function multi.startFPSMonitior()
-	if not multi.runFPS then
-		multi.doFPS(s)
-		multi.runFPS=true
-	end
-end
-function multi.doFPS(s)
-	multi:benchMark(1):OnBench(doFPS)
-	if s then
-		multi.fps=s
-	end
-end
+
 --Helpers
-function multi.timer(func,...)
-	local timer=multi:newTimer()
-	timer:Start()
-	args={func(...)}
-	local t = timer:Get()
-	timer = nil
-	return t,unpack(args)
-end
-function multi:IsAnActor()
-	return self.Act~=nil
-end
-function multi:OnMainConnect(func)
-	table.insert(self.func,func)
-	return self
-end
-function multi:reallocate(o,n)
-	n=n or #o.Mainloop+1
-	local int=self.Parent
-	self:Destroy()
-	self.Parent=o
-	table.insert(o.Mainloop,n,self)
-	self.Active=true
-end
-multi.Reallocate=multi.Reallocate
-function multi:FreeMainEvent()
-	self.func={}
-end
-function multi:connectFinal(func)
-	if self.Type=='event' then
-		self:OnEvent(func)
-	elseif self.Type=='alarm' then
-		self:OnRing(func)
-	elseif self.Type=='step' or self.Type=='tstep' then
-		self:OnEnd(func)
-	else
-		multi.print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
-		self:OnBreak(func)
-	end
-end
-multi.ConnectFinal=multi.connectFinal
 function multi:Break()
 	self:Pause()
 	self.Active=nil
@@ -496,21 +171,23 @@ function multi:Break()
 		end
 	end
 end
+
 function multi:OnBreak(func)
 	table.insert(self.ender,func)
 end
+
 function multi:isPaused()
 	return not(self.Active)
 end
-multi.IsPaused=multi.isPaused
+
 function multi:isActive()
 	return self.Active
 end
-multi.IsActive=multi.isActive
+
 function multi:getType()
 	return self.Type
 end
-multi.GetType=multi.getType
+
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
@@ -533,7 +210,7 @@ function multi:SetTime(n)
 	end
 	return self
 end
-multi.ResetTime=multi.SetTime
+
 function multi:ResolveTimer(...)
 	self._timer:Pause()
 	for i=1,#self.funcTMR do
@@ -542,14 +219,17 @@ function multi:ResolveTimer(...)
 	self:Pause()
 	return self
 end
+
 function multi:OnTimedOut(func)
 	self.funcTM[#self.funcTM+1]=func
 	return self
 end
+
 function multi:OnTimerResolved(func)
 	self.funcTMR[#self.funcTMR+1]=func
 	return self
 end
+
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
@@ -568,6 +248,7 @@ function multi:Pause()
 	end
 	return self
 end
+
 function multi:Resume()
 	if self.Type=='process' or self.Type=='mainprocess' then
 		self.Active=true
@@ -584,6 +265,7 @@ function multi:Resume()
 	end
 	return self
 end
+
 function multi:Destroy()
 	if self.Type=='process' or self.Type=='mainprocess' then
 		local c=self:getChildren()
@@ -600,26 +282,29 @@ function multi:Destroy()
 				break
 			end
 		end
-		self.Active=false
+		multi.setType(self,multi.DestroyedObj)
 	end
 	return self
 end
+
 function multi:Reset(n)
 	self:Resume()
 	return self
 end
+
 function multi:isDone()
 	return self.Active~=true
 end
-multi.IsDone=multi.isDone
+
 function multi:create(ref)
 	multi.OnObjectCreated:Fire(ref,self)
 end
+
 function multi:setName(name)
 	self.Name = name
 	return self
 end
-multi.SetName = multi.setName
+
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
@@ -636,10 +321,8 @@ function multi:newBase(ins)
 	c.funcTMR={}
 	c.ender={}
 	c.TID = _tid
-	c.important={}
 	c.Act=function() end
 	c.Parent=self
-	c.held=false
 	c.creationTime = os.clock()
 	if ins then
 		table.insert(self.Mainloop,ins,c)
@@ -823,6 +506,7 @@ function multi:newConnection(protect,func,kill)
 end
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
+multi.OnLoad = multi:newConnection(nil,nil,true)
 ignoreconn = false
 function multi:newProcessor(file)
 	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
@@ -924,14 +608,7 @@ function multi:newTimer()
 	self:create(c)
 	return c
 end
-function multi.nextStep(func)
-	ncount = ncount+1
-	if not next then
-		next = {func}
-	else
-		next[#next+1] = func
-	end
-end
+
 --Core Actors
 function multi:newEvent(task)
 	local c=self:newBase()
@@ -1277,30 +954,9 @@ function multi:scheduleJob(time,func)
 	end
 	table.insert(scheduledjobs,{time, func,false})
 end
--- Special Events
-local _os = os.exit
-function os.exit(n)
-	multi.OnExit:Fire(n or 0)
-	_os(n)
-end
-multi.OnPreLoad = multi:newConnection()
-multi.OnLoad = multi:newConnection(nil,nil,true)
-multi.OnExit = multi:newConnection(nil,nil,true)
-multi.m = {onexit = function() multi.OnExit:Fire() end}
-if _VERSION >= "Lua 5.2" then
-	setmetatable(multi.m, {__gc = multi.m.onexit})
-else
-	multi.m.sentinel = newproxy(true)
-	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
-end
+
 -- Threading stuff
 multi.GlobalVariables={}
-if os.getOS()=="windows" then
-	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-else
-	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
-end
-thread.requests = {}
 local dFunc = function() return true end
 local dRef = {nil,nil,nil}
 function thread.request(t,cmd,...)
@@ -1619,6 +1275,7 @@ function multi.initThreads(justThreads)
 		if type(ret)=="table" then
 			if ret[1]=="_kill_" then
 				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6)
+				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 				ret = nil
 			elseif ret[1]=="_sleep_" then
@@ -1670,6 +1327,7 @@ function multi.initThreads(justThreads)
 		for i=#threads,1,-1 do
 			if threads[i].isError then
 				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 			end
 			if threads[i] and not threads[i].__started then
@@ -1685,6 +1343,7 @@ function multi.initThreads(justThreads)
 			end
 			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
 				threads[i].OnDeath:Fire(threads[i],"ended",unpack(threads[i].TempRets or {}))
+				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 			elseif threads[i] and threads[i].task == "skip" then
 				threads[i].pos = threads[i].pos + 1
@@ -1749,7 +1408,6 @@ end
 function multi:threadloop()
 	multi.initThreads(true)
 end
-multi.OnError=multi:newConnection()
 function multi:newService(func) -- Priority managed threads
 	local c = {}
 	c.Type = "service"
@@ -1778,11 +1436,16 @@ function multi:newService(func) -- Priority managed threads
 		task(ap)
 		return c
 	end
-	multi:newThread(function()
+	local th = multi:newThread(function()
 		while true do
 			process()
 		end
-	end).OnError = c.OnError -- use the threads onerror as our own
+	end)
+	th.OnError = c.OnError -- use the threads onerror as our own
+	function c.Destroy()
+		th:kill()
+		multi.setType(c,multi.DestroyedObj)
+	end
 	function c:SetScheme(n)
 		if type(self)=="number" then n = self end
 		scheme = n
@@ -1862,187 +1525,11 @@ multi.Jobs.OnStarted(function(self,jobs)
 end)
 multi.Jobs.SetPriority(multi.Priority_Normal)
 multi.Jobs.Start()
-function multi:newThreadedProcess(name)
-	local c = {}
-	local holding = false
-	local kill = false
-	setmetatable(c, multi)
-	function c:newBase(ins)
-		local ct = {}
-		ct.Active=true
-		ct.func={}
-		ct.ender={}
-		ct.Act=function() end
-		ct.Parent=self
-		ct.held=false
-		ct.ref=self.ref
-		table.insert(self.Mainloop,ct)
-		return ct
-	end
-	c.Parent=self
-	c.Active=true
-	c.func={}
-	c.Type='threadedprocess'
-	c.Mainloop={}
-	c.Garbage={}
-	c.Children={}
-	c.Active=true
-	c.Rest=0
-	c.updaterate=.01
-	c.restRate=.1
-	c.queue={}
-	c.rest=false
-	function c:getController()
-		return nil
-	end
-	function c:Start()
-		self.rest=false
-		return self
-	end
-	function c:Resume()
-		self.rest=false
-		return self
-	end
-	function c:Pause()
-		self.rest=true
-		return self
-	end
-	function c:Remove()
-		self.ref:kill()
-		return self
-	end
-	function c:Kill()
-		kill = true
-		return self
-	end
-	function c:Sleep(n)
-		holding = true
-		if type(n)=="number" then
-			multi:newAlarm(n):OnRing(function(a)
-				holding = false
-				a:Destroy()
-			end):setName("multi.TPSleep")
-		elseif type(n)=="function" then
-			multi:newEvent(n):OnEvent(function(e)
-				holding = false
-				e:Destroy()
-			end):setName("multi.TPHold")
-		end
-		return self
-	end
-	c.Hold=c.Sleep
-	multi:newThread(name,function(ref)
-		while true do
-			thread.hold(function()
-				return not(holding)
-			end)
-			c:uManager()
-		end
-	end)
-	multi:create(c)
-	return c
-end
-function multi:newHyperThreadedProcess(name)
-	if not name then error("All threads must have a name!") end
-	local c = {}
-	setmetatable(c, multi)
-	local ind = 0
-	local holding = true
-	local kill = false
-	function c:newBase(ins)
-		local ct = {}
-		ct.Active=true
-		ct.func={}
-		ct.ender={}
-		ct.Act=function() end
-		ct.Parent=self
-		ct.held=false
-		ct.ref=self.ref
-		ind = ind + 1
-		multi:newThread("Proc <"..name.."> #"..ind,function()
-			while true do
-				thread.hold(function()
-					return not(holding)
-				end)
-				if kill then
-					err=coroutine.yield({"_kill_"})
-					if err then
-						error("Failed to kill a thread! Exiting...")
-					end
-				end
-				ct:Act()
-			end
-		end)
-		return ct
-	end
-	c.Parent=self
-	c.Active=true
-	c.func={}
-	c.Type='hyperthreadedprocess'
-	c.Mainloop={}
-	c.Garbage={}
-	c.Children={}
-	c.Active=true
-	c.Rest=0
-	c.updaterate=.01
-	c.restRate=.1
-	c.queue={}
-	c.rest=false
-	function c:getController()
-		return nil
-	end
-	function c:Start()
-		holding = false
-		return self
-	end
-	function c:Resume()
-		holding = false
-		return self
-	end
-	function c:Pause()
-		holding = true
-		return self
-	end
-	function c:Remove()
-		self.ref:kill()
-		return self
-	end
-	function c:Kill()
-		kill = true
-		return self
-	end
-	function c:Sleep(b)
-		holding = true
-		if type(b)=="number" then
-			local t = os.clock()
-			multi:newAlarm(b):OnRing(function(a)
-				holding = false
-				a:Destroy()
-			end):setName("multi.HTPSleep")
-		elseif type(b)=="function" then
-			multi:newEvent(b):OnEvent(function(e)
-				holding = false
-				e:Destroy()
-			end):setName("multi.HTPHold")
-		end
-		return self
-	end
-	c.Hold=c.Sleep
-	multi:create(c)
-	return c
-end
 -- Multi runners
 function multi:lightloop()
 	if not isRunning then
 		local Loop=self.Mainloop
 		while true do
-			if next then
-				local DD = table.remove(next,1)
-				while DD do
-					DD()
-					DD = table.remove(next,1)
-				end
-			end
 			for _D=#Loop,1,-1 do
 				if Loop[_D].Active then
 					self.CID=_D
@@ -2100,13 +1587,6 @@ function multi:mainloop(settings)
 		local cc=0
 		multi.OnLoad:Fire()
 		while mainloopActive do
-			if next then
-				local DD = table.remove(next,1)
-				while DD do
-					DD()
-					DD = table.remove(next,1)
-				end
-			end
 			if priority == 1 then
 				for _D=#Loop,1,-1 do
 					for P=1,7 do
@@ -2300,13 +1780,6 @@ function multi:uManager(settings)
 end
 function multi:uManagerRef(settings)
 	if self.Active then
-		if next then
-			local DD = table.remove(next,1)
-			while DD do
-				DD()
-				DD = table.remove(next,1)
-			end
-		end
 		local Loop=self.Mainloop
 		local PS=self
 		if multi.defaultSettings.priority==1 then
@@ -2464,4 +1937,5 @@ function multi:uManagerRef(settings)
 		end
 	end
 end
+require("multi.utils").init(multi,thread)
 return multi
