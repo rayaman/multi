@@ -46,6 +46,7 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
+
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
 multi.Priority_High = 16
@@ -443,34 +444,34 @@ function multi:newConnection(protect,func,kill)
 		local temp = {
 			Link=self.func,
 			func=func,
+			Type="connector_link",
 			ID=self.ID,
 			Parent=self,
-			Fire=function(self,...)
-				if self.Parent.lock then return end
-				if self.Parent.protect then
-					local t=pcall(self.func,...)
-					if t then
-						return t
-					end
-				else
-					return self.func(...)
-				end
-			end,
-			Remove=function(self)
-				for i=1,#self.Link do
-					if self.Link[i][2]~=nil then
-						if self.Link[i][2]==self.ID then
-							table.remove(self.Link,i)
-							self.remove=function() end
-							self.Link=nil
-							self.ID=nil
-							return true
-						end
-					end
-				end
-			end,
 		}
-		temp.Destroy=temp.Remove
+		function temp:Fire(...)
+			if self.Parent.lock then return end
+			if self.Parent.protect then
+				local t=pcall(self.func,...)
+				if t then
+					return t
+				end
+			else
+				return self.func(...)
+			end
+		end
+		function temp:Destroy()
+			for i=1,#self.Link do
+				if self.Link[i][2]~=nil then
+					if self.Link[i][2]==self.ID then
+						table.remove(self.Link,i)
+						self.remove=function() end
+						self.Link=nil
+						self.ID=nil
+						multi.setType(temp,multi.DestroyedObj)
+					end
+				end
+			end
+		end
 		if name then
 			self.connections[name]=temp
 		end
@@ -494,8 +495,9 @@ function multi:newConnection(protect,func,kill)
 			end
 			return ret
 		else
-			conn_helper(self,tab[1],tab[2],tab[3])
+			return conn_helper(self,tab[1],tab[2],tab[3])
 		end
+
 	end
 	c.Connect=c.connect
 	c.GetConnection=c.getConnection

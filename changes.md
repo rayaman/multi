@@ -11,13 +11,13 @@ Full Update Showcase
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi,thread = require("multi"):init()
 
+-- Testing job stuff
 function pushJobs()
 	multi.Jobs:newJob(function()
 		print("job called")
 	end) -- No name job
 	multi.Jobs:newJob(function()
         print("job called2")
-        os.exit() -- This is the last thing callec. I link to end the loop when doing examples
 	end,"test")
 	multi.Jobs:newJob(function()
 		print("job called3")
@@ -31,21 +31,68 @@ jobsn[1]:removeJob() -- Select a job and remove it
 multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
 multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
 multi.Jobs.SetPriority(multi.Priority_Core)
+-- Testing destroying and fixed connections
+c = multi:newConnection()
+c1 = c(function()
+    print("called 1")
+end)
+c2 = c(function()
+    print("called 2")
+end)
+c3 = c(function()
+    print("called 3")
+end)
+print(c1,c2.Type,c3)
+c:Fire()
+c2:Destroy()
+print(c1,c2.Type,c3)
+c:Fire()
+c1:Destroy()
+print(c1,c2.Type,c3)
+c:Fire()
 
+-- Destroying alarms and threads
+local test = multi:newThread(function()
+    while true do
+        thread.sleep(1)
+        print("Hello!")
+    end
+end)
+test.OnDeath(function()
+    os.exit() -- This is the last thing callec. I link to end the loop when doing examples
+end)
+local alarm = multi:newAlarm(4):OnRing(function(a)
+    print(a.Type)
+    a:Destroy()
+    print(a.Type)
+    test:Destroy()
+end)
 multi:lightloop()
 ```
 Going Forward:
 ---
 - 
+
 Added:
 ---
 - Type: destroyed
 	- A special state of an object that causes that object to become immutable and callable. The object Type is always "destroyed" it cannot be changed. The object can be indexed to infinity without issue. Every part of the object can be called as if it were a function including the indexed parts. This is done incase you destroy an object and still use it somewhere. However, if you are expecting something from the object then you may still encounter an error, though the returned type is an instance of the destroyed object which can be indexed and called like normal. This object can be used in any way and no errors will come about with it.
-	
+
+Fixed:
+---
+- Issue with connections not returning a handler for managing a specified conn object.
+
 Changed:
 ---
+- Destroying an object converts the object into a 'destroyed' type.
+- connections now have type 'connector_link'
+	```lua
+	OnExample = multi:newConnection()
+	conn = OnExample(...)
+	print(conn.Type) -- connector_link
+	```
 - Revamped the job system
-	- multi.Jobs:newJob()
+	- multi.Jobs:newJob() — See Full Update Showcase
 
 Removed:
 ---
