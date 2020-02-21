@@ -47,7 +47,7 @@ Changed:
 	- multi.Jobs:newJob()
 Removed:
 ---
-- multi:newTrigger() — Connections do everything this thing could do and more. I plan on removing bloat features from the library anyway
+- multi:newTrigger() — Connections do everything this thing could do and more.
 # Update 14.1.0 - A whole new world of possibilities
 Full Update Showcase
 ---
