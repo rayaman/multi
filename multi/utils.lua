@@ -307,7 +307,6 @@ local function init(multi,thread)
     else
         thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
     end
-    thread.requests = {}
 
     multi.GetType=multi.getType
     multi.IsPaused=multi.isPaused

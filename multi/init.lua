@@ -959,6 +959,7 @@ end
 multi.GlobalVariables={}
 local dFunc = function() return true end
 local dRef = {nil,nil,nil}
+thread.requests = {}
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
 end
