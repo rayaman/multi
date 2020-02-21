@@ -620,7 +620,9 @@ function multi:isDone()
 end
 multi.IsDone=multi.isDone
 function multi:create(ref)
-	multi.OnObjectCreated:Fire(ref,self)
+	if multi.OnObjectCreated then
+		multi.OnObjectCreated:Fire(ref,self)
+	end
 end
 function multi:setName(name)
 	self.Name = name
@@ -628,6 +630,176 @@ function multi:setName(name)
 end
 multi.SetName = multi.setName
 --Constructors [CORE]
+local CRef = {
+	Fire = function() end
+}
+function multi:newConnection(protect,func,kill)
+	local c={}
+	c.callback = func
+	c.Parent=self
+	c.lock = false
+	setmetatable(c,{__call=function(self,...)
+		local t = ...
+		if type(t)=="table" then
+			for i,v in pairs(t) do
+				if v==self then
+					return self:Fire(select(2,...))
+				end
+			end
+			return self:connect(...)
+		else
+			return self:connect(...)
+		end
+	end})
+	c.Type='connector'
+	c.func={}
+	c.ID=0
+	c.protect=protect or true
+	c.connections={}
+	c.fconnections={}
+	c.FC=0
+	function c:holdUT(n)
+		local n=n or 0
+		self.waiting=true
+		local count=0
+		local id=self:connect(function()
+			count = count + 1
+			if n<=count then
+				self.waiting=false
+			end
+		end)
+		repeat
+			self.Parent:uManager(multi.defaultSettings)
+		until self.waiting==false
+		id:Destroy()
+		return self
+	end
+	c.HoldUT=c.holdUT
+	function c:fConnect(func)
+		local temp=self:connect(func)
+		table.insert(self.fconnections,temp)
+		self.FC=self.FC+1
+		return self
+	end
+	c.FConnect=c.fConnect
+	function c:getConnection(name,ignore)
+		if ignore then
+			return self.connections[name] or CRef
+		else
+			return self.connections[name] or self
+		end
+	end
+	function c:Lock()
+		c.lock = true
+	end
+	function c:Unlock()
+		c.lock = false
+	end
+	function c:Fire(...)
+		local ret={}
+		if self.lock then return end
+		for i=#self.func,1,-1 do
+			if self.protect then
+				if not self.func[i] then return end
+				local temp={pcall(self.func[i][1],...)}
+				if temp[1] then
+					table.remove(temp,1)
+					table.insert(ret,temp)
+				else
+					multi.print(temp[2])
+				end
+			else
+				if not self.func[i] then return end
+				table.insert(ret,{self.func[i][1](...)})
+			end
+			if kill then
+				table.remove(self.func,i)
+			end
+		end
+		return ret
+	end
+	function c:Bind(t)
+		self.func=t
+		return self
+	end
+	function c:Remove()
+		self.func={}
+		return self
+	end
+	local function conn_helper(self,func,name,num)
+		self.ID=self.ID+1
+		if num then
+			table.insert(self.func,num,{func,self.ID})
+		else
+			table.insert(self.func,1,{func,self.ID})
+		end
+		local temp = {
+			Link=self.func,
+			func=func,
+			Type="connector_link",
+			ID=self.ID,
+			Parent=self,
+		}
+		function temp:Fire(...)
+			if self.Parent.lock then return end
+			if self.Parent.protect then
+				local t=pcall(self.func,...)
+				if t then
+					return t
+				end
+			else
+				return self.func(...)
+			end
+		end
+		function temp:Destroy()
+			for i=1,#self.Link do
+				if self.Link[i][2]~=nil then
+					if self.Link[i][2]==self.ID then
+						table.remove(self.Link,i)
+						self.remove=function() end
+						self.Link=nil
+						self.ID=nil
+						return
+					end
+				end
+			end
+		end
+		if name then
+			self.connections[name]=temp
+		end
+		if self.callback then
+			self.callback(temp)
+		end
+		return temp
+	end
+	function c:connect(...)--func,name,num
+		local tab = {...}
+		local funcs={}
+		for i=1,#tab do
+			if type(tab[i])=="function" then
+				funcs[#funcs+1] = tab[i]
+			end
+		end
+		if #funcs>1 then
+			local ret = {}
+			for i=1,#funcs do
+				table.insert(ret,conn_helper(self,funcs[i]))
+			end
+			return ret
+		else
+			return conn_helper(self,tab[1],tab[2],tab[3])
+		end
+
+	end
+	c.Connect=c.connect
+	c.GetConnection=c.getConnection
+	if not(ignoreconn) then
+		multi:create(c)
+	end
+	return c
+end
+multi.OnObjectCreated=multi:newConnection()
+multi.OnObjectDestroyed=multi:newConnection()
 local _tid = 0
 function multi:newBase(ins)
 	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
@@ -770,179 +942,6 @@ function multi:newConnector()
 	local c = {Type = "connector"}
 	return c
 end
-local CRef = {
-	Fire = function() end
-}
-function multi:newConnection(protect,func,kill)
-	local c={}
-	c.callback = func
-	c.Parent=self
-	c.lock = false
-	setmetatable(c,{__call=function(self,...)
-		local t = ...
-		if type(t)=="table" then
-			for i,v in pairs(t) do
-				if v==self then
-					return self:Fire(select(2,...))
-				end
-			end
-			return self:connect(...)
-		else
-			return self:connect(...)
-		end
-	end})
-	c.Type='connector'
-	c.func={}
-	c.ID=0
-	c.protect=protect or true
-	c.connections={}
-	c.fconnections={}
-	c.FC=0
-	function c:holdUT(n)
-		local n=n or 0
-		self.waiting=true
-		local count=0
-		local id=self:connect(function()
-			count = count + 1
-			if n<=count then
-				self.waiting=false
-			end
-		end)
-		repeat
-			self.Parent:uManager(multi.defaultSettings)
-		until self.waiting==false
-		id:Destroy()
-		return self
-	end
-	c.HoldUT=c.holdUT
-	function c:fConnect(func)
-		local temp=self:connect(func)
-		table.insert(self.fconnections,temp)
-		self.FC=self.FC+1
-		return self
-	end
-	c.FConnect=c.fConnect
-	function c:getConnection(name,ignore)
-		if ignore then
-			return self.connections[name] or CRef
-		else
-			return self.connections[name] or self
-		end
-	end
-	function c:Lock()
-		c.lock = true
-	end
-	function c:Unlock()
-		c.lock = false
-	end
-	function c:Fire(...)
-		local ret={}
-		if self.lock then return end
-		for i=#self.func,1,-1 do
-			if self.protect then
-				if not self.func[i] then return end
-				local temp={pcall(self.func[i][1],...)}
-				if temp[1] then
-					table.remove(temp,1)
-					table.insert(ret,temp)
-				else
-					multi.print(temp[2])
-				end
-			else
-				if not self.func[i] then return end
-				table.insert(ret,{self.func[i][1](...)})
-			end
-			if kill then
-				table.remove(self.func,i)
-			end
-		end
-		return ret
-	end
-	function c:Bind(t)
-		self.func=t
-		return self
-	end
-	function c:Remove()
-		self.func={}
-		return self
-	end
-	local function conn_helper(self,func,name,num)
-		self.ID=self.ID+1
-		if num then
-			table.insert(self.func,num,{func,self.ID})
-		else
-			table.insert(self.func,1,{func,self.ID})
-		end
-		local temp = {
-			Link=self.func,
-			func=func,
-			ID=self.ID,
-			Parent=self,
-			Fire=function(self,...)
-				if self.Parent.lock then return end
-				if self.Parent.protect then
-					local t=pcall(self.func,...)
-					if t then
-						return t
-					end
-				else
-					return self.func(...)
-				end
-			end,
-			Remove=function(self)
-				for i=1,#self.Link do
-					if self.Link[i][2]~=nil then
-						if self.Link[i][2]==self.ID then
-							table.remove(self.Link,i)
-							self.remove=function() end
-							self.Link=nil
-							self.ID=nil
-							return true
-						end
-					end
-				end
-			end,
-		}
-		temp.Destroy=temp.Remove
-		if name then
-			self.connections[name]=temp
-		end
-		if self.callback then
-			self.callback(temp)
-		end
-		return temp
-	end
-	function c:connect(...)--func,name,num
-		local tab = {...}
-		local funcs={}
-		for i=1,#tab do
-			if type(tab[i])=="function" then
-				funcs[#funcs+1] = tab[i]
-			end
-		end
-		if #funcs>1 then
-			local ret = {}
-			for i=1,#funcs do
-				table.insert(ret,conn_helper(self,funcs[i]))
-			end
-			return ret
-		else
-			conn_helper(self,tab[1],tab[2],tab[3])
-		end
-	end
-	c.Connect=c.connect
-	c.GetConnection=c.getConnection
-	function c:tofile(path)
-		local m=bin.new()
-		m:addBlock(self.Type)
-		m:addBlock(self.func)
-		m:tofile(path)
-		return self
-	end
-	return c
-end
-multi.OnObjectCreated=multi:newConnection()
-multi.OnObjectDestroyed=multi:newConnection()
 function multi:newJob(func,name)
 	if not(self.Type=='mainprocess' or self.Type=='process') then error('Can only create an object on multi or an interface obj') return false end
 	local c = {}

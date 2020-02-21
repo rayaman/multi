@@ -114,6 +114,8 @@ Bug Fixes:
 ---
 - 1.14.1
 	- Fixed Issue with Service's task method not being set at creation
+- 1.14.2
+	- Fixed Issue with connections not returning a connection_link
 
 Going Forward:
 ---
