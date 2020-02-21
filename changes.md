@@ -110,6 +110,11 @@ print(func("Hello"))
 print(func("sigh"))
 multi:lightloop()
 ```
+Bug Fixes:
+---
+- 1.14.1
+	- Fixed Issue with Service's task method not being set at creation
+
 Going Forward:
 ---
 - Finish the network manager
