@@ -91,8 +91,12 @@ Changed:
 	conn = OnExample(...)
 	print(conn.Type) -- connector_link
 	```
-- Revamped the job system
-	- multi.Jobs:newJob() — See Full Update Showcase
+- Revamped the job system — See Full Update Showcase
+	- multi.Jobs:newJob(func,name) — You do not need to set a name, but it might be useful
+	- multi.Jobs:getJobs(name) — Get all jobs, or all jobs with a certain name
+	- multi.Jobs:removeJobs(name) — Remove all jobs, or all jobs with a certain name
+	- multi.Jobs.SetPriority(Priority) — Set the priority of the Job service
+	- multi.Jobs.SetScheme(scheme) — Set the scheme of the Job service
 
 Removed:
 ---
@@ -113,6 +117,7 @@ Removed:
 - multi.doFPS(s)*
 
 *Many features have become outdated/redundant with new features and additions that have been added to the library
+
 # Update 14.1.0 - A whole new world of possibilities
 Full Update Showcase
 ---
