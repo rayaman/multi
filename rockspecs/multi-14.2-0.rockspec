@@ -30,6 +30,5 @@ build = {
       ["multi.integration.loveManager.threads"] = "multi/integration/loveManager/threads.lua",
       ["multi.integration.luvitManager"] = "multi/integration/luvitManager.lua",
       --["multi.integration.networkManager"] = "multi/integration/networkManager.lua",
-      --["multi.integration.shared"] = "multi/integration/shared.lua"
    }
 }

@@ -447,7 +447,13 @@ function multi:newConnection(protect,func,kill)
 			Type="connector_link",
 			ID=self.ID,
 			Parent=self,
+			connect = function(s,...)
+				return self:connect(...)
+			end
 		}
+		setmetatable(temp,{__call=function(s,...)
+			return self:connect(...)
+		end})
 		function temp:Fire(...)
 			if self.Parent.lock then return end
 			if self.Parent.protect then
