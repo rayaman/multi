@@ -29,9 +29,10 @@ local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
+
 multi.Version = "14.2.0"
 multi.stage = "stable"
-multi.__index = multi
+--multi.__index = multi
 multi.Name = "multi.root"
 multi.Mainloop = {}
 multi.Garbage = {}
@@ -312,9 +313,9 @@ function multi:newBase(ins)
 	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
     if self.Type=='process' or self.Type=='queue' then
-		setmetatable(c, self.Parent)
+		setmetatable(c, {__index = multi}) -- setmetatable(c, {__index = multi})
 	else
-		setmetatable(c, self)
+		setmetatable(c, {__index = multi})
 	end
 	c.Active=true
 	c.func={}
@@ -519,7 +520,7 @@ ignoreconn = false
 function multi:newProcessor(file)
 	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
 	local c = {}
-	setmetatable(c, self)
+	setmetatable(c, {__index = multi})
 	c.Parent=self
 	c.Active=true
 	c.func={}
