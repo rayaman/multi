@@ -25,6 +25,16 @@ local bin = pcall(require,"bin")
 if not bin then return error("The bin library is required to use sterilization!") end
 local multi,thread = require("multi"):init()
 local sterilizer = {}
+----------
+-- Helpers
+----------
+local function inList(t,o)
+    for i,v in pairs(t) do
+        if v==o then
+            return v
+        end
+    end
+end
 ---------------------
 -- State Saving Stuff
 ---------------------
