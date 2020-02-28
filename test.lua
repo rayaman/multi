@@ -18,7 +18,7 @@ local function inList(t,o,n)
         end
     end
 end
-function initLoop(t,max)
+local function initLoop(t,max)
     for i,v in pairs(t) do
         v["$__COUNTER__$"] = max
     end
@@ -73,7 +73,13 @@ end
 test = {}
 test.temp = {}
 test.temp.hello = multi:newAlarm(3)
+test.temp.yo = multi:newEvent()
 local hmm = test.temp.hello
-print(getPath(_G, hmm))
-print(getPath(_G, multi.Garbage)) -- Cannot index into multi because of __index
-print(getPath(_G, multi.DestroyedObj))
+local hmm2 = test.temp.yo
+local hmm3 = multi.DestroyedObj.t()
+for i,v in pairs(hmm3) do
+    print(i,v)
+end
+-- print(getPath(_G, hmm))
+-- print(getPath(_G, hmm2)) -- Cannot index into multi because of __index
+-- print(getPath(multi, hmm3))

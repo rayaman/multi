@@ -32,7 +32,6 @@ end
 
 multi.Version = "14.2.0"
 multi.stage = "stable"
---multi.__index = multi
 multi.Name = "multi.root"
 multi.Mainloop = {}
 multi.Garbage = {}
