@@ -4,7 +4,7 @@ Table of contents
 ---
 
 
-# Update 14.2.0 - Oh my let's Stringify
+# Update 14.2.0 - Destroy! 
 Full Update Showcase
 ---
 ```lua
@@ -71,7 +71,7 @@ multi:lightloop()
 ```
 Going Forward:
 ---
-- 
+-  There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
 
 Added:
 ---
@@ -80,7 +80,7 @@ Added:
 
 Fixed:
 ---
-- Issue with connections not returning a handler for managing a specified conn object.
+- Issue with connections not returning a handle for managing a specific conn object.
 - Issue with connections where connection chaining wasn't working properly. This has been addressed.
 	```lua
 	package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
@@ -104,7 +104,7 @@ Changed:
 - Destroying an object converts the object into a 'destroyed' type.
 - connections now have type 'connector_link'
 	```lua
-	OnExample = multi:newConnection()
+	OnExample = multi:newConnection() -- Type Connector, Im debating if I should change this name to multi:newConnector() and have connections to it have type connection
 	conn = OnExample(...)
 	print(conn.Type) -- connector_link
 	```
