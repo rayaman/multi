@@ -1,27 +1,25 @@
-Current Multi Version: 13.0.0
+Current Multi Version: 14.2.0
 
-Table of contents
------------------
-[TOC]
-Multi static variables
-------------------------
+# Multi static variables
 `multi.Version` -- The current version of the library
+
 `multi.Priority_Core` -- Highest level of pirority that can be given to a process
-`multi.Priority_High`
-`multi.Priority_Above_Normal`
-`multi.Priority_Normal` -- The default level of pirority that is given to a process
-`multi.Priority_Below_Normal`
-`multi.Priority_Low`
-`multi.Priority_Idle` -- Lowest level of pirority that can be given to a process
+</br>`multi.Priority_Very_High`
+</br>`multi.Priority_High`
+</br>`multi.Priority_Above_Normal`
+</br>`multi.Priority_Normal` -- The default level of pirority that is given to a process
+</br>`multi.Priority_Below_Normal`
+</br>`multi.Priority_Low`
+</br>`multi.Priority_Very_Low`
+</br>`multi.Priority_Idle` -- Lowest level of pirority that can be given to a process
 
-Multi Runners
--------------
-`multi:mainloop([TABLE settings])` -- This runs the mainloop by having its own internal while loop running
-`multi:threadloop([TABLE settings])` -- This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
-`multi:uManager([TABLE settings])` -- This runs the mainloop, but does not have its own while loop and thus needs to be within a loop of some kind.
+# Multi Runners
+`multi:lightloop()` -- A light version of the mainloop
+</br>`multi:mainloop([TABLE settings])` -- This runs the mainloop by having its own internal while loop running
+</br>`multi:threadloop([TABLE settings])` -- This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
+</br>`multi:uManager([TABLE settings])` -- This runs the mainloop, but does not have its own while loop and thus needs to be within a loop of some kind.
 
-Multi Settings
---------------
+# Multi Settings
 
 **Note:** Most settings have been fined tuned to be at the peak of performance already, however preLoop, protect (Which drastically lowers preformance), and stopOnError should be used freely to fit your needs.
 
@@ -38,7 +36,7 @@ Multi Settings
 
 # P-Chart: Priority 1
 
-P1 follows a forumla that resembles this: ~n=I*PRank where n is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
+P1 follows a forumla that resembles this: ~n=I*PRank</br>Where **n** is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
 
 | Priority: n | PRank | Formula |
 |-|-|-|
@@ -103,62 +101,30 @@ while true do
 end
 ```
 
-
-Multi constructors - Multi-Objs
--------------------------------
-**Processors**
-`proc = multi:newProcessor([STRING: file nil])`
-
-**Non-Actors**
+# Non-Actors
 `timer = multi:newTimer()`
-`conn = multi:newConnection([BOOLEAN protect true])`
-`nil = multi:newJob(FUNCTION func, STRING name)`
-`func = multi:newFunction(FUNCTION func)`
-`trigger = multi:newTrigger(FUNCTION: func)`
+</br>`conn = multi:newConnection([BOOLEAN protect true])`
+</br>`nil = multi:newJob(FUNCTION func, STRING name)`
+</br>`func = multi:newFunction(FUNCTION func)`
+</br>`trigger = multi:newTrigger(FUNCTION: func)`
 
-**Actors**
+# Actors
 `event = multi:newEvent(FUNCTION task)`
-`updater =  multi:newUpdater([NUMBER skip 1])`
-`alarm = multi:newAlarm([NUMBER 0])`
-`loop = multi:newLoop(FUNCTION func)`
-`tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])`
-`step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])`
-`tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])`
-`trigger = multi:newTrigger(FUNCTION: func)`
-`stamper = multi:newTimeStamper()`
-`watcher = multi:newWatcher(STRING name)`
-`watcher = multi:newWatcher(TABLE namespace, STRING name)`
-`cobj = multi:newCustomObject(TABLE objRef, BOOLEAN isActor)`
+</br>`updater =  multi:newUpdater([NUMBER skip 1])`
+</br>`alarm = multi:newAlarm([NUMBER 0])`
+</br>`loop = multi:newLoop(FUNCTION func)`
+</br>`tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])`
+</br>`step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])`
+</br>`tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])`
+</br>`trigger = multi:newTrigger(FUNCTION: func)`
+</br>`stamper = multi:newTimeStamper()`
+</br>`watcher = multi:newWatcher(STRING name)`
+</br>`watcher = multi:newWatcher(TABLE namespace, STRING name)`
+</br>`cobj = multi:newCustomObject(TABLE objRef, BOOLEAN isActor)`
 
-Note: A lot of methods will return self as a return. This is due to the ability to chain that was added in 12.x.x
+**Note:** A lot of methods will return itself as a return. This allows for chaining of methods to work.
 
-Processor
----------
-`proc = multi:newProcessor([STRING file nil])`
-Creates a processor runner that acts like the multi runner. Actors and Non-Actors can be created on these objects. Pausing a process pauses all objects that are running on that process.
-
-An optional argument file is used if you want to load a file containing the processor data.
-Note: This isn't portable on all areas where lua is used. Some interperters disable loadstring so it is not encouraged to use the file method for creating processors
-
-`loop = Processor:getController()` -- returns the loop that runs the "runner" that drives this processor
-`self = Processor:Start()` -- Starts the processor
-`self = Processor:Pause()` -- Pauses the processor
-`self = Processor:Resume()` -- Resumes a paused processor
-`nil = Processor:Destroy()` -- Destroys the processor and all of the Actors running on it
-
-Example
-```lua
-multi = require("multi")
-proc = multi:newProcessor()
-proc:newTLoop(function() -- create a t loop that runs every second
-	print("Hi!")
-end,1) -- where we set the 1 second
-proc:Start() -- let's start the processor
-multi:mainloop() -- the main runner that drives everything
-```
-
-Non-Actor: Timers
-------
+# Non-Actor: Timers
 timer = multi:newTimer()
 Creates a timer object that can keep track of time
 
@@ -171,26 +137,25 @@ boolean = timer:isPaused() -- Returns if the timer is paused or not
 
 **Note:** If a timer was paused after 1 second then resumed a second later and Get() was called a second later, timer would have 2 seconds counted though 3 really have passed.
 
-Non-Actor: Connections
------------
+# Non-Actor: Connections
 Arguable my favorite object in this library, next to threads
 
 `conn = multi:newConnection([BOOLEAN protect true])`
 Creates a connection object and defaults to a protective state. All calls will run within pcall()
 
 `self = conn:HoldUT([NUMBER n 0])` -- Will hold futhur execution of the thread until the connection was triggered. If n is supplied the connection must be triggered n times before it will allow ececution to continue.
-`self = conn:FConnect(FUNCTION func)` -- Creates a connection that is forced to execute when Fire() is called.  returns or nil = conn:Fire(...) -- Triggers the connection with arguments ..., "returns" if non-nil is a table containing return values from the triggered connections. [**Deprecated:**  Planned removal in 14.x.x]
-`self = conn:Bind(TABLE t)` -- sets the table to hold the connections. Leaving it alone is best unless you know what you are doing
-`self = conn:Remove()` -- removes the bind that was put in place. This will also destroy all connections that existed before.
-`link = conn:connect(FUNCTION func, [STRING name nil], [NUMBER num #conns+1])` -- Connects to the object using function func which will recieve the arguments passed by Fire(...). You can name a connection, which allows you to use conn:getConnection(name). Names must be unique! num is simple the position in the order in which connections are triggered. The return Link is the link to the connected event that was made. You can remove this event or even trigger it specifically if need be.
-`link:Fire(...)` -- Fires the created event
-`bool = link:Destroy()` -- returns true if success.
-`subConn = conn:getConnection(STRING name, BOOLEAN ingore)` -- returns the sub connection which matches name.
+</br>`self = conn:FConnect(FUNCTION func)` -- Creates a connection that is forced to execute when Fire() is called.  returns or nil = conn:Fire(...) -- Triggers the connection with arguments ..., "returns" if non-nil is a table containing return values from the triggered connections. [**Deprecated:**  Planned removal in 14.x.x]
+</br>`self = conn:Bind(TABLE t)` -- sets the table to hold the connections. Leaving it alone is best unless you know what you are doing
+</br>`self = conn:Remove()` -- removes the bind that was put in place. This will also destroy all connections that existed before.
+</br>`link = conn:connect(FUNCTION func, [STRING name nil], [NUMBER num #conns+1])` -- Connects to the object using function func which will recieve the arguments passed by Fire(...). You can name a connection, which allows you to use conn:getConnection(name). Names must be unique! num is simple the position in the order in which connections are triggered. The return Link is the link to the connected event that was made. You can remove this event or even trigger it specifically if need be.
+</br>`link:Fire(...)` -- Fires the created event
+</br>`bool = link:Destroy()` -- returns true if success.
+</br>`subConn = conn:getConnection(STRING name, BOOLEAN ingore)` -- returns the sub connection which matches name.
 returns or nil subConn:Fire() -- "returns" if non-nil is a table containing return values from the triggered connections.
-`self = conn:tofile(STRING path)` -- Saves the object to a file at location path
+</br>`self = conn:tofile(STRING path)` -- Saves the object to a file at location path
 
 The connect feature has some syntax sugar to it as seen below
-`link = conn(FUNCTION func, [STRING name nil], [NUMBER #conns+1])`
+</br>`link = conn(FUNCTION func, [STRING name nil], [NUMBER #conns+1])`
 
 Example:
 ```lua
@@ -237,13 +202,12 @@ print("------")
 OnCustomSafeEvent:Fire(1,100,"Hi Ya Folks!!!") -- fire them all again!!!
 ```
 
-Non-Actor: Jobs
-----
+# Non-Actor: Jobs
 `nil = multi:newJob(FUNCTION func, STRING name)` -- Adds a job to a queue of jobs that get executed after some time. func is the job that is being ran, name is the name of the job.
-`nil = multi:setJobSpeed(NUMBER n)` -- seconds between when each job should be done.
-`bool, number = multi:hasJobs()` -- returns true if there are jobs to be processed. And the number of jobs to be processed
-`num = multi:getJobs()` -- returns the number of jobs left to be processed.
-`number = multi:removeJob(STRING name)` -- removes all jobs of name, name. Returns the number of jobs removed
+</br>`nil = multi:setJobSpeed(NUMBER n)` -- seconds between when each job should be done.
+</br>`bool, number = multi:hasJobs()` -- returns true if there are jobs to be processed. And the number of jobs to be processed
+</br>`num = multi:getJobs()` -- returns the number of jobs left to be processed.
+</br>`number = multi:removeJob(STRING name)` -- removes all jobs of name, name. Returns the number of jobs removed
 
 **Note:** Jobs may be turned into actual objects in the future.
 
@@ -273,58 +237,26 @@ print("There are "..multi:getJobs().." jobs in the queue!")
 multi:mainloop()
 ```
 
-Non-Actor: Functions
----------
-`func = multi:newFunction(FUNCTION func)`
-These objects used to have more of a *function* before corutine based threads came around, but the main purpose now is the ablity to have pausable function calls
-
-`... = func(...)` -- This is how you call your function. The first argument passed is itself when your function is triggered. See example.
-`self = func:Pause()`
-`self = func:Resume()`
-
-Note: A paused function will return: nil, true
-
-Example:
-```lua
-local multi = require("multi")
-printOnce = multi:newFunction(function(self,msg)
-	print(msg)
-    self:Pause()
-	return "I won't work anymore"
-end)
-a=printOnce("Hello World!")
-b,c=printOnce("Hello World!")
-print(a,b,c)
-```
-
-Non-Actor: Triggers 
---------
-`trigger = multi:newTrigger(FUNCTION: func(...))` -- A trigger is the precursor of connection objects. The main difference is that only one function can be binded to the trigger.
-`self = trigger:Fire(...)` -- Fires the function that was connected to the trigger and passes the arguments supplied in Fire to the function given.
-
-
-Universal Actor functions
--------------------------
+# Universal Actor methods
 All of these functions are found on actors
-`self = multiObj:Pause()` -- Pauses the actor from running
-`self = multiObj:Resume()` -- Resumes the actor that was paused
-`nil = multiObj:Destroy()` -- Removes the object from the mainloop
-`bool = multiObj:isPaused()` -- Returns true if the object is paused, false otherwise
-`string = multiObj:getType()` -- Returns the type of the object
-`self = multiObj:SetTime(n)` -- Sets a timer, and creates a special "timemaster" actor, which will timeout unless ResolveTimer is called
-`self = multiObj:ResolveTimer(...)` -- Stops the timer that was put onto the multiObj from timing out
-`self = multiObj:OnTimedOut(func)` -- If ResolveTimer was not called in time this event will be triggered. The function connected to it get a refrence of the original object that the timer was created on as the first argument.
-`self = multiObj:OnTimerResolved(func)` -- This event is triggered when the timer gets resolved. Same argument as above is passed, but the variable arguments that are accepted in resolvetimer are also passed as well.
-`self = multiObj:Reset(n)` -- In the cases where it isn't obvious what it does, it acts as Resume()
-`self = multiObj:SetName(STRING name)`
+</br>`self = multiObj:Pause()` -- Pauses the actor from running
+</br>`self = multiObj:Resume()` -- Resumes the actor that was paused
+</br>`nil = multiObj:Destroy()` -- Removes the object from the mainloop
+</br>`bool = multiObj:isPaused()` -- Returns true if the object is paused, false otherwise
+</br>`string = multiObj:getType()` -- Returns the type of the object
+</br>`self = multiObj:SetTime(n)` -- Sets a timer, and creates a special "timemaster" actor, which will timeout unless ResolveTimer is called
+</br>`self = multiObj:ResolveTimer(...)` -- Stops the timer that was put onto the multiObj from timing out
+</br>`self = multiObj:OnTimedOut(func)` -- If ResolveTimer was not called in time this event will be triggered. The function connected to it get a refrence of the original object that the timer was created on as the first argument.
+</br>`self = multiObj:OnTimerResolved(func)` -- This event is triggered when the timer gets resolved. Same argument as above is passed, but the variable arguments that are accepted in resolvetimer are also passed as well.
+</br>`self = multiObj:Reset(n)` -- In the cases where it isn't obvious what it does, it acts as Resume()
+</br>`self = multiObj:SetName(STRING name)`
 
-Actor: Events
-------
+# Actor: Events
 `event = multi:newEvent(FUNCTION task)`
 The object that started it all. These are simply actors that wait for a condition to take place, then auto triggers an event. The event when triggered once isn't triggered again unless you Reset() it.
 
 `self = SetTask(FUNCTION func)` -- This function is not needed if you supplied task at construction time
-`self = OnEvent(FUNCTION func)` -- Connects to the OnEvent event passes argument self to the connectee
+</br>`self = OnEvent(FUNCTION func)` -- Connects to the OnEvent event passes argument self to the connectee
 
 Example:
 ```lua
@@ -342,13 +274,12 @@ end) -- events like alarms need to be reset the Reset() command works here as we
 multi:mainloop()
 ```
 
-Actor: Updates
--------
+# Actor: Updaters
 `updater =  multi:newUpdater([NUMBER skip 1])` -- set the amount of steps that are skipped
 Updaters are a mix between both loops and steps. They were a way to add basic priority management to loops (until a better way was added). Now they aren't as useful, but if you do not want the performance hit of turning on priority then they are useful to auro skip some loops. Note: The performance hit due to priority management is not as bas as it used to be. 
 
 `self = updater:SetSkip(NUMBER n)` -- sets the amount of steps that are skipped
-`self = OnUpdate(FUNCTION func)` -- connects to the main trigger of the updater which is called every nth step
+</br>`self = OnUpdate(FUNCTION func)` -- connects to the main trigger of the updater which is called every nth step
 
 Example:
 ```lua
@@ -360,13 +291,12 @@ end)
 multi:mainloop()
 ```
 
-Actor: Alarms
-------
+# Actor: Alarms
 `alarm = multi:newAlarm([NUMBER 0])` -- creates an alarm which waits n seconds
 Alarms ring after a certain amount of time, but you need to reset the alarm every time it rings! Use a TLoop if you do not want to have to reset.
 
 `self = alarm:Reset([NUMBER sec current_time_set])` -- Allows one to reset an alarm, optional argument to change the time until the next ring.
-`self = alarm:OnRing(FUNCTION func` -- Allows one to connect to the alarm event which is triggerd after a certain amount of time has passed.
+</br>`self = alarm:OnRing(FUNCTION func` -- Allows one to connect to the alarm event which is triggerd after a certain amount of time has passed.
 
 Example:
 ```lua
@@ -379,8 +309,7 @@ end)
 multi:mainloop()
 ```
 
-Actor: Loops
------
+# Actor: Loops
 `loop = multi:newLoop(FUNCTION func)` -- func the main connection that you can connect to. Is optional, but you can also use OnLoop(func) to connect as well.
 Loops are events that happen over and over until paused. They act like a while loop.
 
@@ -401,8 +330,7 @@ end)
 multi:mainloop()
 ```
 
-Actor: TLoops
-------
+# Actor: TLoops
 `tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])` -- TLoops are pretty much the same as loops. The only difference is that they take set which is how long it waits, in seconds, before triggering function func.
 
 `self = OnLoop(FUNCTION func)`  -- func the main connection that you can connect to. Alllows multiple connections to one TLoop if need be.
@@ -422,14 +350,13 @@ end,1)
 multi:mainloop()
 ```
 
-Actor: Steps
------
+# Actor: Steps
 `step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Steps were originally introduced to bs used as for loops that can run parallel with other code. When using steps think of it like this: `for i=start,reset,count do` When the skip argument is given, each time the step object is given cpu cycles it will be skipped by n cycles. So if skip is 1 every other cpu cycle will be alloted to the step object.
 
 `self = step:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
-`self = step:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
-`self = step:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
-`self = step:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
+</br>`self = step:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
+</br>`self = step:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
+</br>`self = step:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
 
 Example:
 ```lua
@@ -443,15 +370,14 @@ end)
 multi:mainloop()
 ```
 
-Actor: TSteps
-------
+# Actor: TSteps
 `tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- TSteps work just like steps, the only difference is that instead of skip, we have set which is how long in seconds it should wait before triggering the OnStep() event.
 
 `self = tstep:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
-`self = tstep:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
-`self = tstep:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
-`self = tstep:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
-`self = tstep:Reset([NUMBER n set])` -- Allows you to reset a tstep that has ended, but also can change the time between each trigger.
+</br>`self = tstep:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
+</br>`self = tstep:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
+</br>`self = tstep:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
+</br>`self = tstep:Reset([NUMBER n set])` -- Allows you to reset a tstep that has ended, but also can change the time between each trigger.
 
 Example:
 ```lua
@@ -465,201 +391,41 @@ end)
 multi:mainloop()
 ```
 
-Actor: Time Stampers
--------------
-`stamper = multi:newTimeStamper()` -- This allows for long time spans as well as short time spans.
-`stamper = stamper:OhSecond(NUMBER second, FUNCTION func)` -- This takes a value between 0 and 59. This event is called once every second! Not once every second! If you want seconds then use alarms*****! 0 is the start of every minute and 59 is the end of every minute.
-`stamper = stamper:OhMinute(NUMBER minute, FUNCTION func)` -- This takes a value between 0 and 59. This event is called once every hour*****! Same concept as OnSecond()
-`stamper = stamper:OhHour(NUMBER hour, FUNCTION func)` -- This takes a value between 0 and 23. This event is called once every day*****! 0 is midnight and 23 is 11pm if you use 12 hour based time.
-`stamper = stamper:OnDay(STRING/NUMBER day, FUNCTION func)` -- So the days work like this 'Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'. When in string form this is called every week. When in number form this is called every month*****!
-There is a gotcha though with this. Months can have 28,29,30, and 31 days to it, which means that something needs to be done when dealing with the last few days of a month. I am aware of this issue and am looking into a solution that is simple and readable. I thought about allowing negitive numbers to allow one to eaisly use the last day of a month. -1 is the last day of the month where -2 is the second to last day of the month. You can go as low as -28 if you want, but this provides a nice way to do something near the end of the month that is lua like.
-`stamper = stamper:OnMonth(NUMBER month,FUNCTION func)` -- This takes a value between 1 and 12. 1 being January and 12 being December. Called once per year*****.
-`stamper = stamper:OnYear(NUMBER year,FUNCTION func)` -- This takes a number yy. for example 18 do not use yyyy format! Odds are you will not see this method triggered more than once, unless science figures out the whole life extension thing. But every century this event is triggered*****! I am going to be honest though, the odds of a system never reseting for 100 years is very unlikely, so if I used 18 (every 18th year in each century every time i load my program this event will be triggered). Does it actually work? I have no idea tbh it should, but can i prove that without actually testing it? Yes by using fake data thats how.
-`stamper = stamper:OnTime(NUMBER hour,NUMBER minute,NUMBER second,FUNCTION func)` -- This takes in a time to trigger, hour, minute, second. This triggeres once a day at a certain time! Sort of like setting an alarm! You can combine events to get other effects like this!
-`stamper = stamper:OnTime(STRING time,FUNCTION func)` -- This takes a string time that should be formatted like this: "hh:mm:ss" hours minutes and seconds must be given as parameters! Otherwise functions as above!
+# Coroutine based Threading (CBT)
+Helpful methods are wrapped around the builtin coroutine module which make it feel like real threading.
 
-*****If your program crashes or is rebooted than the data in RAM letting the code know that the function was already called will be reset! This means that if an event set to be triggered on Monday then you reboot the code it will retrigger that event on the same day if the code restarts. In a future update I am planning of writing to the disk for OnHour/Day/Week/Year events. This will be an option that can be set on the object.
-
-Examples:
-**OnSecond**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-local a = 0
-ts:OnSecond(0,function()
-	a=a+1
-	print("New Minute: "..a.." <"..os.date("%M")..">")
-end)
-multi:mainloop()
-```
-**OnMinute**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-local a = 0
-ts:OnSecond(0,function()
-	a=a+1
-	print("New Hour: "..a.." <"..os.date("%I")..">")
-end)
-multi:mainloop()
-```
-**OnHour**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnHour(0,function()
-	print("New Day")
-end)
-multi:mainloop()
-
-```
-**OnDay**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnDay("Thu",function()
-	print("It's thursday!")
-end)
-multi:mainloop()
-```
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnDay(2,function()
-	print("Second day of the month!")
-end)
-multi:mainloop()
-```
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnDay(-1,function()
-	print("Last day of the month!")
-end)
-multi:mainloop()
-```
-**OnYear**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnYear(19,function() -- They gonna wonder if they run this in 2018 why it no work :P
-	print("We did it!")
-end)
-multi:mainloop()
-```
-**OnTime**
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnTime(12,1,0,function()
-	print("Whooooo")
-end)
-multi:mainloop()
-```
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-ts = multi:newTimeStamper()
-ts:OnTime("12:04:00",function()
-	print("Whooooo")
-end)
-multi:mainloop()
-```
-
-Actor: Watchers 
---------
-**Deprecated: ** This object was removed due to its uselessness. Metatables will work much better for what is being done. Perhaps in the future i will remake this method to use metamethods instead of basic watching every step. This will most likely be removed in the next version of the library or changed to use metatables and metamethods.
-`watcher = multi:newWatcher(STRING name)` -- Watches a variable on the global namespace
-`watcher = multi:newWatcher(TABLE namespace, STRING name)` -- Watches a variable inside of a table
-`watcher = watcher::OnValueChanged(Function func(self, old_value, current_value))`
-
-Example
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-test = {a=0}
-watcher = multi:newWatcher(test,"a")
-watcher:OnValueChanged(function(self, old_value, current_value)
-	print(old_value,current_value)
-end)
-multi:newTLoop(function()
-	test.a=test.a + 1
-end,.5)
-multi:mainloop()
-```
-Actor: Custom Object
---------------
-`cobj = multi:newCustomObject(TABLE objRef, BOOLEAN isActor [false])` -- Allows you to create your own multiobject that runs each allotted step. This allows you to create your own object that works with all the features that each built in multi object does. If isActor is set to true you must have an `Act` method in your table. See example below. If an object is not an actor than the `Act` method will not be automatically called for you.
-
-Example:
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
-local work = false
-ticktock = multi:newCustomObject({
-	timer = multi:newTimer(),
-	Act = function(self)
-		if self.timer:Get()>=1 then
-			work = not work
-			if work then
-				self.OnTick:Fire()
-			else
-				self.OnTock:Fire()
-			end
-			self.timer:Reset()
-		end
-	end,
-	OnTick = multi:newConnection(),
-	OnTock = multi:newConnection(),
-},true)
-ticktock.OnTick(function()
-	print("Tick")
-end)
-ticktock.OnTock(function()
-	print("Tock")
-end)
-multi:mainloop()
-```
-
-Coroutine based Threading (CBT)
--------------------------
-This was made due to the limitations of multiObj:hold(), which no longer exists. When this library was in its infancy and before I knew about coroutines, I actually tried to emulate what coroutines did in pure lua.
-The threaded bariants of the non threaded objects do exist, but there isn't too much of a need to use them.
-
-The main benefits of using the coroutine based threads is the thread.* namespace which gives you the ability to easily run code side by side.
-
-A quick note on how threads are managed in the library. The library contains a scheduler which keeps track of coroutines and manages them. Coroutines take some time then give off processing to another coroutine. Which means there are some methods that you need to use in order to hand off cpu time to other coroutines or the main thread. You must hand off cpu time when inside of a non ending loop or your code will hang. Threads also have a slight delay before starting, about 3 seconds.
-
-threads.*
----------
+# threads.* used within threaded enviroments
 `thread.sleep(NUMBER n)` -- Holds execution of the thread until a certain amount of time has passed
-`thread.hold(FUNCTION func)` -- Hold execttion until the function returns true
-`thread.skip(NUMBER n)` -- How many cycles should be skipped until I execute again
-`thread.kill()` -- Kills the thread
-`thread.yeild()` -- Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
-`thread.isThread()` -- Returns true if the current running code is inside of a coroutine based thread
-`thread.getCores()` -- Returns the number of cores that the current system has. (used for system threads)
-`thread.set(STRING name, VARIABLE val)` -- A global interface where threads can talk with eachother. sets a variable with name and its value
-`thread.get(STRING name)` -- Gets the data stored in name
-`thread.waitFor(STRING name)` -- Holds executon of a thread until variable name exists
-`thread.testFor(STRING name,VARIABLE val,STRING sym)` -- holds execution untile variable name exists and is compared to val
-sym can be equal to: "=", "==", "<", ">", "<=", or ">=" the way comparisan works is: "`return val sym valTested`"
+</br>`thread.hold(FUNCTION func)` -- Hold execttion until the function returns true
+</br>`thread.skip(NUMBER n)` -- How many cycles should be skipped until I execute again
+</br>`thread.kill()` -- Kills the thread
+</br>`thread.yeild()` -- Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
+</br>`thread.isThread()` -- Returns true if the current running code is inside of a coroutine based thread
+</br>`thread.getCores()` -- Returns the number of cores that the current system has. (used for system threads)
+</br>`thread.set(STRING name, VARIABLE val)` -- A global interface where threads can talk with eachother. sets a variable with name and its value
+</br>`thread.get(STRING name)` -- Gets the data stored in name
+</br>`thread.waitFor(STRING name)` -- Holds executon of a thread until variable name exists
 
-CBT: Thread
------------
+# CBT: newThread()
+`th = multi:newThread([STRING name,] FUNCTION func)` -- Creates a new thread with name and function.
 
-`multi:newThread(STRING name,FUNCTION func)` -- Creates a new thread with name and function.
-Note: newThread() returns nothing. Threads are opperated hands off everything that happens, does so inside of its functions.
+Constants
+---
+`th.Name` -- Name of thread
+</br>`th.Type` -- Type="thread"
+</br>`th.TID` -- Thread ID
 
-Threads simplify many things that you would use non CBT objects for. I almost solely use CBT for my current programming. I will slso show the above custom object using threads instead. Yes its cool and can be done.
+Methods
+---
+`conn = th.OnError(FUNCTION: callback)` -- Connect to an event which is triggered when an error is encountered within a thread
+</br>`conn = th.OnDeath(FUNCTION: callback)` -- Connect to an event which is triggered when the thread had either been killed or stopped running. (Not triggered when there is an error!)
+</br>`boolean = th:isPaused()`* -- Returns true if a thread has been paused
+</br>`(self)th = th:Pause()`* -- Pauses a thread
+</br>`(self)th = th:Resume()`* -- Resumes a paused thread
+</br>`(self)th = th:Kill()`* -- Kills a thread
+</br>`(self)th = th:Destroy()*` -- Destroys a thread
+
+*When using these methods on a thread directly you are making a request to a thread! The thread may not accept your request, but it most likely will. You can contorl the thread flow within the thread's function itself
 
 Examples:
 ```lua
@@ -673,127 +439,10 @@ multi:newThread("Example of basic usage",function()
 end)
 multi:mainloop()
 ```
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
 
-function multi:newTickTock()
-	local work = false
-	local _alive = true
-	local OnTick = multi:newConnection()
-	local OnTock = multi:newConnection()
-	local c =multi:newCustomObject{
-		OnTick = OnTick,
-		OnTock = OnTock,
-		Destroy = function()
-			_alive = false -- Threads at least how they work here now need a bit of data management for cleaning up objects. When a thread either finishes its execution of thread.kill() is called everything is removed from the scheduler letting lua know that it can garbage collect
-		end
-	}
-	multi:newThread("TickTocker",function()
-		while _alive do
-			thread.sleep(1)
-			work = not work
-			if work then
-				OnTick:Fire()
-			else
-				OnTock:Fire()
-			end
-		end
-        thread.kill() -- When a thread gets to the end of it's ececution it will automatically be ended, but having this method is good to show what is going on with your code.
-	end)
-	return c
-end
-ticktock = multi:newTickTock()
-ticktock.OnTick(function()
-	print("Tick")
-    -- The thread.* namespace works in all events that
-end)
-ticktock.OnTock(function()
-	print("Tock")
-end)
-multi:mainloop()
-```
 
-```lua
-package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+HERE
 
-multi:newThread("TickTocker",function()
-	print("Waiting for variable a to exist...")
-	ret,ret2 = thread.hold(function()
-		return a~=nil, "test!"
-	end)
-	print(ret,ret2) -- The hold method returns the arguments when the first argument is true. This methods return feature is rather new and took more work then you think to get working. Since threads
-end)
-multi:newAlarm(3):OnRing(function() a = true end) -- allows a to exist
-
-multi:mainloop()
-```
-
-CBT: Threaded Process
----------------------
-`process = multi:newThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace
-
-`nil = process:getController()` -- Returns nothing there is no "controller" when using threaded processes
-`self = process:Start()` -- Starts the processor
-`self = process:Pause()` -- Pauses the processor
-`self = process:Resume()` -- Resumes a paused processor
-`self = process:Kill()` -- Kills/Destroys the process thread
-`self = process:Remove()` -- Destroys/Kills the processor and all of the Actors running on it
-`self = process:Sleep(NUMBER n)` -- Forces a process to sleep for n amount of time
-`self = process:Hold(FUNCTION/NUMBER n)` -- Forces a process to either test a condition or sleep.
-
-Everything eles works as if you were using the multi.* interface. You can create multi objects on the process and the objects are able to use the thread.* interface.
-
-Note: When using Hold/Sleep/Skip on an object created inside of a threaded process, you actually hold the entire process! Which means all objects on that process will be stopping until the conditions are met!
-
-Example:
-```lua
-test = multi:newThreadedProcess("test")
-test:newLoop(function()
-	print("HI!")
-end)
-test:newLoop(function()
-	print("HI2!")
-	thread.sleep(.5)
-end)
-multi:newAlarm(3):OnRing(function()
-	test:Sleep(10)
-end)
-test:Start()
-multi:mainloop()
-```
-
-CBT: Hyper Threaded Process
----------------------------
-`process = multi:newHyperThreadedProcess(STRING name)` -- Creates a process object that is able allows all processes created on it to use the thread.* namespace. Hold/Sleep/Skip can be used in each multi obj created without stopping each other object that is running, but allows for one to pause/halt a process and stop all objects running in that process.
-
-`nil = process:getController()` -- Returns nothing there is no "controller" when using threaded processes
-`self = process:Start()` -- Starts the processor
-`self = process:Pause()` -- Pauses the processor
-`self = process:Resume()` -- Resumes a paused processor
-`self = process:Kill()` -- Kills/Destroys the process thread
-`self = process:Remove()` -- Destroys/Kills the processor and all of the Actors running on it
-`self = process:Sleep(NUMBER n)` -- Forces a process to sleep for n amount of time
-`self = process:Hold(FUNCTION/NUMBER n)` -- Forces a process to either test a condition or sleep.
-
-Example:
-```lua
-test = multi:newHyperThreadedProcess("test")
-test:newLoop(function()
-	print("HI!")
-end)
-test:newLoop(function()
-	print("HI2!")
-	thread.sleep(.5)
-end)
-multi:newAlarm(3):OnRing(function()
-	test:Sleep(10)
-end)
-test:Start()
-multi:mainloop()
-```
-Same example as above, but notice how this works opposed to the non hyper version
 
 System Threads (ST) - Multi-Integration Getting Started
 -------------------------------------------------------
