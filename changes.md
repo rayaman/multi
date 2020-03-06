@@ -4,7 +4,7 @@ Table of contents
 ---
 
 
-# Update 14.2.0 - Destroy! 
+# Update 14.2.0 - Ending it all! 
 Full Update Showcase
 ---
 ```lua

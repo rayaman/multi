@@ -964,6 +964,12 @@ function multi:scheduleJob(time,func)
 end
 
 -- Threading stuff
+local initT = false
+local threadCount = 0
+local threadid = 0
+thread.__threads = {}
+local threads = thread.__threads
+local Gref = _G
 multi.GlobalVariables={}
 local dFunc = function() return true end
 local dRef = {nil,nil,nil}
@@ -971,10 +977,20 @@ thread.requests = {}
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
 end
+function thread.getRunningThread()
+	local t = coroutine.running()
+	if t then
+		for i,v in pairs(threads) do
+			if t==v.thread then
+				return v
+			end
+		end
+	end
+end
 function thread._Requests()
 	local t = thread.requests[coroutine.running()]
-	thread.requests[coroutine.running()] = nil
 	if t then
+		thread.requests[coroutine.running()] = nil
 		local cmd,args = t[1],t[2]
 		thread[cmd](unpack(args))
 	end
@@ -984,6 +1000,7 @@ function thread.exec(func)
 end
 function thread.sleep(n)
 	thread._Requests()
+	thread.getRunningThread().lastSleep = clock()
 	dRef[1] = "_sleep_"
 	dRef[2] = n or 0
 	return coroutine.yield(dRef)
@@ -1150,17 +1167,6 @@ function thread.testFor(name,_val,sym)
 	end)
 	return thread.get(name)
 end
-function multi.print(...)
-	if multi.defaultSettings.print then
-		print(...)
-	end
-end
-local initT = false
-local threadCount = 0
-local threadid = 0
-thread.__threads = {}
-local threads = thread.__threads
-local Gref = _G
 function multi:newThread(name,func,...)
 	multi.OnLoad:Fire()
 	local func = func or name
@@ -1468,6 +1474,8 @@ function multi:newService(func) -- Priority managed threads
 		elseif math.abs(n)==2 then
 			ap = math.abs(p-1)*32+1
 			task = thread.skip
+		elseif math.abs(n)==3 then
+			-- This is a time based pirority manager. Things that take long to run get
 		end
 		return c
 	end
@@ -2259,6 +2267,12 @@ if os.getOS()=="windows" then
 	thread.__CORES=tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
 else
 	thread.__CORES=tonumber(io.popen("nproc --all"):read("*n"))
+end
+
+function multi.print(...)
+	if multi.defaultSettings.print then
+		print(...)
+	end
 end
 
 multi.GetType=multi.getType

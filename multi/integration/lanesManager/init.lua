@@ -84,16 +84,17 @@ function multi:newSystemThread(name, func, ...)
 	c.priority = THREAD.Priority_Normal
 	local args = {...}
 	multi:newThread(function()
-		print("I am here!")
 		c.thread = lanes.gen(table.concat(c.loadString,","),
 		{
-			globals={
-			THREAD_NAME=name,
-			THREAD_ID=count,
-			THREAD = THREAD,
-			GLOBAL = GLOBAL,
-			_Console = __ConsoleLinda
-		},priority=c.priority}, func)(unpack(args))
+			globals={ -- Set up some globals
+				THREAD_NAME=name,
+				THREAD_ID=count,
+				THREAD = THREAD,
+				GLOBAL = GLOBAL,
+				_Console = __ConsoleLinda
+			},
+			priority=c.priority
+		},func)(unpack(args))
 		thread.kill()
 	end)
 	count = count + 1
