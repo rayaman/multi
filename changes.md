@@ -4,7 +4,7 @@ Table of contents
 ---
 
 
-# Update 14.2.0 - Ending it all! 
+# Update 14.2.0 - Documentation [====100%====] Done
 Full Update Showcase
 ---
 ```lua
@@ -80,6 +80,8 @@ Added:
 
 Fixed:
 ---
+- Issue with system threaded job queues newFunction() not allowing nil returns! This has be addressed and is no longer an issue.
+- Issue with hold like functions not being able to return `false`
 - Issue with connections not returning a handle for managing a specific conn object.
 - Issue with connections where connection chaining wasn't working properly. This has been addressed.
 	```lua

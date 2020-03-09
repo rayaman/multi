@@ -73,9 +73,11 @@ function multi:newSystemThreadedJobQueue(n)
             doAll:push{ID,func}
         end
         ID = ID + 1
+        return self
     end
     function c:registerFunction(name,func)
         funcs[name]=func
+        return self
     end
     function c:pushJob(name,...)
         queueJob:push{name,jid,{...}}
@@ -103,7 +105,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets)
+                    return unpack(rets) or multi.NIL
                 end
             end)
         end,holup),name

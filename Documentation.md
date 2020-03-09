@@ -103,59 +103,48 @@ end
 
 # Non-Actors
 `timer = multi:newTimer()`
-</br>`conn = multi:newConnection([BOOLEAN protect true])`
-</br>`nil = multi:newJob(FUNCTION func, STRING name)`
-</br>`func = multi:newFunction(FUNCTION func)`
-</br>`trigger = multi:newTrigger(FUNCTION: func)`
+- `conn = multi:newConnection([BOOLEAN protect true])`
+- `func = multi:newFunction(FUNCTION func)`
 
 # Actors
-`event = multi:newEvent(FUNCTION task)`
-</br>`updater =  multi:newUpdater([NUMBER skip 1])`
-</br>`alarm = multi:newAlarm([NUMBER 0])`
-</br>`loop = multi:newLoop(FUNCTION func)`
-</br>`tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])`
-</br>`step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])`
-</br>`tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])`
-</br>`trigger = multi:newTrigger(FUNCTION: func)`
-</br>`stamper = multi:newTimeStamper()`
-</br>`watcher = multi:newWatcher(STRING name)`
-</br>`watcher = multi:newWatcher(TABLE namespace, STRING name)`
-</br>`cobj = multi:newCustomObject(TABLE objRef, BOOLEAN isActor)`
+- `event = multi:newEvent(FUNCTION task)`
+- `updater =  multi:newUpdater([NUMBER skip 1])`
+- `alarm = multi:newAlarm([NUMBER 0])`
+- `loop = multi:newLoop(FUNCTION func)`
+- `tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])`
+- `step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])`
+- `tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])`
 
 **Note:** A lot of methods will return itself as a return. This allows for chaining of methods to work.
 
 # Non-Actor: Timers
-timer = multi:newTimer()
-Creates a timer object that can keep track of time
+`timer = multi:newTimer()` -- Creates a timer object that can keep track of time
 
-**self** = timer:Start() -- Starts the timer
-time_elapsed = timer:Get() -- Returns the time elapsed since timer:Start() was called
-boolean = timer:isPaused() -- Returns if the timer is paused or not
-**self** = timer:Pause() -- Pauses the timer, it skips time that would be counted during the time that it is paused
-**self** = timer:Resume() -- Resumes a paused timer. **See note below**
-**self** = timer:tofile(**STRING** path) -- Saves the object to a file at location path
+- **self** = timer:Start() -- Starts the timer
+- time_elapsed = timer:Get() -- Returns the time elapsed since timer:Start() was called
+- boolean = timer:isPaused() -- Returns if the timer is paused or not
+- **self** = timer:Pause() -- Pauses the timer, it skips time that would be counted during the time that it is paused
+- **self** = timer:Resume() -- Resumes a paused timer. **See note below**
+- **self** = timer:tofile(**STRING** path) -- Saves the object to a file at location path
 
 **Note:** If a timer was paused after 1 second then resumed a second later and Get() was called a second later, timer would have 2 seconds counted though 3 really have passed.
 
 # Non-Actor: Connections
-Arguable my favorite object in this library, next to threads
-
-`conn = multi:newConnection([BOOLEAN protect true])`
-Creates a connection object and defaults to a protective state. All calls will run within pcall()
-
-`self = conn:HoldUT([NUMBER n 0])` -- Will hold futhur execution of the thread until the connection was triggered. If n is supplied the connection must be triggered n times before it will allow ececution to continue.
-</br>`self = conn:FConnect(FUNCTION func)` -- Creates a connection that is forced to execute when Fire() is called.  returns or nil = conn:Fire(...) -- Triggers the connection with arguments ..., "returns" if non-nil is a table containing return values from the triggered connections. [**Deprecated:**  Planned removal in 14.x.x]
-</br>`self = conn:Bind(TABLE t)` -- sets the table to hold the connections. Leaving it alone is best unless you know what you are doing
-</br>`self = conn:Remove()` -- removes the bind that was put in place. This will also destroy all connections that existed before.
-</br>`link = conn:connect(FUNCTION func, [STRING name nil], [NUMBER num #conns+1])` -- Connects to the object using function func which will recieve the arguments passed by Fire(...). You can name a connection, which allows you to use conn:getConnection(name). Names must be unique! num is simple the position in the order in which connections are triggered. The return Link is the link to the connected event that was made. You can remove this event or even trigger it specifically if need be.
-</br>`link:Fire(...)` -- Fires the created event
-</br>`bool = link:Destroy()` -- returns true if success.
-</br>`subConn = conn:getConnection(STRING name, BOOLEAN ingore)` -- returns the sub connection which matches name.
-returns or nil subConn:Fire() -- "returns" if non-nil is a table containing return values from the triggered connections.
-</br>`self = conn:tofile(STRING path)` -- Saves the object to a file at location path
+`conn = multi:newConnection([BOOLEAN: protect true],FUNCTION: callback, BOOLEAN: kill false)` -- 
+Creates a connection object and defaults to a protective state. All calls will run within pcall() callback if it exists will be triggered each time the connection is fired. kill when set to true makes the connection object work like a queue. Where all the events that are fired is removed from the queue.
+- `self = conn:HoldUT([NUMBER n 0])` -- Will hold futhur execution of the thread until the connection was triggered. If n is supplied the connection must be triggered n times before it will allow ececution to continue.
+- `conntable_old = conn:Bind(TABLE conntable)` -- sets the table to hold the connections. A quick way to destroy all connections is by binding it to a new table.
+- `conntable = conn:Remove()` -- Removes all connections. Returns the conntable
+- `link = conn:connect(FUNCTION func, [STRING name nil], [NUMBER num #conns+1])` -- Connects to the object using function func which will recieve the arguments passed by Fire(...). You can name a connection, which allows you to use conn:getConnection(name). Names must be unique! num is simple the position in the order in which connections are triggered. The return Link is the link to the connected event that was made. You can remove this event or even trigger it specifically if need be.
+- `link:Fire(...)` -- Fires the created event
+- `bool = link:Destroy()` -- returns true if success.
+- `subConn = conn:getConnection(STRING name, BOOLEAN ingore)` -- returns the sub connection which matches name.
+returns or nil
+	- subConn:Fire() -- "returns" if non-nil is a table containing return values from the triggered connections.
+- `self = conn:tofile(STRING path)` -- Saves the object to a file at location path
 
 The connect feature has some syntax sugar to it as seen below
-</br>`link = conn(FUNCTION func, [STRING name nil], [NUMBER #conns+1])`
+- `link = conn(FUNCTION func, [STRING name nil], [NUMBER #conns+1])`
 
 Example:
 ```lua
@@ -202,61 +191,26 @@ print("------")
 OnCustomSafeEvent:Fire(1,100,"Hi Ya Folks!!!") -- fire them all again!!!
 ```
 
-# Non-Actor: Jobs
-`nil = multi:newJob(FUNCTION func, STRING name)` -- Adds a job to a queue of jobs that get executed after some time. func is the job that is being ran, name is the name of the job.
-</br>`nil = multi:setJobSpeed(NUMBER n)` -- seconds between when each job should be done.
-</br>`bool, number = multi:hasJobs()` -- returns true if there are jobs to be processed. And the number of jobs to be processed
-</br>`num = multi:getJobs()` -- returns the number of jobs left to be processed.
-</br>`number = multi:removeJob(STRING name)` -- removes all jobs of name, name. Returns the number of jobs removed
-
-**Note:** Jobs may be turned into actual objects in the future.
-
-Example:
-```lua
-local multi = require("multi")
-print(multi:hasJobs())
-multi:setJobSpeed(1) -- set job speed to 1 second
-multi:newJob(function()
-    print("A job!")
-end,"test")
-
-multi:newJob(function()
-    print("Another job!")
-    multi:removeJob("test") -- removes all jobs with name "test"
-end,"test")
-
-multi:newJob(function()
-    print("Almost done!")
-end,"test")
-
-multi:newJob(function()
-    print("Final job!")
-end,"test")
-print(multi:hasJobs())
-print("There are "..multi:getJobs().." jobs in the queue!")
-multi:mainloop()
-```
-
 # Universal Actor methods
 All of these functions are found on actors
-</br>`self = multiObj:Pause()` -- Pauses the actor from running
-</br>`self = multiObj:Resume()` -- Resumes the actor that was paused
-</br>`nil = multiObj:Destroy()` -- Removes the object from the mainloop
-</br>`bool = multiObj:isPaused()` -- Returns true if the object is paused, false otherwise
-</br>`string = multiObj:getType()` -- Returns the type of the object
-</br>`self = multiObj:SetTime(n)` -- Sets a timer, and creates a special "timemaster" actor, which will timeout unless ResolveTimer is called
-</br>`self = multiObj:ResolveTimer(...)` -- Stops the timer that was put onto the multiObj from timing out
-</br>`self = multiObj:OnTimedOut(func)` -- If ResolveTimer was not called in time this event will be triggered. The function connected to it get a refrence of the original object that the timer was created on as the first argument.
-</br>`self = multiObj:OnTimerResolved(func)` -- This event is triggered when the timer gets resolved. Same argument as above is passed, but the variable arguments that are accepted in resolvetimer are also passed as well.
-</br>`self = multiObj:Reset(n)` -- In the cases where it isn't obvious what it does, it acts as Resume()
-</br>`self = multiObj:SetName(STRING name)`
+- `self = multiObj:Pause()` -- Pauses the actor from running
+- `self = multiObj:Resume()` -- Resumes the actor that was paused
+- `nil = multiObj:Destroy()` -- Removes the object from the mainloop
+- `bool = multiObj:isPaused()` -- Returns true if the object is paused, false otherwise
+- `string = multiObj:getType()` -- Returns the type of the object
+- `self = multiObj:SetTime(n)` -- Sets a timer, and creates a special "timemaster" actor, which will timeout unless ResolveTimer is called
+- `self = multiObj:ResolveTimer(...)` -- Stops the timer that was put onto the multiObj from timing out
+- `self = multiObj:OnTimedOut(func)` -- If ResolveTimer was not called in time this event will be triggered. The function connected to it get a refrence of the original object that the timer was created on as the first argument.
+- `self = multiObj:OnTimerResolved(func)` -- This event is triggered when the timer gets resolved. Same argument as above is passed, but the variable arguments that are accepted in resolvetimer are also passed as well.
+- `self = multiObj:Reset(n)` -- In the cases where it isn't obvious what it does, it acts as Resume()
+- `self = multiObj:SetName(STRING name)`
 
 # Actor: Events
 `event = multi:newEvent(FUNCTION task)`
 The object that started it all. These are simply actors that wait for a condition to take place, then auto triggers an event. The event when triggered once isn't triggered again unless you Reset() it.
 
-`self = SetTask(FUNCTION func)` -- This function is not needed if you supplied task at construction time
-</br>`self = OnEvent(FUNCTION func)` -- Connects to the OnEvent event passes argument self to the connectee
+- `self = event:SetTask(FUNCTION func)` -- This function is not needed if you supplied task at construction time
+- `self = event:OnEvent(FUNCTION func)` -- Connects to the OnEvent event passes argument self to the connectee
 
 Example:
 ```lua
@@ -275,11 +229,12 @@ multi:mainloop()
 ```
 
 # Actor: Updaters
-`updater =  multi:newUpdater([NUMBER skip 1])` -- set the amount of steps that are skipped
+`updater =  multi:newUpdater([NUMBER skip 1])` -- set the amount of steps that are skipped. 
+
 Updaters are a mix between both loops and steps. They were a way to add basic priority management to loops (until a better way was added). Now they aren't as useful, but if you do not want the performance hit of turning on priority then they are useful to auro skip some loops. Note: The performance hit due to priority management is not as bas as it used to be. 
 
-`self = updater:SetSkip(NUMBER n)` -- sets the amount of steps that are skipped
-</br>`self = OnUpdate(FUNCTION func)` -- connects to the main trigger of the updater which is called every nth step
+- `self = updater:SetSkip(NUMBER n)` -- sets the amount of steps that are skipped
+- `self = OnUpdate(FUNCTION func)` -- connects to the main trigger of the updater which is called every nth step
 
 Example:
 ```lua
@@ -295,8 +250,8 @@ multi:mainloop()
 `alarm = multi:newAlarm([NUMBER 0])` -- creates an alarm which waits n seconds
 Alarms ring after a certain amount of time, but you need to reset the alarm every time it rings! Use a TLoop if you do not want to have to reset.
 
-`self = alarm:Reset([NUMBER sec current_time_set])` -- Allows one to reset an alarm, optional argument to change the time until the next ring.
-</br>`self = alarm:OnRing(FUNCTION func` -- Allows one to connect to the alarm event which is triggerd after a certain amount of time has passed.
+- `self = alarm:Reset([NUMBER sec current_time_set])` -- Allows one to reset an alarm, optional argument to change the time until the next ring.
+- `self = alarm:OnRing(FUNCTION func` -- Allows one to connect to the alarm event which is triggerd after a certain amount of time has passed.
 
 Example:
 ```lua
@@ -313,7 +268,7 @@ multi:mainloop()
 `loop = multi:newLoop(FUNCTION func)` -- func the main connection that you can connect to. Is optional, but you can also use OnLoop(func) to connect as well.
 Loops are events that happen over and over until paused. They act like a while loop.
 
-`self = OnLoop(FUNCTION func)`  -- func the main connection that you can connect to. Alllows multiple connections to one loop if need be.
+- `self = OnLoop(FUNCTION func)`  -- func the main connection that you can connect to. Alllows multiple connections to one loop if need be.
 
 Example:
 ```lua
@@ -333,7 +288,7 @@ multi:mainloop()
 # Actor: TLoops
 `tloop = multi:newTLoop(FUNCTION func ,NUMBER: [set 1])` -- TLoops are pretty much the same as loops. The only difference is that they take set which is how long it waits, in seconds, before triggering function func.
 
-`self = OnLoop(FUNCTION func)`  -- func the main connection that you can connect to. Alllows multiple connections to one TLoop if need be.
+- `self = OnLoop(FUNCTION func)`  -- func the main connection that you can connect to. Alllows multiple connections to one TLoop if need be.
 
 Example:
 ```lua
@@ -353,10 +308,11 @@ multi:mainloop()
 # Actor: Steps
 `step = multi:newStep(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Steps were originally introduced to bs used as for loops that can run parallel with other code. When using steps think of it like this: `for i=start,reset,count do` When the skip argument is given, each time the step object is given cpu cycles it will be skipped by n cycles. So if skip is 1 every other cpu cycle will be alloted to the step object.
 
-`self = step:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
-</br>`self = step:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
-</br>`self = step:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
-</br>`self = step:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
+- `self = step:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
+- `self = step:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
+- `self = step:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
+- `self = step:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER skip 0])` -- Update can be used to change the goals of the step.
+- `self = step:Reset()` -- Resets the step
 
 Example:
 ```lua
@@ -373,11 +329,11 @@ multi:mainloop()
 # Actor: TSteps
 `tstep = multi:newStep(NUMBER start, NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- TSteps work just like steps, the only difference is that instead of skip, we have set which is how long in seconds it should wait before triggering the OnStep() event.
 
-`self = tstep:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
-</br>`self = tstep:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
-</br>`self = tstep:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
-</br>`self = tstep:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
-</br>`self = tstep:Reset([NUMBER n set])` -- Allows you to reset a tstep that has ended, but also can change the time between each trigger.
+- `self = tstep:OnStart(FUNCTION func(self))` -- This connects a function to an event that is triggered everytime a step starts.
+- `self = tstep:OnStep(FUNCTION func(self,i))` -- This connects a function to an event that is triggered every step or cycle that is alloted to the step object
+- `self = tstep:OnEnd(FUNCTION func(self))` -- This connects a function to an event that is triggered when a step reaches its goal
+- `self = tstep:Update(NUMBER start,*NUMBER reset, [NUMBER count 1], [NUMBER set 1])` -- Update can be used to change the goals of the step. You should call step:Reset() after using Update to restart the step.
+- `self = tstep:Reset([NUMBER n set])` -- Allows you to reset a tstep that has ended, but also can change the time between each trigger.
 
 Example:
 ```lua
@@ -394,38 +350,67 @@ multi:mainloop()
 # Coroutine based Threading (CBT)
 Helpful methods are wrapped around the builtin coroutine module which make it feel like real threading.
 
-# threads.* used within threaded enviroments
-`thread.sleep(NUMBER n)` -- Holds execution of the thread until a certain amount of time has passed
-</br>`thread.hold(FUNCTION func)` -- Hold execttion until the function returns true
-</br>`thread.skip(NUMBER n)` -- How many cycles should be skipped until I execute again
-</br>`thread.kill()` -- Kills the thread
-</br>`thread.yeild()` -- Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
-</br>`thread.isThread()` -- Returns true if the current running code is inside of a coroutine based thread
-</br>`thread.getCores()` -- Returns the number of cores that the current system has. (used for system threads)
-</br>`thread.set(STRING name, VARIABLE val)` -- A global interface where threads can talk with eachother. sets a variable with name and its value
-</br>`thread.get(STRING name)` -- Gets the data stored in name
-</br>`thread.waitFor(STRING name)` -- Holds executon of a thread until variable name exists
+**threads.\* used within threaded enviroments**
+- `thread.sleep(NUMBER n)` -- Holds execution of the thread until a certain amount of time has passed
+- `VARIABLE returns = thread.hold(FUNCTION func)` -- Hold execution until the function returns non nil. All returns are passed to the thread once the conditions have been met. To pass nil use `multi.NIL` 
+- `thread.skip(NUMBER n)` -- How many cycles should be skipped until I execute again
+- `thread.kill()` -- Kills the thread
+- `thread.yeild()` -- Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
+- `BOOLEAM bool = thread.isThread()` -- Returns true if the current running code is inside of a coroutine based thread
+- `NUMBER conres = thread.getCores()` -- Returns the number of cores that the current system has. (used for system threads)
+- `thread.set(STRING name, VARIABLE val)` -- A global interface where threads can talk with eachother. sets a variable with name and its value
+- `thread.get(STRING name)` -- Gets the data stored in name
+- `VARIABLE val = thread.waitFor(STRING name)` -- Holds executon of a thread until variable name exists
+- `thread.request(THREAD th,STRING cmd, VARIABLE args)` -- Sends a request to the selected thread telling it to do a certain command
+- `th = thread.getRunningThread()` -- Returns the currently running thread
+- `VARIABLE returns or nil, "TIMEOUT" = thread.holdFor()` -- Holds until a condidtion is met, or if there is a timeout nil,"TIMEOUT"
+- `VARIABLE returns or nil, "TIMEOUT" = thread.holdWithin(NUMBER: skip, FUNCTION: func)` -- Holds until a condition is met or n cycles have happened.
+- `returns or handler = thread:newFunction(FUNCTION: func, [BOOLEAN: holdme false])` -- func: The function you want to be threaded. holdme: If true the function waits until it has returns and then returns them. Otherwise the function returns a table
+	- `handler.connect(Function: func(returns))` -- Connects to the event that is triggered when the returns are avaiable
+	- `VARIAABLE returns = handler.wait()`  -- Waits until returns are avaiable and then returns them
+
+# CBT: newService(FUNCTION: func)
+`serv = newService(FUNCTION: func(self,TABLE: data))`
+- `serv.OnError(FUNCTION: func)` -- connection that fired if there is an error
+- `serv.OnStopped(FUNCTION: func(serv))` -- connection that is fired when a service is stopped
+- `serv.OnStarted(FUNCTION: func(serv))` -- connection that is fired when a service is started
+- `serv.Start()` -- Starts the service
+- `serv.Stop()` -- Stops the service and destroys the data table
+- `serv.Pause()` -- Pauses the service
+- `serv.Resume()` -- Resumes the service
+- `serv.GetUpTime()` -- Returns the amount of time the service has been running
+- `serv.SetPriority(PRIORITY: pri)` -- Sets the priority of the service
+	- `multi.Priority_Core`
+	- `multi.Priority_Very_High`
+	- `multi.Priority_High`
+	- `multi.Priority_Above_Normal`
+	- `multi.Priority_Normal` **Default**
+	- `multi.Priority_Below_Normal`
+	- `multi.Priority_Low`
+	- `multi.Priority_Very_Low`
+	- `multi.Priority_Idle`
+- `serv.SetScheme(NUMBER: n)` -- Sets the scheme of the priority management
+	- `1` **Default** -- uses a time based style of yielding. thread.sleep()
+	- `2` -- uses a cycle based style of yielding. thread.skip()
+- `CONVERTS(serv) = serv.Destroy()` -- Stops the service then Destroys the service triggering all events! The service becomes a destroyed object
 
 # CBT: newThread()
 `th = multi:newThread([STRING name,] FUNCTION func)` -- Creates a new thread with name and function.
 
 Constants
 ---
-`th.Name` -- Name of thread
-</br>`th.Type` -- Type="thread"
-</br>`th.TID` -- Thread ID
+- `th.Name` -- Name of thread
+- `th.Type` -- Type="thread"
+- `th.TID` -- Thread ID
+- `conn = th.OnError(FUNCTION: callback)` -- Connect to an event which is triggered when an error is encountered within a thread
+- `conn = th.OnDeath(FUNCTION: callback)` -- Connect to an event which is triggered when the thread had either been killed or stopped running. (Not triggered when there is an error!)
+- `boolean = th:isPaused()`\* -- Returns true if a thread has been paused
+- `self = th:Pause()`\* -- Pauses a thread
+- `self = th:Resume()`\* -- Resumes a paused thread
+- `self = th:Kill()`\* -- Kills a thread
+- `self = th:Destroy()`\* -- Destroys a thread
 
-Methods
----
-`conn = th.OnError(FUNCTION: callback)` -- Connect to an event which is triggered when an error is encountered within a thread
-</br>`conn = th.OnDeath(FUNCTION: callback)` -- Connect to an event which is triggered when the thread had either been killed or stopped running. (Not triggered when there is an error!)
-</br>`boolean = th:isPaused()`* -- Returns true if a thread has been paused
-</br>`(self)th = th:Pause()`* -- Pauses a thread
-</br>`(self)th = th:Resume()`* -- Resumes a paused thread
-</br>`(self)th = th:Kill()`* -- Kills a thread
-</br>`(self)th = th:Destroy()*` -- Destroys a thread
-
-*When using these methods on a thread directly you are making a request to a thread! The thread may not accept your request, but it most likely will. You can contorl the thread flow within the thread's function itself
+<b>*</b>Using these methods on a thread directly you are making a request to a thread! The thread may not accept your request, but it most likely will. You can contorl the thread flow within the thread's function itself
 
 Examples:
 ```lua
@@ -440,53 +425,45 @@ end)
 multi:mainloop()
 ```
 
-
-HERE
-
-
-System Threads (ST) - Multi-Integration Getting Started
--------------------------------------------------------
+# System Threads (ST) - Multi-Integration Getting Started
 The system threads need to be required seperatly.
 ```lua
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init()# -- We will talk about the global and thread interface that is returned
-GLOBAL, THREAD = require("multi.integration.loveManager").init()
-GLOBAL, THREAD = require("luvitManager")-- There is a catch to this*
+-- I recommend keeping these as globals. When using lanes you can use local and things will work, but if you use love2d and locals, upvalues are not transfered over threads and this can be an issue
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init() -- We will talk about the global and thread interface that is returned
+GLOBAL, THREAD = require("multi.integration.loveManager"):init()
+GLOBAL, THREAD = require("luvitManager") --*
 ```
 Using this integration modifies some methods that the multi library has.
-`multi:canSystemThread()` -- Returns true is system threading is possible
-`multi:getPlatform()` -- Returns (for now) either "lanes", "love2d" and "luvit"
-This variable is created on the main thread only inside of the multi namespace: multi.isMainThread = true
-This is used to know which thread is the main thread. When network threads are being discussed there is a gotcha that needs to be addressed.
+- `multi:canSystemThread()` -- Returns true if system threading is possible.
+- `multi:getPlatform()` -- Returns (for now) either "lanes", "love2d" and "luvit"
+- `multi.isMainThread = true` -- This is only modified on the main thread. So code that moves from one thread to another knows where it's at.
 
-`*` GLOBAL and THREAD do not work currently when using the luvit integration
-`#`So you may have noticed that when using the lanes manager you need to make the global and thread local, this is due to how lanes copies local variables between states. Also love2d does not require this, actually things will break if this is done! Keep these non local since the way threading is handled at the lower level is much different anyway so GLOBAL and THREAD is automatically set up for use within a spawned thread!
+<b>*</b>GLOBAL and THREAD do not do anything when using the luvit integration
 
-ST - THREAD namespace
----------------------
-`THREAD.set(STRING name, VALUE val)` -- Sets a value in GLOBAL
-`THREAD.get(STRING name)` -- Gets a value in GLOBAL
-`THREAD.waitFor(STRING name)` -- Waits for a value in GLOBAL to exist
-`THREAD.testFor(STRING name, VALUE val, STRING sym)` -- **NOT YET IMPLEMENTED** but planned
-`THREAD.getCores()` -- Returns the number of actual system threads/cores
-`THREAD.kill()` -- Kills the thread
-`THREAD.getName()` -- Returns the name of the working thread
-`THREAD.sleep(NUMBER n)` -- Sleeps for an amount of time stopping the current thread
-`THREAD.hold(FUNCTION func)` -- Holds the current thread until a condition is met
-`THREAD.getID()` -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id
+# ST - THREAD namespace
+- `THREAD.set(STRING name, VALUE val)` -- Sets a value in GLOBAL
+- `THREAD.get(STRING name)` -- Gets a value in GLOBAL
+- `THREAD.waitFor(STRING name)` -- Waits for a value in GLOBAL to exist
+- `THREAD.getCores()` -- Returns the number of actual system threads/cores
+- `THREAD.kill()` -- Kills the thread
+- `THREAD.getName()` -- Returns the name of the working thread
+- `THREAD.sleep(NUMBER n)` -- Sleeps for an amount of time stopping the current thread
+- `THREAD.hold(FUNCTION func)` -- Holds the current thread until a condition is met
+- `THREAD.getID()` -- returns a unique ID for the current thread. This varaiable is visible to the main thread as well as by accessing it through the returned thread object. OBJ.Id
 
-ST - GLOBAL namespace
----------------------
+# ST - GLOBAL namespace
 Treat global like a table.
 ```lua
 GLOBAL["name"] = "Ryan"
 print(GLOBAL["name"])
 ```
 Removes the need to use THREAD.set() and THREAD.get()
+
 ST - System Threads
 -------------------
-`systemThread = multi:newSystemThread(STRING thread_name,FUNCTION spawned_function,ARGUMENTS ...)` -- Spawns a thread with a certain name.
-`systemThread:kill()` -- kills a thread; can only be called in the main thread!
-`systemThread.OnError(FUNCTION(systemthread,errMsg,errorMsgWithThreadName))`
+- `systemThread = multi:newSystemThread(STRING thread_name, FUNCTION spawned_function,ARGUMENTS ...)` -- Spawns a thread with a certain name.
+- `systemThread:kill()` -- kills a thread; can only be called in the main thread!
+- `systemThread.OnError(FUNCTION(systemthread,errMsg,errorMsgWithThreadName))`
 
 System Threads are the feature that allows a user to interact with systen threads. It differs from regular coroutine based thread in how it can interact with variables. When using system threads the GLOBAL table is the "only way"* to send data. Spawning a System thread is really simple once all the required libraries are in place. See example below:
 
@@ -509,12 +486,11 @@ end,1)
 multi:mainloop()
 ```
 
-*This isn't entirely true, as of right now the compatiablity with the lanes library and love2d engine have their own methods to share data, but if you would like to have your code work in both enviroments then using the GLOBAL table and the data structures provided by the multi library will ensure this happens. If you do not plan on having support for both platforms then feel free to use linda's in lanes and channels in love2d.
+<b>*</b>This isn't entirely true, as of right now the compatiablity with the lanes library and love2d engine have their own methods to share data, but if you would like to have your code work in both enviroments then using the GLOBAL table and the data structures provided by the multi library will ensure this happens. If you do not plan on having support for both platforms then feel free to use linda's in lanes and channels in love2d.
 
-Note: luvit currently has very basic support, it only allows the spawning of system threads, but no way to send data back and forth as of yet. I do not know if this is doable or not, but I will keep looking into it. If I can somehow emulate System Threaded Queues and the GLOBAL tabke then all other datastructures will work!
+**Note:** luvit currently has very basic support, it only allows the spawning of system threads, but no way to send data back and forth as of yet. I do not know if this is doable or not, but I will keep looking into it.
 
-ST - System Threaded Objects
-----------------------------
+# ST - System Threaded Objects
 Great we are able to spawn threads, but unless your working with a process that works on passed data and then uses a socket or writes to the disk I can't do to much with out being able to pass data between threads. This section we will look at how we can share objects between threads. In order to keep the compatibility between both love2d and lanes I had to format the system threaded objects in a strange way, but they are consistant and should work on both enviroments.
 
 When creating objects with a name they are automatically exposed to the GLOBAL table. Which means you can retrieve them from a spawned thread. For example we have a queue object, which will be discussed in more detail next.
@@ -533,23 +509,18 @@ end)
 multi:mainloop()
 ```
 
-ST - SystemThreadedQueue
-------------------------
-`queue(nonInit) = multi:newSystemThreadedQueue(STRING name)` -- You must enter a name!
-`queue = queue:init()` -- initiates the queue, without doing this it will not work
-`void = queue:push(DATA data)` -- Pushes data into a queue that all threads that have been shared have access to
-`data = queue:pop()` -- pops data from the queue removing it from all threads
-`data = queue:peek()` -- looks at data that is on the queue, but dont remove it from the queue
-
-This object the System Threaded Queue is the basis for all other data structures that a user has access to within the "shared" objects.
-
-General tips when using a queue. You can always pop from a queue without worrying if another thread poped that same data, BUT if you are peeking at a queue there is the possibility that another thread popped the data while you are peeking and this could cause an issue, depends on what you are doing though. It's important to keep this in mind when using queues.
+# ST - SystemThreadedQueue
+- `queue(nonInit) = multi:newSystemThreadedQueue(STRING name)` -- You must enter a name!
+- `queue = queue:init()` -- initiates the queue, without doing this it will not work
+- `void = queue:push(DATA data)` -- Pushes data into a queue that all threads that have been shared have access to
+- `data = queue:pop()` -- pops data from the queue removing it from all threads
+- `data = queue:peek()` -- looks at data that is on the queue, but dont remove it from the queue
 
 Let's get into some examples:
 ```lua
 multi = require("multi")
 thread_names = {"Thread_A","Thread_B","Thread_C","Thread_D"}
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+local GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 queue = multi:newSystemThreadedQueue("myQueue"):init()
 for _,n in pairs(thread_names) do
 	multi:newSystemThread(n,function()
@@ -576,87 +547,66 @@ multi:mainloop()
 
 You have probable noticed that the output from this is a total mess! Well I though so too, and created the system threaded console!
 
-ST - SystemThreadedConsole
---------------------------
-`console(nonInit) = multi:newSystemThreadedConsole(STRING name)` -- Creates a console object called name. The name is mandatory!
-`concole = console:inti()` -- initiates the console object
-`console:print(...)` -- prints to the console
-`console:write(msg)` -- writes to the console, to be fair you wouldn't want to use this one.
+# ST - SystemThreadedJobQueue
+`jq = multi:newSystemThreadedJobQueue([NUMBER: threads])` -- Creates a system threaded job queue with an optional number of threads
+- `jq.cores = (supplied number) or (the number of cores on your system*2)`
+- `jq.OnJobCompleted(FUNCTION: func(jID,...))` -- Connection that is triggered when a job has been completed. The jobID and returns of the job are supplies as arguments
+- `self = jq:doToAll(FUNCTION: func)` -- Send data to every thread in the job queue. Useful if you want to require a module and have it available on all threads
+- `self = jq:registerFunction(STRING: name, FUNCTION: func)` -- Registers a function on the job queue. Name is the name of function func
+- `jID = jq:pushJob(STRING: name,[...])` -- Pushes a job onto the jobqueue
+- `handler = jq:newFunction([STRING: name], FUNCTION: func)` -- returns a threaded Function that wraps around jq.registerFunction, jq.pushJob() and jq.OnJobCompleted() to provide an easy way to create and work with the jobqueue
+	- `handler.connect(Function: func(returns))` -- Connects to the event that is triggered when the returns are avaiable
+	- `VARIAABLE returns = handler.wait()`  -- Waits until returns are avaiable and then returns them
+**Note:** Created functions using this method act as normal functions on the queue side of things. So you can call the functions from other queue functions as if they were normal functions.
 
-The console makes printing from threads much cleaner. We will use the same example from above with the console implemented and compare the outputs and how readable they now are!
-
+Example:
 ```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 multi = require("multi")
-thread_names = {"Thread_A","Thread_B","Thread_C","Thread_D"}
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
-multi:newSystemThreadedConsole("console"):init()
-queue = multi:newSystemThreadedQueue("myQueue"):init()
-for _,n in pairs(thread_names) do
-	multi:newSystemThread(n,function()
-		local queue = THREAD.waitFor("myQueue"):init()
-		local console = THREAD.waitFor("console"):init()
-		local name = THREAD.getName()
-		local data = queue:pop()
-		while data do
-        	--THREAD.sleep(.1) -- uncomment this to see them all work
-			console:print(name.." "..data)
-			data = queue:pop()
-		end
-	end)
-end
-for i=1,100 do
-	queue:push(math.random(1,1000))
-end
-multi:newEvent(function()
-	return not queue:peek()
-end):OnEvent(function()
-	multi:newAlarm(.1):OnRing(function() -- Well the mainthread has to read from an internal queue so we have to wait a sec
-		print("No more data within the queue!")
-		os.exit()
-	end)
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+local jq = multi:newSystemThreadedJobQueue(4) -- job queue using 4 cores
+jq:doToAll(function()
+	Important = 15
 end)
-multi:mainloop()
+jq:registerFunction("test",function(a,b)
+	--print(a,b,a+b)
+	return true
+end)
+jq.OnJobCompleted(function(jid,arg)
+	print(jid,arg)
+end)
+local jid = jq:pushJob("test",10,5)
+print("Job pushed! ID = ".. jid)
+local func = jq:newFunction("test2",function(a,b)
+    print(a,b,a*b)
+    return
+end)
+print("Waited",func(10,5).wait())
+func(5,5).connect(function(ret)
+    print("Connected",ret)
+    os.exit()
+end)
+multi:lightloop()
 ```
+# ST - SystemThreadedTable
+`stt = multi:newSystemThreadedTable(STRING: name)`
+- `stt:init()` -- Used to init object over threads
+- `stt[var] = val`
+- `val = stt[var]`
 
-As you see the output here is so much cleaner, but we have a small gotcha, you probably noticed that I used an alarm to delay the exiting of the program for a bit. This is due to how the console object works, I send all the print data into a queue that the main thread then reads and prints out when it looks at the queue. This should not be an issue since you gain so much by having clean outputs!
-
-Another thing to note, because system threads are put to work one thread at a time, really quick though, the first thread that is loaded is able to complete the tasks really fast, its just printing after all. If you want to see all the threads working uncomment the code with THREAD.sleep(.1)
-
-ST - SystemThreadedJobQueue
----------------------------
-
-ST - SystemThreadedConnection - WIP*
------------------------------
-`connection(nonInit) = multi:newSystemThreadedConnection(name,protect)` -- creates a connecion object
-`connection = connection:init()` -- initaties the connection object
-`connectionID = connection:connect(FUNCTION func)` -- works like the regular connect function
-`void = connection:holdUT(NUMBER/FUNCTION n)` -- works just like the regular holdut function
-`void = connection:Remove()` -- works the same as the default
-`voic = connection:Fire(ARGS ...)` -- works the same as the default
-
-In the current form a connection object requires that the multi:mainloop() is running on the threads that are sharing this object! By extention since SystemThreadedTables rely on SystemThreadedConnections they have the same requirements. Both objects should not be used for now. 
-
-Since the current object is not in a stable condition, I will not be providing examples of how to use it just yet!
-
-*The main issue we have with the connection objects in this form is proper comunication and memory managament between threads. For example if a thread crashes or no longer exists the current apporach to how I manage the connection objects will cause all connections to halt. This feature is still being worked on and has many bugs to be patched out. for now only use for testing purposes.
-
-ST - SystemThreadedTable - WIP*
-------------------------
-
-ST - SystemThreadedBenchmark
-----------------------------
-`bench = multi:SystemThreadedBenchmark(NUMBER seconds)` -- runs a benchmark for a certain amount of time
-`bench:OnBench(FUNCTION callback(NUMBER steps/second))`
+Example:
 ```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 multi = require("multi")
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
-multi:SystemThreadedBenchmark(1).OnBench(function(...)
-	print(...)
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+local stt = multi:newSystemThreadedTable("stt")
+stt["hello"] = "world"
+multi:newSystemThread("test thread",function()
+    local stt = GLOBAL["stt"]:init()
+    print(stt["hello"])
 end)
-multi:mainloop()
+multi:lightloop()
 ```
-ST - SystemThreadedExecute WIP* Might remove
---------------------------
+# Network Threads - Multi-Integration WIP Being Reworked
+More of a fun project of mine then anything core to to the library it will be released and documented when it is ready. I do not have a timeframe for this
 
-Network Threads - Multi-Integration
------------------------------------

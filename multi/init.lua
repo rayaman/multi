@@ -364,7 +364,6 @@ function multi:newConnection(protect,func,kill)
 	c.ID=0
 	c.protect=protect or true
 	c.connections={}
-	c.fconnections={}
 	c.FC=0
 	function c:holdUT(n)
 		local n=n or 0
@@ -383,13 +382,6 @@ function multi:newConnection(protect,func,kill)
 		return self
 	end
 	c.HoldUT=c.holdUT
-	function c:fConnect(func)
-		local temp=self:connect(func)
-		table.insert(self.fconnections,temp)
-		self.FC=self.FC+1
-		return self
-	end
-	c.FConnect=c.fConnect
 	function c:getConnection(name,ignore)
 		if ignore then
 			return self.connections[name] or CRef
@@ -427,12 +419,14 @@ function multi:newConnection(protect,func,kill)
 		return ret
 	end
 	function c:Bind(t)
+		local temp = self.func
 		self.func=t
-		return self
+		return temp
 	end
 	function c:Remove()
+		local temp = self.func
 		self.func={}
-		return self
+		return temp
 	end
 	local function conn_helper(self,func,name,num)
 		self.ID=self.ID+1
@@ -995,9 +989,6 @@ function thread._Requests()
 		thread[cmd](unpack(args))
 	end
 end
-function thread.exec(func)
-	func()
-end
 function thread.sleep(n)
 	thread._Requests()
 	thread.getRunningThread().lastSleep = clock()
@@ -1137,35 +1128,6 @@ function thread:newFunction(func,holdme)
 		}
 		return temp
     end
-end
-function thread.run(func)
-	local threaddata,t2,t3,t4,t5,t6
-	local t = multi:newThread("Temp_Thread",func)
-	t.OnDeath(function(self,status, r1,r2,r3,r4,r5,r6)
-		threaddata,t2,t3,t4,t5,t6 = r1,r2,r3,r4,r5,r6
-	end)
-	return thread.hold(function()
-		return threaddata,t2,t3,t4,t5,t6
-	end)
-end
-function thread.testFor(name,_val,sym)
-	thread.hold(function()
-		local val = thread.get(name)~=nil
-		if val then
-			if sym == "==" or sym == "=" then
-				return _val==val
-			elseif sym == ">" then
-				return _val>val
-			elseif sym == "<" then
-				return _val<val
-			elseif sym == "<=" then
-				return _val<=val
-			elseif sym == ">=" then
-				return _val>=val
-			end
-		end
-	end)
-	return thread.get(name)
 end
 function multi:newThread(name,func,...)
 	multi.OnLoad:Fire()
@@ -1356,6 +1318,7 @@ function multi.initThreads(justThreads)
 				helper(i)
 			end
 			if threads[i] and not _ then
+				print("TESTING",threads[i])
 				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
 				threads[i].isError = true
 			end
@@ -1371,7 +1334,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "hold" then --GOHERE
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					if t0==multi.NIL then
 						t0 = nil
 					end
@@ -1385,7 +1348,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "holdF" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif clock() - threads[i].time>=threads[i].sec then
@@ -1397,7 +1360,7 @@ function multi.initThreads(justThreads)
 			elseif threads[i] and threads[i].task == "holdW" then
 				threads[i].pos = threads[i].pos + 1
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif threads[i].count==threads[i].pos then
@@ -1429,7 +1392,6 @@ end
 function multi:newService(func) -- Priority managed threads
 	local c = {}
 	c.Type = "service"
-	c.OnError = multi:newConnection()
 	c.OnStopped = multi:newConnection()
 	c.OnStarted = multi:newConnection()
 	local Service_Data = {}
@@ -1440,10 +1402,12 @@ function multi:newService(func) -- Priority managed threads
 	local task = thread.sleep
 	local scheme = 1
 	function c.Start()
-		time = multi:newTimer()
-		time:Start()
-		active = true
-		c:OnStarted(c,Service_Data)
+		if not active then
+			time = multi:newTimer()
+			time:Start()
+			active = true
+			c:OnStarted(c,Service_Data)
+		end
 		return c
 	end 
 	local function process()
@@ -1462,6 +1426,7 @@ function multi:newService(func) -- Priority managed threads
 	th.OnError = c.OnError -- use the threads onerror as our own
 	function c.Destroy()
 		th:kill()
+		c.Stop()
 		multi.setType(c,multi.DestroyedObj)
 	end
 	function c:SetScheme(n)
@@ -1480,22 +1445,28 @@ function multi:newService(func) -- Priority managed threads
 		return c
 	end
 	function c.Stop()
-		c:OnStopped(c)
-		Service_Data = {}
-		time:Reset()
-		time:Pause()
-		time = nil
-		active = false
+		if active then
+			c:OnStopped(c)
+			Service_Data = {}
+			time:Reset()
+			time:Pause()
+			time = nil
+			active = false
+		end
 		return c
 	end
 	function c.Pause()
-		time:Pause()
-		active = false
+		if active then
+			time:Pause()
+			active = false
+		end
 		return c
 	end
 	function c.Resume()
-		time:Resume()
-		active = true
+		if not active then
+			time:Resume()
+			active = true
+		end
 		return c
 	end
 	function c.GetUpTime()
