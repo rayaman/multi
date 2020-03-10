@@ -118,6 +118,8 @@ Bug Fixes:
 	- Fixed Issue with connections not returning a connection_link
 - 1.14.3
 	- Fixed Issue with hold like methods not accepting `false` as a valid return
+- 1.14.4
+	- Reverted `false not being valid. Broke many things needs to be reworked`
 
 Going Forward:
 ---
