@@ -415,7 +415,7 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 
 **threads.\* used within threaded enviroments**
 - `thread.sleep(NUMBER n)` — Holds execution of the thread until a certain amount of time has passed
-- `VARIABLE returns = thread.hold(FUNCTION func)` — Hold execution until the function returns non nil. All returns are passed to the thread once the conditions have been met. To pass nil use `multi.NIL` 
+- `VARIABLE returns = thread.hold(FUNCTION func)` — Hold execution until the function returns non nil. All returns are passed to the thread once the conditions have been met. To pass nil use `multi.NIL`\*
 - `thread.skip(NUMBER n)` — How many cycles should be skipped until I execute again
 - `thread.kill()` — Kills the thread
 - `thread.yeild()` — Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
@@ -431,6 +431,8 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 - `returns or handler = thread:newFunction(FUNCTION: func, [BOOLEAN: holdme false])` — func: The function you want to be threaded. holdme: If true the function waits until it has returns and then returns them. Otherwise the function returns a table
 	- `handler.connect(Function: func(returns))` — Connects to the event that is triggered when the returns are avaiable
 	- `VARIAABLE returns = handler.wait()` — Waits until returns are avaiable and then returns them
+
+<b>\*</b>A note about multi.NIL, this should only be used within the hold and hold like methods. thread.hold(), thread.holdFor(), and thread.holdWithin() methods. This is not needed within threaded functions! The reason hold prevents nil and false is because it is testing for a condition so the first argument needs to be non nil nor false! multi.NIL should not be used anywhere else. Sometimes you may need to pass a 'nil' value or return. While you could always return true or something you could use multi.NIL to force a nil value through a hold like method.
 
 # CBT: newService(FUNCTION: func)
 `serv = newService(FUNCTION: func(self,TABLE: data))`
@@ -460,6 +462,7 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 # CBT: newThread()
 `th = multi:newThread([STRING name,] FUNCTION func)` — Creates a new thread with name and function.
 
+when within a thread, if you have any holding code you will want to use thread.* to give time to other threads while your code is running.
 Constants
 ---
 - `th.Name` — Name of thread

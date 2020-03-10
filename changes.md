@@ -80,6 +80,7 @@ Added:
 
 Fixed:
 ---
+- Issue with threaded functions not handling nil properly from returns. This has been resolved and works as expected.
 - Issue with system threaded job queues newFunction() not allowing nil returns! This has be addressed and is no longer an issue.
 - Issue with hold like functions not being able to return `false`
 - Issue with connections not returning a handle for managing a specific conn object.
@@ -119,6 +120,8 @@ Changed:
 
 Removed:
 ---
+- bin dependency from the rockspec
+- Example folder and .html variants of the .md files
 - multi:newTrigger() — Connections do everything this thing could do and more.
 - multi:newHyperThreadedProcess(name)*
 - multi:newThreadedProcess(name)*

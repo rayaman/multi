@@ -20,7 +20,6 @@ build = {
    type = "builtin",
    modules = {
       ["multi"] = "multi/init.lua",
-      ["multi.utils"] = "multi/utils.lua",
       ["multi.compat.love2d"] = "multi/compat/love2d.lua",
       ["multi.integration.lanesManager"] = "multi/integration/lanesManager/init.lua",
       ["multi.integration.lanesManager.extensions"] = "multi/integration/lanesManager/extensions.lua",

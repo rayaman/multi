@@ -1099,7 +1099,7 @@ function thread:newFunction(func,holdme)
 					if err then
 						return multi.NIL, err
 					elseif rets then
-						return unpack(rets) 
+						return (rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7]
 					end
 				end)
 			else
@@ -1109,11 +1109,11 @@ function thread:newFunction(func,holdme)
 				if err then
 					return nil,err
 				end
-				return unpack(rets)
+				return rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7]
 			end
 		end
 		local t = multi:newThread("TempThread",func,...)
-		t.OnDeath(function(self,status,...) rets = {...}  end)
+		t.OnDeath(function(self,status,a1,a2,a3,a4,a5,a6,a7) rets = {a1,a2,a3,a4,a5,a6,a7}  end)
 		t.OnError(function(self,e) err = e end)
 		if holdme then
 			return wait()
@@ -1235,20 +1235,21 @@ function multi.initThreads(justThreads)
 	local r1,r2,r3,r4,r5,r6
 	local ret,_
 	local function CheckRets(i)
-		if ret~=nil and not(threads[i].isError) then
-			if not threads[i] then return end
+		if threads[i] and not(threads[i].isError) then
 			if not _ then
 				threads[i].isError = true
 				threads[i].TempRets[1] = ret
 				return
 			end
-			threads[i].TempRets[1] = ret
-			threads[i].TempRets[2] = r1
-			threads[i].TempRets[3] = r2
-			threads[i].TempRets[4] = r3
-			threads[i].TempRets[5] = r4
-			threads[i].TempRets[6] = r5
-			threads[i].TempRets[7] = r6
+			if ret or r1 or r2 or r3 or r4 or r5 or r6 then
+				threads[i].TempRets[1] = ret
+				threads[i].TempRets[2] = r1
+				threads[i].TempRets[3] = r2
+				threads[i].TempRets[4] = r3
+				threads[i].TempRets[5] = r4
+				threads[i].TempRets[6] = r5
+				threads[i].TempRets[7] = r6
+			end
 		end
 	end
 	local function helper(i)
@@ -1300,8 +1301,8 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				ret = nil
 			end
-			CheckRets(i)
 		end
+		CheckRets(i)
 	end
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
@@ -1322,7 +1323,8 @@ function multi.initThreads(justThreads)
 				threads[i].isError = true
 			end
 			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
-				threads[i].OnDeath:Fire(threads[i],"ended",unpack(threads[i].TempRets or {}))
+				local t = threads[i].TempRets or {}
+				threads[i].OnDeath:Fire(threads[i],"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7])
 				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 			elseif threads[i] and threads[i].task == "skip" then
@@ -1331,7 +1333,7 @@ function multi.initThreads(justThreads)
 					threads[i].task = ""
 					threads[i].__ready = true
 				end
-			elseif threads[i] and threads[i].task == "hold" then --GOHERE
+			elseif threads[i] and threads[i].task == "hold" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
 				if t0 then
 					if t0==multi.NIL then
