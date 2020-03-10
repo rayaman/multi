@@ -1318,7 +1318,6 @@ function multi.initThreads(justThreads)
 				helper(i)
 			end
 			if threads[i] and not _ then
-				print("TESTING",threads[i])
 				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
 				threads[i].isError = true
 			end
@@ -1334,7 +1333,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "hold" then --GOHERE
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0~=nil then
+				if t0 then
 					if t0==multi.NIL then
 						t0 = nil
 					end
@@ -1348,7 +1347,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "holdF" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0~=nil then
+				if t0 then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif clock() - threads[i].time>=threads[i].sec then
@@ -1360,7 +1359,7 @@ function multi.initThreads(justThreads)
 			elseif threads[i] and threads[i].task == "holdW" then
 				threads[i].pos = threads[i].pos + 1
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0~=nil then
+				if t0 then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif threads[i].count==threads[i].pos then
