@@ -28,8 +28,8 @@ local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
-multi.Version = "14.1.1"
-multi._VERSION = "14.1.1"
+multi.Version = "14.1.3"
+multi._VERSION = "14.1.3"
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
@@ -1751,7 +1751,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "hold" then --GOHERE
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					if t0==multi.NIL then
 						t0 = nil
 					end
@@ -1765,7 +1765,7 @@ function multi.initThreads(justThreads)
 				end
 			elseif threads[i] and threads[i].task == "holdF" then
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif clock() - threads[i].time>=threads[i].sec then
@@ -1777,7 +1777,7 @@ function multi.initThreads(justThreads)
 			elseif threads[i] and threads[i].task == "holdW" then
 				threads[i].pos = threads[i].pos + 1
 				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
+				if t0~=nil then
 					threads[i].task = ""
 					threads[i].__ready = true
 				elseif threads[i].count==threads[i].pos then
