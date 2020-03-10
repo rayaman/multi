@@ -28,13 +28,8 @@ local thread = {}
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
-<<<<<<< HEAD
 multi.Version = "14.1.3"
 multi._VERSION = "14.1.3"
-=======
-multi.Version = "14.1.2"
-multi._VERSION = "14.1.2"
->>>>>>> 04c17fe1e6f248b999efb94edeff995e8a4a72a7
 multi.stage = "stable"
 multi.__index = multi
 multi.Name = "multi.root"
