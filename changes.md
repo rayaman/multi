@@ -73,6 +73,10 @@ Going Forward:
 ---
 -  There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
 
+Quality Of Life:
+---
+- threaded functions now return only the arguments that are needed, if it has trailing nils, they wont be returned like they used to.
+
 Added:
 ---
 - Type: destroyed

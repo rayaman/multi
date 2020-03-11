@@ -1090,6 +1090,18 @@ function multi.holdFor(n,func)
 		end
 	end)
 end
+local function cleanReturns(...)
+	local n = select("#", ...)
+	local returns = {...}
+	local rets = {}
+	local ind = 0
+	for i=n,1,-1 do
+		if returns[i] then
+			ind=i
+		end
+	end
+	return unpack(returns,1,ind)
+end
 function thread:newFunction(func,holdme)
     return function(...)
 		local rets, err
@@ -1099,7 +1111,7 @@ function thread:newFunction(func,holdme)
 					if err then
 						return multi.NIL, err
 					elseif rets then
-						return (rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7]
+						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7])
 					end
 				end)
 			else
@@ -1109,11 +1121,11 @@ function thread:newFunction(func,holdme)
 				if err then
 					return nil,err
 				end
-				return rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7]
+				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7])
 			end
 		end
 		local t = multi:newThread("TempThread",func,...)
-		t.OnDeath(function(self,status,a1,a2,a3,a4,a5,a6,a7) rets = {a1,a2,a3,a4,a5,a6,a7}  end)
+		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
 		if holdme then
 			return wait()
@@ -1122,7 +1134,7 @@ function thread:newFunction(func,holdme)
 			isTFunc = true,
 			wait = wait,
 			connect = function(f)
-				t.OnDeath(function(self,status,...) f(...)  end) 
+				t.OnDeath(function(self,status,...) f(cleanReturns(...))  end) 
 				t.OnError(function(self,err) f(err) end) 
 			end
 		}
