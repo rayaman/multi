@@ -1,23 +1,11 @@
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 multi, thread = require("multi"):init()
-a=0
-local function cleanReturns(...)
-	local n = select("#", ...)
-	print(n)
-	local returns = {...}
-	local rets = {}
-	local ind = 0
-	for i=n,1,-1 do
-		if returns[i] then
-			ind=i
-		end
-	end
-	return unpack(returns,1,ind)
-end
-func = thread:newFunction(function()
+func = thread:newFunction(function(a)
 	return thread.holdFor(3,function()
-		return a==5 -- Condition being tested!
+		return a==5 and "This is returned" -- Condition being tested!
 	end)
 end,true)
-print(func())
+print(func(5))
+print(func(0))
+-- You actually do not need the light/mainloop or any runner for threaded functions to work
 --multi:lightloop()

@@ -23,30 +23,30 @@ Current Multi Version: 14.2.0
 
 **Note:** Most settings have been fined tuned to be at the peak of performance already, however preLoop, protect (Which drastically lowers preformance), and stopOnError should be used freely to fit your needs.
 
-| Setting | Type: default | Purpose |
-|-|-|-|
-| preLoop | function: nil | This is a function that is called after all the important components of the library are loaded. This is called once only. The first and only argument passed is a reference to itself. |
-| protect | boolean: false | This runs code within a protected call. To catch when errors happen see built in connections |
-| stopOnError | boolean: false | This setting is used with protect. If an object crashes due to some error should it be paused? |
-| priority | number: 0 | This sets the priority scheme. Look at the P-Charts below for examples. |
-| auto_priority | boolean: false | **Note: This overrides any value set for priority!** If auto priority is enabled then priority scheme 3 is used and processes are considered for "recheck" after a certain amount of time. If a process isn't taking too long to complete anymore then it will be reset to core, if it starts to take a lot of time all of a sudden it will be set to idle. |
-| auto_stretch | number: 1 | For use with auto_priority. Modifies the internal reperesentation of idle time by multiplying multi.Priority_Idle by the value given |
-| auto_delay | number: 3 | For use with auto_priority. This changes the time in seconds that process are "rechecked" |
-| auto_lowerbound | number: multi.Priority_Idle | For use with auto_priority. The lowerbound is what is considered to be idle time. A higher value combined with auto_stretch allows one to fine tune how pirority is managed. |
+| Setting         | Type: default               | Purpose                                                                                                                                                                                                                                                                                                                                                     |
+| --------------- | --------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| preLoop         | function: nil               | This is a function that is called after all the important components of the library are loaded. This is called once only. The first and only argument passed is a reference to itself.                                                                                                                                                                      |
+| protect         | boolean: false              | This runs code within a protected call. To catch when errors happen see built in connections                                                                                                                                                                                                                                                                |
+| stopOnError     | boolean: false              | This setting is used with protect. If an object crashes due to some error should it be paused?                                                                                                                                                                                                                                                              |
+| priority        | number: 0                   | This sets the priority scheme. Look at the P-Charts below for examples.                                                                                                                                                                                                                                                                                     |
+| auto_priority   | boolean: false              | **Note: This overrides any value set for priority!** If auto priority is enabled then priority scheme 3 is used and processes are considered for "recheck" after a certain amount of time. If a process isn't taking too long to complete anymore then it will be reset to core, if it starts to take a lot of time all of a sudden it will be set to idle. |
+| auto_stretch    | number: 1                   | For use with auto_priority. Modifies the internal reperesentation of idle time by multiplying multi.Priority_Idle by the value given                                                                                                                                                                                                                        |
+| auto_delay      | number: 3                   | For use with auto_priority. This changes the time in seconds that process are "rechecked"                                                                                                                                                                                                                                                                   |
+| auto_lowerbound | number: multi.Priority_Idle | For use with auto_priority. The lowerbound is what is considered to be idle time. A higher value combined with auto_stretch allows one to fine tune how pirority is managed.                                                                                                                                                                                |
 
 # P-Chart: Priority 1
 
 P1 follows a forumla that resembles this: ~n=I*PRank</br>Where **n** is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
 
-| Priority: n | PRank | Formula |
-|-|-|-|
-| Core: 3322269 | 7 | n = ~**I***7 |
-| High: 2847660 | 6 | n = ~**I***6 |
-| Above_Normal: 2373050 | 5 | n = ~**I***5 |
-| Normal: 1898440 | 4 | n = ~**I***4 |
-| Below_Normal: 1423830 | 3 | n = ~**I***3 |
-| Low: 949220 | 2 | n = ~**I***2 |
-| **I**dle: 474610 | 1 | n = ~**I***1 |
+| Priority: n           | PRank | Formula      |
+| --------------------- | ----- | ------------ |
+| Core: 3322269         | 7     | n = ~**I***7 |
+| High: 2847660         | 6     | n = ~**I***6 |
+| Above_Normal: 2373050 | 5     | n = ~**I***5 |
+| Normal: 1898440       | 4     | n = ~**I***4 |
+| Below_Normal: 1423830 | 3     | n = ~**I***3 |
+| Low: 949220           | 2     | n = ~**I***2 |
+| **I**dle: 474610      | 1     | n = ~**I***1 |
 
 **General Rule:** ~n=**I***PRank
 
@@ -228,7 +228,17 @@ multi:lightloop()
 ```
 As mentioned above this is made much easier using threads
 ```lua
-
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+multi, thread = require("multi"):init()
+func = thread:newFunction(function(a)
+	return thread.holdFor(3,function()
+		return a==5 and "This is returned" -- Condition being tested!
+	end)
+end,true)
+print(func(5))
+print(func(0))
+-- You actually do not need the light/mainloop or any runner for threaded functions to work
+--multi:lightloop()
 ```
 
 # Semi-Actors: scheduleJob
