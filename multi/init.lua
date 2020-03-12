@@ -510,75 +510,6 @@ multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
 multi.OnLoad = multi:newConnection(nil,nil,true)
 ignoreconn = false
-function multi:newProcessor(file)
-	if not(self.Type=='mainprocess') then error('Can only create an interface on the multi obj') return false end
-	local c = {}
-	setmetatable(c, {__index = multi})
-	c.Parent=self
-	c.Active=true
-	c.func={}
-	c.Type='process'
-	c.Mainloop={}
-	c.Garbage={}
-	c.Children={}
-	c.Active=false
-	c.Rest=0
-	c.queue={}
-	c.l=self:newLoop(function(self,dt)
-		if self.link.Active then
-			c:uManager()
-		end
-	end)
-	c.l.link = c
-	c.l.Type = "processor"
-	function c:getController()
-		return c.l
-	end
-	function c:Start()
-		self.Active = true
-		return self
-	end
-	function c:Resume()
-		self.Active = false
-		return self
-	end
-	function c:setName(name)
-		c.l.Name = name
-		return self
-	end
-	function c:Pause()
-		if self.l then
-			self.l:Pause()
-		end
-		return self
-	end
-	function c:Remove()
-		if self.Type == "process" then
-			self:__Destroy()
-			self.l:Destroy()
-		else
-			self:__Destroy()
-		end
-	end
-	function c:Destroy()
-		if self == c then
-			self.l:Destroy()
-		else
-			for i = #c.Mainloop,1,-1 do
-				if c.Mainloop[i] == self then
-					table.remove(c.Mainloop,i)
-					break
-				end
-			end
-		end
-	end
-	if file then
-		self.Cself=c
-		loadstring('local process=multi.Cself '..io.open(file,'rb'):read('*all'))()
-	end
-	self:create(c)
-	return c
-end
 function multi:newTimer()
 	local c={}
 	c.Type='timer'
@@ -1399,9 +1330,6 @@ function multi.initThreads(justThreads)
 		end
 	end
 end
-function multi:threadloop()
-	multi.initThreads(true)
-end
 function multi:newService(func) -- Priority managed threads
 	local c = {}
 	c.Type = "service"
@@ -1493,43 +1421,10 @@ function multi:newService(func) -- Priority managed threads
 	multi.create(multi,c)
 	return c
 end
-multi.Jobs = multi:newService(function(self,jobs)
-	local job = table.remove(jobs,1)
-	if job and job.removed==nil then
-		job.func()
-	end
-end)
-multi.Jobs.OnStarted(function(self,jobs)
-	function self:newJob(func,name)
-		table.insert(jobs,{
-			func = func,
-			name = name,
-			removeJob = function(self) self.removed = true end
-		})
-	end
-	function self:getJobs(name)
-		local tab = {}
-		if not name then return jobs end
-		for i=1,#jobs do
-			if name == jobs[i].name then
-				table.insert(tab,jobs[i])
-			end
-		end
-		return tab
-	end
-	function self:removeJobs(name)
-		for i=1,#jobs do
-			if name ~= nil and name == jobs[i].name then
-				jobs[i]:removeJob()
-			elseif name == nil then
-				jobs[i]:removeJob()
-			end
-		end
-	end
-end)
-multi.Jobs.SetPriority(multi.Priority_Normal)
-multi.Jobs.Start()
 -- Multi runners
+function multi:threadloop()
+	multi.initThreads(true)
+end
 function multi:lightloop()
 	if not isRunning then
 		local Loop=self.Mainloop

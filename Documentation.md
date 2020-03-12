@@ -15,6 +15,7 @@ Current Multi Version: 14.2.0
 
 # Multi Runners
 `multi:lightloop()` — A light version of the mainloop
+</br>`multi:loveloop([BOOLEAN: light true])` — Run's all the love related features as well
 </br>`multi:mainloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running
 </br>`multi:threadloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
 </br>`multi:uManager([TABLE settings])` — This runs the mainloop, but does not have its own while loop and thus needs to be within a loop of some kind.
@@ -445,7 +446,7 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 <b>\*</b>A note about multi.NIL, this should only be used within the hold and hold like methods. thread.hold(), thread.holdFor(), and thread.holdWithin() methods. This is not needed within threaded functions! The reason hold prevents nil and false is because it is testing for a condition so the first argument needs to be non nil nor false! multi.NIL should not be used anywhere else. Sometimes you may need to pass a 'nil' value or return. While you could always return true or something you could use multi.NIL to force a nil value through a hold like method.
 
 # CBT: newService(FUNCTION: func)
-`serv = newService(FUNCTION: func(self,TABLE: data))`
+`serv = newService(FUNCTION: func(self,TABLE: data))` — func is called each time the service is updated think of it like a loop multi-obj. self is the service object and data is a private table that only the service can see. 
 - `serv.OnError(FUNCTION: func)` — connection that fired if there is an error
 - `serv.OnStopped(FUNCTION: func(serv))` — connection that is fired when a service is stopped
 - `serv.OnStarted(FUNCTION: func(serv))` — connection that is fired when a service is started
@@ -468,6 +469,71 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 	- `1` **Default** — uses a time based style of yielding. thread.sleep()
 	- `2` — uses a cycle based style of yielding. thread.skip()
 - `CONVERTS(serv) = serv.Destroy()` — Stops the service then Destroys the service triggering all events! The service becomes a destroyed object
+
+Example:
+```lua
+-- Jobs are not natively part of the multi library. I planned on adding them, but decided against it. Below is the code that would have been used.
+-- Implementing a job manager using services
+package.path="?/init.lua;?.lua;"..package.path
+local multi = require("multi")
+multi.Jobs = multi:newService(function(self,jobs)
+	local job = table.remove(jobs,1)
+	if job and job.removed==nil then
+		job.func()
+	end
+end)
+multi.Jobs.OnStarted(function(self,jobs)
+	function self:newJob(func,name)
+		table.insert(jobs,{
+			func = func,
+			name = name,
+			removeJob = function(self) self.removed = true end
+		})
+	end
+	function self:getJobs(name)
+		local tab = {}
+		if not name then return jobs end
+		for i=1,#jobs do
+			if name == jobs[i].name then
+				table.insert(tab,jobs[i])
+			end
+		end
+		return tab
+	end
+	function self:removeJobs(name)
+		for i=1,#jobs do
+			if name ~= nil and name == jobs[i].name then
+				jobs[i]:removeJob()
+			elseif name == nil then
+				jobs[i]:removeJob()
+			end
+		end
+	end
+end)
+multi.Jobs.SetPriority(multi.Priority_Normal)
+multi.Jobs.Start()
+
+-- Testing job stuff
+function pushJobs()
+	multi.Jobs:newJob(function()
+		print("job called")
+	end) -- No name job
+	multi.Jobs:newJob(function()
+        print("job called2")
+	end,"test")
+	multi.Jobs:newJob(function()
+		print("job called3")
+	end,"test2")
+end
+pushJobs()
+pushJobs()
+local jobs = multi.Jobs:getJobs() -- gets all jobs
+local jobsn = multi.Jobs:getJobs("test") -- gets all jobs names 'test'
+jobsn[1]:removeJob() -- Select a job and remove it
+multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
+multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
+multi.Jobs.SetPriority(multi.Priority_Core)
+```
 
 # CBT: newThread()
 `th = multi:newThread([STRING name,] FUNCTION func)` — Creates a new thread with name and function.

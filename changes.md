@@ -4,33 +4,13 @@ Table of contents
 ---
 
 
-# Update 14.2.0 - Documentation [====100%====] Done
+# Update 14.2.0 - Removing Bloat
 Full Update Showcase
 ---
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi,thread = require("multi"):init()
 
--- Testing job stuff
-function pushJobs()
-	multi.Jobs:newJob(function()
-		print("job called")
-	end) -- No name job
-	multi.Jobs:newJob(function()
-        print("job called2")
-	end,"test")
-	multi.Jobs:newJob(function()
-		print("job called3")
-	end,"test2")
-end
-pushJobs()
-pushJobs()
-local jobs = multi.Jobs:getJobs() -- gets all jobs
-local jobsn = multi.Jobs:getJobs("test") -- gets all jobs names 'test'
-jobsn[1]:removeJob() -- Select a job and remove it
-multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
-multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
-multi.Jobs.SetPriority(multi.Priority_Core)
 -- Testing destroying and fixed connections
 c = multi:newConnection()
 c1 = c(function()
@@ -115,15 +95,10 @@ Changed:
 	conn = OnExample(...)
 	print(conn.Type) -- connector_link
 	```
-- Revamped the job system — See Full Update Showcase
-	- multi.Jobs:newJob(func,name) — You do not need to set a name, but it might be useful
-	- multi.Jobs:getJobs(name) — Get all jobs, or all jobs with a certain name
-	- multi.Jobs:removeJobs(name) — Remove all jobs, or all jobs with a certain name
-	- multi.Jobs.SetPriority(Priority) — Set the priority of the Job service
-	- multi.Jobs.SetScheme(scheme) — Set the scheme of the Job service
 
-Removed:
+Removed: (Cleaning up a lot of old features)
 ---
+- Removed multi:newProcessor(STRING: file) — Old feature that is not really needed anymore. Create your multi-objs on the multi object or use a thread
 - bin dependency from the rockspec
 - Example folder and .html variants of the .md files
 - multi:newTrigger() — Connections do everything this thing could do and more.

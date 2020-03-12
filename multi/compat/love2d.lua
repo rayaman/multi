@@ -70,7 +70,7 @@ multi.OnPreLoad(function()
 	end)
 end)
 
-function multi:loveloop()
+function multi:loveloop(light)
 	local link
 	link = multi:newThread(function()
 		local mainloop = love.run()
@@ -81,8 +81,13 @@ function multi:loveloop()
 	end).OnError(function(...)
 		print(...)
 	end)
-	multi:mainloop()
+	if light==false then
+		multi:mainloop()
+	else
+		multi:lightloop()
+	end
 end
+
 multi.OnQuit(function()
 	multi.Stop()
 	love.event.quit()
