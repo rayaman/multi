@@ -1195,6 +1195,17 @@ function multi.initThreads(justThreads)
 			end
 		end
 	end
+	local function holdconn(n)
+		if type(ret[n])=="table" and ret[n].Type=='connector' then
+			local letsgo
+			ret[n](function(...) letsgo = {...} end)
+			ret[n] = function()
+				if letsgo then
+					return unpack(letsgo)
+				end
+			end
+		end
+	end
 	local function helper(i)
 		if type(ret)=="table" then
 			if ret[1]=="_kill_" then
@@ -1215,20 +1226,13 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				ret = nil
 			elseif ret[1]=="_hold_" then
-				if type(ret[2])=="table" and ret[2].Type=='connector' then
-					local letsgo
-					ret[2](function(...) letsgo = {...} end)
-					ret[2] = function()
-						if letsgo then
-							return unpack(letsgo)
-						end
-					end
-				end
+				holdconn(2)
 				threads[i].func = ret[2]
 				threads[i].task = "hold"
 				threads[i].__ready = false
 				ret = nil
 			elseif ret[1]=="_holdF_" then
+				holdconn(3)
 				threads[i].sec = ret[2]
 				threads[i].func = ret[3]
 				threads[i].task = "holdF"
@@ -1236,6 +1240,7 @@ function multi.initThreads(justThreads)
 				threads[i].__ready = false
 				ret = nil
 			elseif ret[1]=="_holdW_" then
+				holdconn(3)
 				threads[i].count = ret[2]
 				threads[i].pos = 0
 				threads[i].func = ret[3]

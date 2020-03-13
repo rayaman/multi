@@ -64,6 +64,7 @@ Added:
 
 Fixed:
 ---
+- thread.holdFor(n,func) and thread.holdWithin(n,func) now accept a connection object as the func argument
 - Issue with threaded functions not handling nil properly from returns. This has been resolved and works as expected.
 - Issue with system threaded job queues newFunction() not allowing nil returns! This has be addressed and is no longer an issue.
 - Issue with hold like functions not being able to return `false`
