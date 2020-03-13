@@ -211,7 +211,6 @@ loop:SetTime(3)
 multi:newAlarm(2):OnRing(function()
 	-- some condition that leads to resolving the timer
 	loop:ResolveTimer(true,"We good")
-
 	multi:newAlarm(2):OnRing(function()
 		loop:SetTime(2)
 	end)
@@ -239,7 +238,7 @@ end,true)
 print(func(5))
 print(func(0))
 -- You actually do not need the light/mainloop or any runner for threaded functions to work
---multi:lightloop()
+-- multi:lightloop()
 ```
 
 # Semi-Actors: scheduleJob
