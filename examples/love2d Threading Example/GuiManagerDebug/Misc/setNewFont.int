@@ -1,7 +1,0 @@
-function gui:setNewFont(FontSize,filename)
-	if filename then
-		self.Font = love.graphics.newFont(filename, tonumber(FontSize))
-	else
-		self.Font=love.graphics.setNewFont(tonumber(FontSize))
-	end
-end

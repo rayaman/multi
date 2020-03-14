@@ -1,4 +1,4 @@
-# multi Version: 14.1.0 System threaded functions and more? (See changes.md for detailed changes)
+# multi Version: 14.2.0 Documentation Complete!
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
 
@@ -7,7 +7,6 @@ My multitasking library for lua. It is a pure lua binding, if you ignore the int
 INSTALLING
 ----------
 Links to dependicies:
-[bin](https://github.com/rayaman/bin)
 [net](https://github.com/rayaman/net)
 [lanes](https://github.com/LuaLanes/lanes)
 

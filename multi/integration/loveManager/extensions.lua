@@ -121,7 +121,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets)
+                    return unpack(rets) or multi.NIL
                 end
             end)
         end,holup),name

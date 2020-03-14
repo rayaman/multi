@@ -2,35 +2,15 @@
 
 Table of contents
 ---
-[Update 14.2.0 - The great pruning](#update-1420---the-great-pruning)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
-# Update 14.2.0 - The great pruning
+
+# Update 14.2.0 - Removing Bloat
 Full Update Showcase
 ---
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi,thread = require("multi"):init()
 
--- Testing job stuff
-function pushJobs()
-	multi.Jobs:newJob(function()
-		print("job called")
-	end) -- No name job
-	multi.Jobs:newJob(function()
-        print("job called2")
-	end,"test")
-	multi.Jobs:newJob(function()
-		print("job called3")
-	end,"test2")
-end
-pushJobs()
-pushJobs()
-local jobs = multi.Jobs:getJobs() -- gets all jobs
-local jobsn = multi.Jobs:getJobs("test") -- gets all jobs names 'test'
-jobsn[1]:removeJob() -- Select a job and remove it
-multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
-multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
-multi.Jobs.SetPriority(multi.Priority_Core)
 -- Testing destroying and fixed connections
 c = multi:newConnection()
 c1 = c(function()
@@ -71,7 +51,11 @@ multi:lightloop()
 ```
 Going Forward:
 ---
-- 
+-  There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
+
+Quality Of Life:
+---
+- threaded functions now return only the arguments that are needed, if it has trailing nils, they wont be returned like they used to.
 
 Added:
 ---
@@ -80,26 +64,44 @@ Added:
 
 Fixed:
 ---
-- Issue with connections not returning a handler for managing a specified conn object.
+- thread.holdFor(n,func) and thread.holdWithin(n,func) now accept a connection object as the func argument
+- Issue with threaded functions not handling nil properly from returns. This has been resolved and works as expected.
+- Issue with system threaded job queues newFunction() not allowing nil returns! This has be addressed and is no longer an issue.
+- Issue with hold like functions not being able to return `false`
+- Issue with connections not returning a handle for managing a specific conn object.
+- Issue with connections where connection chaining wasn't working properly. This has been addressed.
+	```lua
+	package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+	--local sterilizer = require("multi.integration.sterilization")
+	local multi,thread = require("multi"):init()
+	test = multi:newConnection()
+	test(function(hmm)
+		print("hi",hmm.t)
+		hmm.t = 2
+	end)(function(hmm)
+		print("hi2",hmm.t)
+		hmm.t = 3
+	end)(function(hmm)
+		print("hi3",hmm.t)
+	end)
+	test:Fire({t=1})
+	```
 
 Changed:
 ---
 - Destroying an object converts the object into a 'destroyed' type.
 - connections now have type 'connector_link'
 	```lua
-	OnExample = multi:newConnection()
+	OnExample = multi:newConnection() -- Type Connector, Im debating if I should change this name to multi:newConnector() and have connections to it have type connection
 	conn = OnExample(...)
 	print(conn.Type) -- connector_link
 	```
-- Revamped the job system — See Full Update Showcase
-	- multi.Jobs:newJob(func,name) — You do not need to set a name, but it might be useful
-	- multi.Jobs:getJobs(name) — Get all jobs, or all jobs with a certain name
-	- multi.Jobs:removeJobs(name) — Remove all jobs, or all jobs with a certain name
-	- multi.Jobs.SetPriority(Priority) — Set the priority of the Job service
-	- multi.Jobs.SetScheme(scheme) — Set the scheme of the Job service
 
-Removed:
+Removed: (Cleaning up a lot of old features)
 ---
+- Removed multi:newProcessor(STRING: file) — Old feature that is not really needed anymore. Create your multi-objs on the multi object or use a thread
+- bin dependency from the rockspec
+- Example folder and .html variants of the .md files
 - multi:newTrigger() — Connections do everything this thing could do and more.
 - multi:newHyperThreadedProcess(name)*
 - multi:newThreadedProcess(name)*

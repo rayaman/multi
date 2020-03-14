@@ -1,6 +1,0 @@
-function gui:addHotKey(key)
-	local temp=self:newFrame(0,0,0,0)
-	temp.Visible=false
-	temp:setHotKey(key)
-	return temp
-end

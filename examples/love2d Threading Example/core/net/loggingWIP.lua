@@ -1,7 +1,0 @@
-net.OnServerCreated:connect(function(s)
-	print("The logging Module has been loaded onto the server!")
-	s.OnDataRecieved:fConnect(function(self,data,cid,ip,port)
-		log(tostring(ip)..":"..tostring(port),"Server-log.log")
-		log(data,"Server-log.log")
-	end)
-end)

@@ -1,5 +1,14 @@
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
---local sterilizer = require("multi.integration.sterilization")
-local multi,thread = require("multi"):init()
-
+multi, thread = require("multi"):init()
+conn = multi:newConnection()
+func = thread:newFunction(function()
+    a,b,c = thread.holdFor(.5,conn)
+    print(a,b)
+    os.exit()
+end)
+func()
+multi:setTimeout(function()
+    print("Test!")
+    conn:Fire(1,2,3)
+end,1)
 multi:lightloop()
