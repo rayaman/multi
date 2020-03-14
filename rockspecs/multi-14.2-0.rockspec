@@ -7,7 +7,8 @@ source = {
 description = {
    summary = "Lua Multi tasking library",
    detailed = [[
-      This library contains many methods for multi tasking. Features non coroutine based multitasking, coroutine based multi tasking, and system threading (Requires use of an integration). Check github for how to use.
+      This library contains many methods for multi tasking. Features non coroutine based multi-tasking, coroutine based multi-tasking, and system threading (Requires use of an integration).
+      Check github for how to use.
    ]],
    homepage = "https://github.com/rayaman/multi",
    license = "MIT"
