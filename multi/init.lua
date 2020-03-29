@@ -30,7 +30,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "14.2.0"
+multi.Version = "15.0.0"
 multi.stage = "stable"
 multi.Name = "multi.root"
 multi.Mainloop = {}
@@ -1430,7 +1430,8 @@ end
 function multi:threadloop()
 	multi.initThreads(true)
 end
-function multi:lightloop()
+function multi:lightloop(settings)
+	multi.defaultSettings = settings or multi.defaultSettings
 	if not isRunning then
 		local Loop=self.Mainloop
 		while true do

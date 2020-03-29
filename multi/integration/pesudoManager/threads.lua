@@ -28,8 +28,9 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT(__GlobalLinda,__SleepingLinda)
+local function INIT()
     local THREAD = {}
+    local GLOBAL = {}
     THREAD.Priority_Core = 3
     THREAD.Priority_High = 2
     THREAD.Priority_Above_Normal = 1
@@ -38,20 +39,13 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     THREAD.Priority_Low = -2
     THREAD.Priority_Idle = -3
     function THREAD.set(name, val)
-        __GlobalLinda:set(name, val)
+        GLOBAL[name] = val
     end
     function THREAD.get(name)
-        return __GlobalLinda:get(name)
+        return GLOBAL[name]
     end
     function THREAD.waitFor(name)
-        local function wait()
-            math.randomseed(os.time())
-            __SleepingLinda:receive(.001, "__non_existing_variable")
-        end
-        repeat
-            wait()
-        until __GlobalLinda:get(name)
-        return __GlobalLinda:get(name)
+        return thread.hold(function() return GLOBAL[name] end)
     end
     if getOS() == "windows" then
         THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
@@ -63,25 +57,23 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     end
     function THREAD.getConsole()
         local c = {}
-        c.queue = _Console
         function c.print(...)
-            c.queue:send("Q", {...})
+            print(...)
         end
         function c.error(err)
-            c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
-            error(err)
+            error("ERROR in <"..__THREADNAME__..">: "..err)
         end
         return c
     end
     function THREAD.getThreads()
-        return GLOBAL.__THREADS__
+        return {}--GLOBAL.__THREADS__
     end
     if os.getOS() == "windows" then
         THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
     else
         THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
     end
-    function THREAD.kill() -- trigger the lane destruction
+    function THREAD.kill()
         error("Thread was killed!")
     end
     function THREAD.getName()
@@ -92,29 +84,13 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     end
     _G.THREAD_ID = 0
     function THREAD.sleep(n)
-        math.randomseed(os.time())
-        __SleepingLinda:receive(n, "__non_existing_variable")
+        thread.sleep(n)
     end
     function THREAD.hold(n)
-        local function wait()
-            math.randomseed(os.time())
-            __SleepingLinda:receive(.001, "__non_existing_variable")
-        end
-        repeat
-            wait()
-        until n()
+        return thread.hold(n)
     end
-    local GLOBAL = {}
-    setmetatable(GLOBAL, {
-		__index = function(t, k)
-			return __GlobalLinda:get(k)
-		end,
-        __newindex = function(t, k, v)
-			__GlobalLinda:set(k, v)
-		end
-	})
     return GLOBAL, THREAD
 end
-return {init = function(g,s)
-    return INIT(g,s)
+return {init = function()
+    return INIT()
 end}
