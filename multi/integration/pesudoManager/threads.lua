@@ -47,48 +47,33 @@ local function INIT()
     function THREAD.waitFor(name)
         return thread.hold(function() return GLOBAL[name] end)
     end
-    if getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
     function THREAD.getCores()
         return THREAD.__CORES
     end
     function THREAD.getConsole()
         local c = {}
-        function c.print(...)
-            print(...)
-        end
+        c.print = print
         function c.error(err)
             error("ERROR in <"..__THREADNAME__..">: "..err)
         end
         return c
     end
     function THREAD.getThreads()
-        return {}--GLOBAL.__THREADS__
+        return {} --GLOBAL.__THREADS__
     end
-    if os.getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
-    function THREAD.kill()
-        error("Thread was killed!")
-    end
+    THREAD.__CORES = thread.__CORES
     function THREAD.getName()
-        return THREAD_NAME
+        local t = thread.getRunningThread()
+        return t.Name
     end
     function THREAD.getID()
-        return THREAD_ID
+        local t = thread.getRunningThread()
+        return t.TID
     end
     _G.THREAD_ID = 0
-    function THREAD.sleep(n)
-        thread.sleep(n)
-    end
-    function THREAD.hold(n)
-        return thread.hold(n)
-    end
+    THREAD.kill = thread.kill
+    THREAD.sleep = thread.sleep
+    THREAD.hold = thread.hold
     return GLOBAL, THREAD
 end
 return {init = function()

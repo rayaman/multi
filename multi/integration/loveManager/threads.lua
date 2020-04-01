@@ -213,9 +213,12 @@ function threads.createStaticTable(n)
     )
 end
 function threads.hold(n)
-    local dat
-    while not(dat) do
-        dat = n()
+    while true do
+        love.timer.sleep(.001)
+        local tab = {n()}
+        if tab[1] then
+            return unpack(tab)
+        end
     end
 end
 return threads

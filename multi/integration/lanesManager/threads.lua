@@ -53,11 +53,6 @@ local function INIT(__GlobalLinda,__SleepingLinda)
         until __GlobalLinda:get(name)
         return __GlobalLinda:get(name)
     end
-    if getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
     function THREAD.getCores()
         return THREAD.__CORES
     end
@@ -92,17 +87,16 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     end
     _G.THREAD_ID = 0
     function THREAD.sleep(n)
-        math.randomseed(os.time())
         __SleepingLinda:receive(n, "__non_existing_variable")
     end
     function THREAD.hold(n)
-        local function wait()
-            math.randomseed(os.time())
+        while true do
             __SleepingLinda:receive(.001, "__non_existing_variable")
+            local tab = {n()}
+            if tab[1] then
+                return unpack(tab)
+            end
         end
-        repeat
-            wait()
-        until n()
     end
     local GLOBAL = {}
     setmetatable(GLOBAL, {
