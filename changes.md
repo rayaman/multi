@@ -54,7 +54,6 @@ end)
 
 multi:lightloop()
 ```
-
 Added:
 ---
 - multi:newISOThread(name,func)
@@ -69,6 +68,7 @@ Added:
 
 Fixed:
 ---
+- pseudoThreading and threads had an issue where they weren't executing properly
 - lanesManager THREAD:get(STRING: name) not returning the value
 
 # Update 14.2.0 - Bloatware Removed
