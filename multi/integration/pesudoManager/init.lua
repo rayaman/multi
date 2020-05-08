@@ -43,7 +43,9 @@ function multi:getPlatform()
 end
 
 THREAD.newFunction=thread.newFunction
-multi.newSystemThread = multi.newThread
+multi.newSystemThread = multi.newISOThread
+-- System threads as implemented here cannot share memory, but use a message passing system.
+-- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works
 
 print("Integrated Pesudo Threading!")
 multi.integration = {} -- for module creators

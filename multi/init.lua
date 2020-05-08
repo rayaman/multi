@@ -1072,13 +1072,21 @@ function thread:newFunction(func,holdme)
 		return temp
     end
 end
+-- A cross version way to set enviroments, not the same as fenv though
+function multi.setEnv(func,env)
+    local f = string.dump(func)
+    local chunk = load(f,"env","bt",env)
+    return chunk
+end
+
 function multi:newThread(name,func,...)
 	multi.OnLoad:Fire()
 	local func = func or name
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local env = {}
+	local c={}
+	local env = {self=c}
 	setmetatable(env,{
 		__index = Gref,
 		__newindex = function(t,k,v)
@@ -1090,7 +1098,117 @@ function multi:newThread(name,func,...)
 		end
 	})
 	setfenv(func,env)
+	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
+	c.startArgs = {...}
+	c.ref={}
+	c.Name=name
+	c.thread=coroutine.create(func)
+	c.sleep=1
+	c.Type="thread"
+	c.TID = threadid
+	c.firstRunDone=false
+	c.timer=multi:newTimer()
+	c._isPaused = false
+	c.returns = {}
+	c.OnError = multi:newConnection(true,nil,true)
+	c.OnDeath = multi:newConnection(true,nil,true)
+	function c:isPaused()
+		return self._isPaused
+	end
+	local resumed = false
+	function c:Pause()
+		if not self._isPaused then
+			thread.request(self,"exec",function()
+				thread.hold(function()
+					return resumed
+				end)
+				resumed = false
+				self._isPaused = false
+			end)
+			self._isPaused = true
+		end
+		return self
+	end
+	function c:Resume()
+		resumed = true
+		return self
+	end
+	function c:Kill()
+		thread.request(self,"kill")
+		return self
+	end
+	c.Destroy = c.Kill
+	function c.ref:send(name,val)
+		ret=coroutine.yield({Name=name,Value=val})
+	end
+	function c.ref:get(name)
+		return self.Globals[name]
+	end
+	function c.ref:kill()
+		dRef[1] = "_kill_"
+		dRef[2] = "I Was killed by You!"
+		err = coroutine.yield(dRef)
+		if err then
+			error("Failed to kill a thread! Exiting...")
+		end
+	end
+	function c.ref:sleep(n)
+		if type(n)=="function" then
+			ret=thread.hold(n)
+		elseif type(n)=="number" then
+			ret=thread.sleep(tonumber(n) or 0)
+		else
+			error("Invalid Type for sleep!")
+		end
+	end
+	function c.ref:syncGlobals(v)
+		self.Globals=v
+	end
+	table.insert(threads,c)
+	if initT==false then
+		multi.initThreads()
+	end
+	c.creationTime = os.clock()
+	threadid = threadid + 1
+	self:create(c)
+	return c
+end
+function multi:newISOThread(name,func,...)
+	multi.OnLoad:Fire()
+	local func = func or name
+	if type(name) == "function" then
+		name = "Thread#"..threadCount
+	end
+	local env = {
+		thread = thread,
+		multi = multi,
+		coroutine = coroutine,
+		debug = debug,
+		io = io,
+		math = math,
+		os = os,
+		package = package,
+		string = string,
+		table = table,
+		utf8 = utf8
+	}
+	for i,v in pairs(_G) do
+		if tostring(v):match("builtin") then
+			env[i]=v
+		end
+	end
+	setmetatable(env,{
+		__newindex = function(t,k,v)
+			if type(v)=="function" then
+				rawset(t,k,thread:newFunction(v))
+			else
+				Gref[k]=v
+			end
+		end
+	})
+	local func = multi.setEnv(func,env)
 	local c={}
+	env.self = c
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
@@ -1255,9 +1373,11 @@ function multi.initThreads(justThreads)
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
 			if threads[i].isError then
-				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
-				multi.setType(threads[i],multi.DestroyedObj)
-				table.remove(threads,i)
+				if coroutine.status(threads[i].thread)=="dead" then
+					threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+					multi.setType(threads[i],multi.DestroyedObj)
+					table.remove(threads,i)
+				end
 			end
 			if threads[i] and not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then

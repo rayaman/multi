@@ -24,18 +24,48 @@ for i = 1,100 do
     end)
 end
 
+test = true
+local haha = true
+multi:newThread("Standard Thread 1",function()
+    print(self.Name,haha)
+    while true do
+        thread.sleep(1)
+        print("Testing "..self.Name..":",test)
+        thread.sleep(.1)
+        prient("...")
+    end
+end)
+multi:newThread("Standard Thread 2",function()
+    print(self.Name)
+    while true do
+        thread.sleep(1)
+        print("Testing "..self.Name..":",test)
+    end
+end)
+multi:newISOThread("Isolated Thread",function()
+    while true do
+        thread.sleep(1)
+        print("Testing Isolated:",test)
+        --errhor("huh")
+    end
+end).OnError(function(...)
+    print(...)
+end)
+
 multi:lightloop()
 ```
 
 Added:
 ---
+- multi:newISOThread(name,func)
+  - Creates an isolated thread that prevents both locals and globals from being accessed. 
 - Added new integration: pesudoManager, functions just like lanesManager and loveManager, but it's actually single threaded
   - This was implemented because, you may want to build your code around being multi threaded, but some systems/implemetations of lua may not permit this. Since we now have a "single threaded" implementation of multi threading. We can actually create scalable code where things automatcally are threaded if built correctly. I am planning on adding more threadedOjbects.
 - In addition to adding pesudo Threading `multi.integration.threading` can now be used to autodetect which enviroment you are on and use the threading features.
 	```
 	GLOBAL,THREAD = require("multi.integration.threading"):init()
 	```
-	If you are using love2d it will use that, if you have lanes avaialble then it will use lanes. Otherwise it will use pesudo threading. This allows module creators to implement scalable features without having to worry about which enviroment they are in. And it's my job to ensure everything works properly within reason.
+	If you are using love2d it will use that, if you have lanes avaialble then it will use lanes. Otherwise it will use pesudo threading. This allows module creators to implement scalable features without having to worry about which enviroment they are in.
 
 Fixed:
 ---
