@@ -8,7 +8,6 @@ Table of contents
 14.3.1
 ---
 - Fixed issue with threads
-- Added ISOThreads (WIP) was pushed was planned on being part of 15.0.0
 
 Full Update Showcase
 ---
