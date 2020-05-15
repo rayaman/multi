@@ -1179,7 +1179,9 @@ function multi:newISOThread(name,func,...)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
+	local Gref = {}
 	local env = {
+		THREAD_NAME = name,
 		thread = thread,
 		multi = multi,
 		coroutine = coroutine,
@@ -1197,23 +1199,31 @@ function multi:newISOThread(name,func,...)
 			env[i]=v
 		end
 	end
-	setmetatable(env,{
-		__newindex = function(t,k,v)
-			if type(v)=="function" then
-				rawset(t,k,thread:newFunction(v))
-			else
-				Gref[k]=v
-			end
-		end
-	})
-	local func = multi.setEnv(func,env)
 	local c={}
+	function c:inject(tab)
+		for i,v in pairs(tab) do
+			Gref[i] = v
+			env[i] = v
+		end
+	end
+	function c:start()
+		setmetatable(env,{
+			__index = Gref,
+			__newindex = function(t,k,v)
+				if type(v)=="function" then
+					rawset(t,k,thread:newFunction(v))
+				else
+					Gref[k]=v
+				end
+			end
+		})
+		self.thread=coroutine.create(multi.setEnv(func,env))
+	end
 	env.self = c
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
 	c.Name=name
-	c.thread=coroutine.create(func)
 	c.sleep=1
 	c.Type="thread"
 	c.TID = threadid

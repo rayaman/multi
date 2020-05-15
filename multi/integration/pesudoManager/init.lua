@@ -43,7 +43,17 @@ function multi:getPlatform()
 end
 
 THREAD.newFunction=thread.newFunction
-multi.newSystemThread = multi.newISOThread
+local id = 0
+function multi:newSystemThread(name,func,...)
+	local t = multi:newISOThread(name,func,...)
+	t:inject{
+		GLOBAL = GLOBAL,
+		THREAD = THREAD,
+		THREAD_ID = id
+	}
+	id = id + 1
+	t:start()
+end
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works
 

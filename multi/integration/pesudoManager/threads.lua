@@ -82,7 +82,6 @@ local function INIT()
     function THREAD.getID()
         return THREAD_ID
     end
-    _G.THREAD_ID = 0
     function THREAD.sleep(n)
         thread.sleep(n)
     end
