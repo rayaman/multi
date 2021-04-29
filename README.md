@@ -25,6 +25,7 @@ Planned features/TODO
 ---------------------
 - [x] ~~Finish Documentation~~ Finished
 - [ ] Network Parallelism rework
+- [ ] Fix some bugs
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----
