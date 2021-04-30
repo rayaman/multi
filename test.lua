@@ -39,6 +39,6 @@ local alarm = multi:newAlarm(4):OnRing(function(a)
     a:Destroy()
     print(a.Type)
     test:Destroy()
+    print("TEST: ",test)
 end)
-
 multi:lightloop()
