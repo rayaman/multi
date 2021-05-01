@@ -2,6 +2,7 @@
 test2.lua
 *.mp3
 *.exe
+*.dll
 lanestestclient.lua
 lanestest.lua
 sample-node.lua

@@ -30,7 +30,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "14.2.0"
+multi.Version = "15.0.0"
 multi.stage = "stable"
 multi.Name = "multi.root"
 multi.Mainloop = {}
@@ -163,6 +163,20 @@ function multi:getTasksDetails(t)
 end
 
 --Helpers
+
+-- Used with ISO Threads
+local function isolateFunction(func,env)
+    local dmp = string.dump(func)
+    local env = env or {}
+    if setfenv then
+        local f = loadstring(dmp,"IsolatedThread_PesudoThreading")
+        setfenv(f,env)
+        return f
+    else
+        return load(dmp,"IsolatedThread_PesudoThreading","bt",env)
+    end
+end
+
 function multi:Break()
 	self:Pause()
 	self.Active=nil
@@ -963,7 +977,12 @@ function thread.yield()
 	return thread.sleep(0)
 end
 function thread.isThread()
-	return coroutine.running()~=nil
+	if _VERSION~="Lua 5.1" then
+		local a,b = coroutine.running()
+		return not(b)
+	else
+		return coroutine.running()~=nil
+	end
 end
 function thread.getCores()
 	return thread.__CORES
@@ -1072,25 +1091,21 @@ function thread:newFunction(func,holdme)
 		return temp
     end
 end
+-- A cross version way to set enviroments, not the same as fenv though
+function multi.setEnv(func,env)
+    local f = string.dump(func)
+    local chunk = load(f,"env","bt",env)
+    return chunk
+end
+
 function multi:newThread(name,func,...)
 	multi.OnLoad:Fire()
 	local func = func or name
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local env = {}
-	setmetatable(env,{
-		__index = Gref,
-		__newindex = function(t,k,v)
-			if type(v)=="function" then
-				rawset(t,k,thread:newFunction(v))
-			else
-				Gref[k]=v
-			end
-		end
-	})
-	setfenv(func,env)
 	local c={}
+	local env = {self=c}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
@@ -1103,6 +1118,7 @@ function multi:newThread(name,func,...)
 	c.timer=multi:newTimer()
 	c._isPaused = false
 	c.returns = {}
+	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
 	function c:isPaused()
@@ -1165,6 +1181,22 @@ function multi:newThread(name,func,...)
 	threadid = threadid + 1
 	self:create(c)
 	return c
+end
+function multi:newISOThread(name,func,_env,...)
+	multi.OnLoad:Fire()
+	local func = func or name
+	local env = _env or {}
+	if not env.thread then
+		env.thread = thread
+	end
+	if not env.multi then
+		env.multi = multi
+	end
+	if type(name) == "function" then
+		name = "Thread#"..threadCount
+	end
+	local func = isolateFunction(func,env)
+	return self:newThread(name,func)
 end
 function multi.initThreads(justThreads)
 	initT = true
@@ -1255,9 +1287,11 @@ function multi.initThreads(justThreads)
 	multi.scheduler:OnLoop(function(self)
 		for i=#threads,1,-1 do
 			if threads[i].isError then
-				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
-				multi.setType(threads[i],multi.DestroyedObj)
-				table.remove(threads,i)
+				if coroutine.status(threads[i].thread)=="dead" then
+					threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+					multi.setType(threads[i],multi.DestroyedObj)
+					table.remove(threads,i)
+				end
 			end
 			if threads[i] and not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
@@ -1430,7 +1464,8 @@ end
 function multi:threadloop()
 	multi.initThreads(true)
 end
-function multi:lightloop()
+function multi:lightloop(settings)
+	multi.defaultSettings = settings or multi.defaultSettings
 	if not isRunning then
 		local Loop=self.Mainloop
 		while true do

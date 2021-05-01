@@ -23,7 +23,7 @@ SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
 multi, thread = require("multi").init() -- get it all and have it on all lanes
-if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassel
+if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassle
 	return {
 		init = function()
 			return multi.integration.GLOBAL, multi.integration.THREAD
@@ -145,7 +145,7 @@ function multi.InitSystemThreadErrorHandler()
 		end
 	)
 end
-multi.print("Integrated Lanes!")
+print("Integrated Lanes!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD

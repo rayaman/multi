@@ -23,17 +23,26 @@ SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
 local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+
+local function stripUpValues(func)
+    local dmp = string.dump(func)
+    if setfenv then
+        return loadstring(dmp,"IsolatedThread_PesudoThreading")
+    else
+        return load(dmp,"IsolatedThread_PesudoThreading","bt")
+    end
+end
+
 function multi:newSystemThreadedQueue(name)
 	local c = {}
-	c.linda = lanes.linda()
 	function c:push(v)
-		self.linda:send("Q", v)
+		table.insert(self,v)
 	end
 	function c:pop()
-		return ({self.linda:receive(0, "Q")})[2]
+		return table.remove(self,1)
 	end
 	function c:peek()
-		return self.linda:get("Q")
+		return self[1]
 	end
 	function c:init()
 		return self
@@ -43,49 +52,50 @@ function multi:newSystemThreadedQueue(name)
 end
 function multi:newSystemThreadedTable(name)
     local c = {}
-    c.link = lanes.linda()
-    setmetatable(c,{
-        __index = function(t,k)
-            return c.link:get(k)
-        end,
-        __newindex = function(t,k,v)
-            c.link:set(k,v)
-        end
-    })
     function c:init()
         return self
     end
     GLOBAL[name or "_"] = c
 	return c
 end
+local setfenv = setfenv
+if not setfenv then
+    if not debug then
+        multi.print("Unable to implement setfenv in lua 5.2+ the debug module is not available!")
+    else
+        setfenv = function(f, env)
+            return load(string.dump(f), nil, nil, env)
+        end
+    end
+end
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
     c.OnJobCompleted = multi:newConnection()
-    local funcs = multi:newSystemThreadedTable()
-    local queueJob = multi:newSystemThreadedQueue()
-    local queueReturn = multi:newSystemThreadedQueue()
-    local doAll = multi:newSystemThreadedQueue()
+    local jobs = {}
     local ID=1
     local jid = 1
+    local env = {}
+    setmetatable(env,{
+        __index = _G
+    })
+    local funcs = {}
     function c:doToAll(func)
-        for i=1,c.cores do
-            doAll:push{ID,func}
-        end
-        ID = ID + 1
+        setfenv(func,env)()
         return self
     end
     function c:registerFunction(name,func)
-        funcs[name]=func
+        funcs[name] = setfenv(func,env)
         return self
     end
     function c:pushJob(name,...)
-        queueJob:push{name,jid,{...}}
+        table.insert(jobs,{name,jid,{...}})
         jid = jid + 1
         return jid-1
     end
     local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
+        local func = stripUpValues(func)
         if type(name)=="function" then
             holup = func
             func = name
@@ -110,59 +120,18 @@ function multi:newSystemThreadedJobQueue(n)
             end)
         end,holup),name
     end
-    multi:newThread("JobQueueManager",function()
-        while true do
-            local job = thread.hold(function()
-                return queueReturn:pop()
-            end)
-            local id = table.remove(job,1)
-            c.OnJobCompleted:Fire(id,unpack(job))
-        end
-    end)
     for i=1,c.cores do
-        multi:newSystemThread("SystemThreadedJobQueue",function(queue)
-            local multi,thread = require("multi"):init()
-            local idle = os.clock()
-            local clock = os.clock
-            local ref = 0
-            setmetatable(_G,{__index = funcs})
-            multi:newThread("JobHandler",function()
-                while true do
-                    local dat = thread.hold(function()
-                        return queueJob:pop()
-                    end)
-                    idle = clock()
-                    local name = table.remove(dat,1)
-                    local jid = table.remove(dat,1)
-                    local args = table.remove(dat,1)
-                    queueReturn:push{jid, funcs[name](unpack(args)),queue}
+        multi:newThread("PesudoThreadedJobQueue_"..i,function()
+            while true do
+                thread.yield()
+                if #jobs>0 then
+                    local j = table.remove(jobs,1)
+                    c.OnJobCompleted:Fire(j[2],funcs[j[1]](unpack(j[3])))
+                else
+                    thread.sleep(.05)
                 end
-            end)
-            multi:newThread("DoAllHandler",function()
-                while true do
-                    local dat = thread.hold(function()
-                        return doAll:peek()
-                    end)
-                    if dat then
-                        if dat[1]>ref then
-                            idle = clock()
-                            ref = dat[1]
-                            dat[2]()
-                            doAll:pop()
-                        end
-                    end
-                end
-            end)
-            multi:newThread("IdleHandler",function()
-                while true do
-                    thread.hold(function()
-                        return clock()-idle>3
-                    end)
-                    THREAD.sleep(.01)
-                end
-            end)
-            multi:mainloop()
-        end,i).priority = thread.Priority_Core
+            end
+        end)
     end
     return c
 end 
