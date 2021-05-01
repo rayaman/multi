@@ -163,6 +163,20 @@ function multi:getTasksDetails(t)
 end
 
 --Helpers
+
+-- Used with ISO Threads
+local function isolateFunction(func,env)
+    local dmp = string.dump(func)
+    local env = env or {}
+    if setfenv then
+        local f = loadstring(dmp,"IsolatedThread_PesudoThreading")
+        setfenv(f,env)
+        return f
+    else
+        return load(dmp,"IsolatedThread_PesudoThreading","bt",env)
+    end
+end
+
 function multi:Break()
 	self:Pause()
 	self.Active=nil
@@ -963,7 +977,12 @@ function thread.yield()
 	return thread.sleep(0)
 end
 function thread.isThread()
-	return coroutine.running()~=nil
+	if _VERSION~="Lua 5.1" then
+		local a,b = coroutine.running()
+		return not(b)
+	else
+		return coroutine.running()~=nil
+	end
 end
 function thread.getCores()
 	return thread.__CORES
@@ -1087,17 +1106,6 @@ function multi:newThread(name,func,...)
 	end
 	local c={}
 	local env = {self=c}
-	setmetatable(env,{
-		__index = Gref,
-		__newindex = function(t,k,v)
-			if type(v)=="function" then
-				rawset(t,k,thread:newFunction(v))
-			else
-				Gref[k]=v
-			end
-		end
-	})
-	setfenv(func,env)
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
@@ -1110,6 +1118,7 @@ function multi:newThread(name,func,...)
 	c.timer=multi:newTimer()
 	c._isPaused = false
 	c.returns = {}
+	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
 	function c:isPaused()
@@ -1173,126 +1182,21 @@ function multi:newThread(name,func,...)
 	self:create(c)
 	return c
 end
-function multi:newISOThread(name,func,...)
+function multi:newISOThread(name,func,_env,...)
 	multi.OnLoad:Fire()
 	local func = func or name
+	local env = _env or {}
+	if not env.thread then
+		env.thread = thread
+	end
+	if not env.multi then
+		env.multi = multi
+	end
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local Gref = {}
-	local env = {
-		THREAD_NAME = name,
-		thread = thread,
-		multi = multi,
-		coroutine = coroutine,
-		debug = debug,
-		io = io,
-		math = math,
-		os = os,
-		package = package,
-		string = string,
-		table = table,
-		utf8 = utf8
-	}
-	for i,v in pairs(_G) do
-		if tostring(v):match("builtin") then
-			env[i]=v
-		end
-	end
-	local c={}
-	function c:inject(tab)
-		for i,v in pairs(tab) do
-			Gref[i] = v
-			env[i] = v
-		end
-	end
-	function c:start()
-		setmetatable(env,{
-			__index = Gref,
-			__newindex = function(t,k,v)
-				if type(v)=="function" then
-					rawset(t,k,thread:newFunction(v))
-				else
-					Gref[k]=v
-				end
-			end
-		})
-		self.thread=coroutine.create(multi.setEnv(func,env))
-	end
-	env.self = c
-	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
-	c.startArgs = {...}
-	c.ref={}
-	c.Name=name
-	c.sleep=1
-	c.Type="thread"
-	c.TID = threadid
-	c.firstRunDone=false
-	c.timer=multi:newTimer()
-	c._isPaused = false
-	c.returns = {}
-	c.OnError = multi:newConnection(true,nil,true)
-	c.OnDeath = multi:newConnection(true,nil,true)
-	function c:isPaused()
-		return self._isPaused
-	end
-	local resumed = false
-	function c:Pause()
-		if not self._isPaused then
-			thread.request(self,"exec",function()
-				thread.hold(function()
-					return resumed
-				end)
-				resumed = false
-				self._isPaused = false
-			end)
-			self._isPaused = true
-		end
-		return self
-	end
-	function c:Resume()
-		resumed = true
-		return self
-	end
-	function c:Kill()
-		thread.request(self,"kill")
-		return self
-	end
-	c.Destroy = c.Kill
-	function c.ref:send(name,val)
-		ret=coroutine.yield({Name=name,Value=val})
-	end
-	function c.ref:get(name)
-		return self.Globals[name]
-	end
-	function c.ref:kill()
-		dRef[1] = "_kill_"
-		dRef[2] = "I Was killed by You!"
-		err = coroutine.yield(dRef)
-		if err then
-			error("Failed to kill a thread! Exiting...")
-		end
-	end
-	function c.ref:sleep(n)
-		if type(n)=="function" then
-			ret=thread.hold(n)
-		elseif type(n)=="number" then
-			ret=thread.sleep(tonumber(n) or 0)
-		else
-			error("Invalid Type for sleep!")
-		end
-	end
-	function c.ref:syncGlobals(v)
-		self.Globals=v
-	end
-	table.insert(threads,c)
-	if initT==false then
-		multi.initThreads()
-	end
-	c.creationTime = os.clock()
-	threadid = threadid + 1
-	self:create(c)
-	return c
+	local func = isolateFunction(func,env)
+	return self:newThread(name,func)
 end
 function multi.initThreads(justThreads)
 	initT = true

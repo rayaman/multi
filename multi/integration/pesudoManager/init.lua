@@ -41,18 +41,39 @@ end
 function multi:getPlatform()
 	return "pesudo"
 end
-
+local function split(str)
+	local tab = {}
+	for word in string.gmatch(str, '([^,]+)') do
+		table.insert(tab,word)
+	end
+	return tab
+end
 THREAD.newFunction=thread.newFunction
 local id = 0
 function multi:newSystemThread(name,func,...)
-	local t = multi:newISOThread(name,func,...)
-	t:inject{
+	GLOBAL["$THREAD_NAME"] = name
+	GLOBAL["$__THREADNAME__"] = name
+	GLOBAL["$THREAD_ID"] = id
+	--GLOBAL["$thread"] = thread
+	local env = {
 		GLOBAL = GLOBAL,
 		THREAD = THREAD,
-		THREAD_ID = id
+		THREAD_NAME = name,
+		__THREADNAME__ = name,
+		THREAD_ID = id,
+		thread = thread
 	}
+	
+	local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
+	tab = split(tab)
+	for i = 1,#tab do
+		env[tab[i]] = _G[tab[i]]
+	end
+	--setmetatable(env,{__index=env})
+	multi:newISOThread(name,func,env,...).OnError(function(self,msg)
+		print("ERROR:",msg)
+	end)
 	id = id + 1
-	t:start()
 end
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works

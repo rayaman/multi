@@ -12,64 +12,66 @@ package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
-jq = multi:newSystemThreadedJobQueue(100) -- Job queue with 4 worker threads
+jq = multi:newSystemThreadedJobQueue(4) -- Job queue with 4 worker threads
 func = jq:newFunction("test",function(a,b)
     THREAD.sleep(2)
     return a+b
 end)
 
-for i = 1,100 do
+for i = 1,10 do
     func(i,i*3).connect(function(data)
         print(data)
     end)
 end
 
-test = true
-local haha = true
 multi:newThread("Standard Thread 1",function()
-    print(self.Name,haha)
     while true do
         thread.sleep(1)
-        print("Testing "..self.Name..":",test)
-        thread.sleep(.1)
-        prient("...")
+        print("Testing 1 ...")
     end
-end)
-multi:newThread("Standard Thread 2",function()
-    print(self.Name)
-    while true do
-        thread.sleep(1)
-        print("Testing "..self.Name..":",test)
-    end
-end)
-multi:newISOThread("Isolated Thread",function()
-    while true do
-        thread.sleep(1)
-        print("Testing Isolated:",test)
-        --errhor("huh")
-    end
-end).OnError(function(...)
-    print(...)
 end)
 
-multi:lightloop()
+multi:newISOThread("ISO Thread 2",{test=true},function()
+    while true do
+        thread.sleep(1)
+        print("Testing 2 ...")
+    end
+end)
+
+multi:mainloop()
 ```
+Note:
+---
+This was supposed to be released over a year ago, but work and other things got in my way. Pesudo Threading now works. The goal of this is so you can write modules that can be scaled up to utlize threading features when available.
 Added:
 ---
-- multi:newISOThread(name,func)
-  - Creates an isolated thread that prevents both locals and globals from being accessed. 
+- multi:newISOThread(name,func,env)
+  - Creates an isolated thread that prevents both locals and globals from being accessed.
+  - Was designed for the pesudoManager so it can emulate threads. You can use it as a super sandbox, but remember upvalues are also stripped which was intened for what I wanted them to do!
 - Added new integration: pesudoManager, functions just like lanesManager and loveManager, but it's actually single threaded
   - This was implemented because, you may want to build your code around being multi threaded, but some systems/implemetations of lua may not permit this. Since we now have a "single threaded" implementation of multi threading. We can actually create scalable code where things automatcally are threaded if built correctly. I am planning on adding more threadedOjbects.
 - In addition to adding pesudo Threading `multi.integration.threading` can now be used to autodetect which enviroment you are on and use the threading features.
 	```
 	GLOBAL,THREAD = require("multi.integration.threading"):init()
 	```
-	If you are using love2d it will use that, if you have lanes avaialble then it will use lanes. Otherwise it will use pesudo threading. This allows module creators to implement scalable features without having to worry about which enviroment they are in.
+	If you are using love2d it will use that, if you have lanes avaialble then it will use lanes. Otherwise it will use pesudo threading. This allows module creators to implement scalable features without having to worry about which enviroment they are in. Can now require a consistant module: `require("multi.integration.threading"):init()`
+
+Changed:
+---
+- Documentation to reflect the changes made
+
+Removed:
+---
+- CBT (Coroutine Based threading) has lost a feature, one that hasn't been used much, but broke compatiblity with anything above lua 5.1. My goal is to make my library work with all versions of lua above 5.1, including 5.4. Lua 5.2+ changed how enviroments worked which means that you can no longer modify an enviroment of function without using the debug library. This isn't ideal for how things in my library worked, but it is what it is. The feature lost is the one that converted all functions within a threaded enviroment into a threadedfunction. This in hindsight wasn't the best pratice and if it is the desired state you as the user can manually do that anyway. This shouldn't affect anyones code in a massive way.
 
 Fixed:
 ---
 - pseudoThreading and threads had an issue where they weren't executing properly
 - lanesManager THREAD:get(STRING: name) not returning the value
+
+Todo:
+---
+- Add more details to the documentation
 
 # Update 14.2.0 - Bloatware Removed
 Full Update Showcase
@@ -131,7 +133,7 @@ Quality Of Life:
 Added:
 ---
 - Type: destroyed
-	- A special state of an object that causes that object to become immutable and callable. The object Type is always "destroyed" it cannot be changed. The object can be indexed to infinity without issue. Every part of the object can be called as if it were a function including the indexed parts. This is done incase you destroy an object and still use it somewhere. However, if you are expecting something from the object then you may still encounter an error, though the returned type is an instance of the destroyed object which can be indexed and called like normal. This object can be used in any way and no errors will come about with it.
+	- A special state of an object that causes that object to become immutable and callable. The object Type is always "destroyed" it cannot be changed. The object can be indexed to infinity without issue. Every part of the object can be called as if it were a function including the indexed parts. This is done incase you destroy an object and still "use" it somewhere. However, if you are expecting something from the object then you may still encounter an error, though the returned type is an instance of the destroyed object which can be indexed and called like normal. This object can be used in any way and no errors will come about with it.
 
 Fixed:
 ---

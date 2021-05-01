@@ -23,6 +23,16 @@ SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
 local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+
+local function stripUpValues(func)
+    local dmp = string.dump(func)
+    if setfenv then
+        return loadstring(dmp,"IsolatedThread_PesudoThreading")
+    else
+        return load(dmp,"IsolatedThread_PesudoThreading","bt")
+    end
+end
+
 function multi:newSystemThreadedQueue(name)
 	local c = {}
 	function c:push(v)
@@ -85,6 +95,7 @@ function multi:newSystemThreadedJobQueue(n)
     end
     local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
+        local func = stripUpValues(func)
         if type(name)=="function" then
             holup = func
             func = name

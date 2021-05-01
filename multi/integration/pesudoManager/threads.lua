@@ -28,7 +28,7 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT()
+local function INIT(env)
     local THREAD = {}
     local GLOBAL = {}
     THREAD.Priority_Core = 3
@@ -45,6 +45,7 @@ local function INIT()
         return GLOBAL[name]
     end
     function THREAD.waitFor(name)
+        print("Waiting",thread)
         return thread.hold(function() return GLOBAL[name] end)
     end
     if getOS() == "windows" then
@@ -61,7 +62,7 @@ local function INIT()
             print(...)
         end
         function c.error(err)
-            error("ERROR in <"..__THREADNAME__..">: "..err)
+            error("ERROR in <"..GLOBAL["$__THREADNAME__"]..">: "..err)
         end
         return c
     end
@@ -77,10 +78,10 @@ local function INIT()
         error("Thread was killed!")
     end
     function THREAD.getName()
-        return THREAD_NAME
+        return GLOBAL["$THREAD_NAME"]
     end
     function THREAD.getID()
-        return THREAD_ID
+        return GLOBAL["$THREAD_ID"]
     end
     function THREAD.sleep(n)
         thread.sleep(n)
