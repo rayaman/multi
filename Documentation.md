@@ -14,7 +14,7 @@ Current Multi Version: 15.0.0
 </br>`multi.Priority_Idle` — Lowest level of pirority that can be given to a process
 
 # Multi Runners
-`multi:lightloop()` — A light version of the mainloop
+`multi:lightloop()` — A light version of the mainloop doesn't run Coroutine based threads
 </br>`multi:loveloop([BOOLEAN: light true])` — Run's all the love related features as well
 </br>`multi:mainloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running
 </br>`multi:threadloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
@@ -567,6 +567,67 @@ end)
 multi:mainloop()
 ```
 
+# CBT: newISOThread()
+`th = multi:newThread([STRING name,] FUNCTION func, TABLE: env)` — Creates a new thread with name and function func. Sets the enviroment of the func to env. Both the thread.* and multi.* are automatically placed in the enviroment.
+
+When within a thread, if you have any holding code you will want to use thread.* to give time to other threads while your code is running. This type of thread does not have access to outside local or globals. Only what is in the env can be seen. (This thread was made so pesudo threading could work)
+Constants
+---
+- `th.Name` — Name of thread
+- `th.Type` — Type="thread"
+- `th.TID` — Thread ID
+- `conn = th.OnError(FUNCTION: callback)` — Connect to an event which is triggered when an error is encountered within a thread
+- `conn = th.OnDeath(FUNCTION: callback)` — Connect to an event which is triggered when the thread had either been killed or stopped running. (Not triggered when there is an error!)
+- `boolean = th:isPaused()`\* — Returns true if a thread has been paused
+- `self = th:Pause()`\* — Pauses a thread
+- `self = th:Resume()`\* — Resumes a paused thread
+- `self = th:Kill()`\* — Kills a thread
+- `self = th:Destroy()`\* — Destroys a thread
+
+<b>*</b>Using these methods on a thread directly you are making a request to a thread! The thread may not accept your request, but it most likely will. You can contorl the thread flow within the thread's function itself
+```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
+
+jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
+func = jq:newFunction("test",function(a,b)
+    THREAD.sleep(2)
+    return a+b
+end)
+
+for i = 1,10 do
+    func(i,i*3).connect(function(data)
+        print(data)
+    end)
+end
+
+local a = true
+b = false
+
+multi:newThread("Standard Thread 1",function()
+    while true do
+        thread.sleep(1)
+        print("Testing 1 ...",a,b,test)
+    end
+end).OnError(function(self,msg)
+    print(msg)
+end)
+
+-- All upvalues are stripped! no access to the global, multi and thread are exposed however
+multi:newISOThread("ISO Thread 2",function()
+    while true do
+        thread.sleep(1)
+        print("Testing 2 ...",a,b,test) -- a and b are nil, but test is true
+    end
+end,{test=true,print=print})
+
+.OnError(function(self,msg)
+    print(msg)
+end)
+
+multi:mainloop()
+```
 # System Threads (ST) - Multi-Integration Getting Started
 The system threads need to be required seperatly.
 ```lua
@@ -690,7 +751,15 @@ multi:mainloop()
 You have probable noticed that the output from this is a total mess! Well I though so too, and created the system threaded console!
 
 # ST - Using the Console
+`console = THREAD.getConsole()`
 
+This does guarantee an order to console output, it does ensure that all things are on nice neat lines
+```lua
+multi,thread = require("multi"):init()
+local GLOBAL, THREAD = require("multi.integration.threading"):init()
+
+console.print("Hello World!")
+```
 # ST - SystemThreadedJobQueue
 `jq = multi:newSystemThreadedJobQueue([NUMBER: threads])` — Creates a system threaded job queue with an optional number of threads
 - `jq.cores = (supplied number) or (the number of cores on your system*2)`

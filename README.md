@@ -2,6 +2,7 @@
 **Key Changes**
 - Emulating system threading on a single thread
     - Purpose to allow consistant code that can scale when threading is available. Check out the changelog for more details
+- Proper support for lua versions above 5.1 (More testing is needed, a full test suite is being developed and should be made available soon)
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
 
