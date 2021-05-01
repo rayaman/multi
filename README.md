@@ -10,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 INSTALLING
 ----------
-Links to dependicies:
+Links to dependencies:
 [lanes](https://github.com/LuaLanes/lanes)
 
 To install copy the multi folder into your environment and you are good to go</br>
@@ -30,6 +30,7 @@ Planned features/TODO
 - [x] ~~Finish Documentation~~ Finished
 - [ ] Create test suite
 - [ ] Network Parallelism rework
+- [ ] Fix some bugs
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----
