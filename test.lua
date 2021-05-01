@@ -1,4 +1,3 @@
-package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
