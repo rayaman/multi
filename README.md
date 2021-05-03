@@ -1,4 +1,4 @@
-# Multi Version: 15.0.0 Fake it till you make it
+# Multi Version: 15.1.0 LÖVR Integration
 **Key Changes**
 - Emulating system threading on a single thread
     - Purpose to allow consistant code that can scale when threading is available. Check out the changelog for more details
@@ -22,7 +22,7 @@ Going forward I will include a Release zip for love2d.
 
 Discord
 -------
-Have a question that you need asking? Or need realtime assistance? Feel free to join the discord!</br>
+Have a question? Or need realtime assistance? Feel free to join the discord!</br>
 https://discord.gg/U8UspuA</br>
 
 Planned features/TODO
