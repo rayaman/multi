@@ -1466,6 +1466,7 @@ function multi:threadloop()
 end
 function multi:lightloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
+	multi.OnPreLoad:Fire()
 	if not isRunning then
 		local Loop=self.Mainloop
 		while true do
