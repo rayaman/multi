@@ -323,9 +323,9 @@ end
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
-	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue') then error('Can only create an object on multi or an interface obj') return false end
+	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue' or self.Type == 'sandbox') then error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
-    if self.Type=='process' or self.Type=='queue' then
+    if self.Type=='process' or self.Type=='queue' or self.Type=='sandbox' then
 		setmetatable(c, {__index = multi})
 	else
 		setmetatable(c, {__index = multi})

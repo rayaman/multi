@@ -15,3 +15,7 @@ package.path="../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
+local multi, thread = require("multi"):init()
+function runTest(path)
+    
+end
