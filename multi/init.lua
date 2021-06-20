@@ -911,7 +911,7 @@ local threads = thread.__threads
 local Gref = _G
 multi.GlobalVariables={}
 local dFunc = function() return true end
-local dRef = {nil,nil,nil}
+local dRef = {nil,nil,nil,nil,nil}
 thread.requests = {}
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
@@ -941,11 +941,40 @@ function thread.sleep(n)
 	dRef[2] = n or 0
 	return coroutine.yield(dRef)
 end
-function thread.hold(n)
+-- function thread.hold(n)
+-- 	thread._Requests()
+-- 	dRef[1] = "_hold_"
+-- 	dRef[2] = n or dFunc
+-- 	return coroutine.yield(dRef)
+-- end
+function thread.hold(n,opt)
 	thread._Requests()
-	dRef[1] = "_hold_"
-	dRef[2] = n or dFunc
-	return coroutine.yield(dRef)
+	if opt and type(opt)=="table" then
+		if opt.interval then
+			dRef[4] = opt.interval
+		end
+		if opt.cycles then
+			dRef[1] = "_holdW_"
+			dRef[2] = opt.cycles or 1
+			dRef[3] = n or dFunc
+			return coroutine.yield(dRef)
+		elseif opt.sleep then
+			dRef[1] = "_holdF_"
+			dRef[2] = opt.sleep
+			dRef[3] = n or dFunc
+			return coroutine.yield(dRef)
+		end
+	end
+	if type(n) == "number" then
+		thread.getRunningThread().lastSleep = clock()
+		dRef[1] = "_sleep_"
+		dRef[2] = n or 0
+		return coroutine.yield(dRef)
+	else
+		dRef[1] = "_hold_"
+		dRef[2] = n or dFunc
+		return coroutine.yield(dRef)
+	end
 end
 function thread.holdFor(sec,n)
 	thread._Requests()
@@ -1041,13 +1070,13 @@ function multi.holdFor(n,func)
 	end)
 end
 local function cleanReturns(...)
-	local n = select("#", ...)
 	local returns = {...}
 	local rets = {}
 	local ind = 0
-	for i=n,1,-1 do
+	for i=#returns,1,-1 do
 		if returns[i] then
-			ind=i
+			ind = i
+			break
 		end
 	end
 	return unpack(returns,1,ind)
@@ -1061,7 +1090,7 @@ function thread:newFunction(func,holdme)
 					if err then
 						return multi.NIL, err
 					elseif rets then
-						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7])
+						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 					end
 				end)
 			else
@@ -1071,7 +1100,7 @@ function thread:newFunction(func,holdme)
 				if err then
 					return nil,err
 				end
-				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7])
+				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 			end
 		end
 		local t = multi:newThread("TempThread",func,...)
@@ -1084,7 +1113,7 @@ function thread:newFunction(func,holdme)
 			isTFunc = true,
 			wait = wait,
 			connect = function(f)
-				t.OnDeath(function(self,status,...) f(cleanReturns(...))  end) 
+				t.OnDeath(function(self,status,...) f(...)  end) 
 				t.OnError(function(self,err) f(err) end) 
 			end
 		}
@@ -1206,8 +1235,8 @@ function multi.initThreads(justThreads)
 		self.skip=tonumber(n) or 24
 	end
 	multi.scheduler.skip=0
-	local t0,t1,t2,t3,t4,t5,t6
-	local r1,r2,r3,r4,r5,r6
+	local t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15
+	local r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16
 	local ret,_
 	local function CheckRets(i)
 		if threads[i] and not(threads[i].isError) then
@@ -1216,7 +1245,7 @@ function multi.initThreads(justThreads)
 				threads[i].TempRets[1] = ret
 				return
 			end
-			if ret or r1 or r2 or r3 or r4 or r5 or r6 then
+			if ret or r1 or r2 or r3 or r4 or r5 or r6 or r7 or r8 or r9 or r10 or r11 or r12 or r13 or r14 or r15 or r16 then
 				threads[i].TempRets[1] = ret
 				threads[i].TempRets[2] = r1
 				threads[i].TempRets[3] = r2
@@ -1224,6 +1253,16 @@ function multi.initThreads(justThreads)
 				threads[i].TempRets[5] = r4
 				threads[i].TempRets[6] = r5
 				threads[i].TempRets[7] = r6
+				threads[i].TempRets[8] = r7
+				threads[i].TempRets[9] = r8
+				threads[i].TempRets[10] = r9
+				threads[i].TempRets[11] = r10
+				threads[i].TempRets[12] = r11
+				threads[i].TempRets[13] = r12
+				threads[i].TempRets[14] = r13
+				threads[i].TempRets[15] = r14
+				threads[i].TempRets[16] = r15
+				threads[i].TempRets[17] = r16
 			end
 		end
 	end
@@ -1241,7 +1280,7 @@ function multi.initThreads(justThreads)
 	local function helper(i)
 		if type(ret)=="table" then
 			if ret[1]=="_kill_" then
-				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6)
+				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 				ret = nil
@@ -1262,6 +1301,8 @@ function multi.initThreads(justThreads)
 				threads[i].func = ret[2]
 				threads[i].task = "hold"
 				threads[i].__ready = false
+				threads[i].interval = ret[4] or 0
+				threads[i].intervalR = clock()
 				ret = nil
 			elseif ret[1]=="_holdF_" then
 				holdconn(3)
@@ -1270,6 +1311,8 @@ function multi.initThreads(justThreads)
 				threads[i].task = "holdF"
 				threads[i].time = clock()
 				threads[i].__ready = false
+				threads[i].interval = ret[4] or 0
+				threads[i].intervalR = clock()
 				ret = nil
 			elseif ret[1]=="_holdW_" then
 				holdconn(3)
@@ -1279,6 +1322,8 @@ function multi.initThreads(justThreads)
 				threads[i].task = "holdW"
 				threads[i].time = clock()
 				threads[i].__ready = false
+				threads[i].interval = ret[4] or 0
+				threads[i].intervalR = clock()
 				ret = nil
 			end
 		end
@@ -1295,7 +1340,7 @@ function multi.initThreads(justThreads)
 			end
 			if threads[i] and not threads[i].__started then
 				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
+					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
 				end
 				threads[i].__started = true
 				helper(i)
@@ -1306,7 +1351,7 @@ function multi.initThreads(justThreads)
 			end
 			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
 				local t = threads[i].TempRets or {}
-				threads[i].OnDeath:Fire(threads[i],"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7])
+				threads[i].OnDeath:Fire(threads[i],"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
 				multi.setType(threads[i],multi.DestroyedObj)
 				table.remove(threads,i)
 			elseif threads[i] and threads[i].task == "skip" then
@@ -1316,13 +1361,16 @@ function multi.initThreads(justThreads)
 					threads[i].__ready = true
 				end
 			elseif threads[i] and threads[i].task == "hold" then
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					if t0==multi.NIL then
-						t0 = nil
+				if clock() - threads[i].intervalR>=threads[i].interval then
+					t0,t1,t2,t3,t4,t5,t6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = threads[i].func()
+					if t0 then
+						if t0==multi.NIL then
+							t0 = nil
+						end
+						threads[i].task = ""
+						threads[i].__ready = true
 					end
-					threads[i].task = ""
-					threads[i].__ready = true
+					threads[i].intervalR = clock()
 				end
 			elseif threads[i] and threads[i].task == "sleep" then
 				if clock() - threads[i].time>=threads[i].sec then
@@ -1330,33 +1378,40 @@ function multi.initThreads(justThreads)
 					threads[i].__ready = true
 				end
 			elseif threads[i] and threads[i].task == "holdF" then
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					threads[i].task = ""
-					threads[i].__ready = true
-				elseif clock() - threads[i].time>=threads[i].sec then
-					threads[i].task = ""
-					threads[i].__ready = true
-					t0 = nil
-					t1 = "TIMEOUT"
+				if clock() - threads[i].intervalR>=threads[i].interval then
+					t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
+					if t0 then
+						threads[i].task = ""
+						threads[i].__ready = true
+					elseif clock() - threads[i].time>=threads[i].sec then
+						threads[i].task = ""
+						threads[i].__ready = true
+						t0 = nil
+						t1 = "TIMEOUT"
+					end
+					threads[i].intervalR = clock()
 				end
 			elseif threads[i] and threads[i].task == "holdW" then
-				threads[i].pos = threads[i].pos + 1
-				t0,t1,t2,t3,t4,t5,t6 = threads[i].func()
-				if t0 then
-					threads[i].task = ""
-					threads[i].__ready = true
-				elseif threads[i].count==threads[i].pos then
-					threads[i].task = ""
-					threads[i].__ready = true
-					t0 = nil
-					t1 = "TIMEOUT"
+				if clock() - threads[i].intervalR>=threads[i].interval then
+					threads[i].pos = threads[i].pos + 1
+					print(threads[i].pos,threads[i].count)
+					t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
+					if t0 then
+						threads[i].task = ""
+						threads[i].__ready = true
+					elseif threads[i].count==threads[i].pos then
+						threads[i].task = ""
+						threads[i].__ready = true
+						t0 = nil
+						t1 = "TIMEOUT"
+					end
+					threads[i].intervalR = clock()
 				end
 			end
 			if threads[i] and threads[i].__ready then
 				threads[i].__ready = false
 				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6)
+					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15)
 					CheckRets(i)
 				end
 			end
