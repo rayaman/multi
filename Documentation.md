@@ -1,4 +1,4 @@
-Current Multi Version: 14.2.0
+Current Multi Version: 15.0.0
 
 # Multi static variables
 `multi.Version` — The current version of the library
@@ -14,7 +14,7 @@ Current Multi Version: 14.2.0
 </br>`multi.Priority_Idle` — Lowest level of pirority that can be given to a process
 
 # Multi Runners
-`multi:lightloop()` — A light version of the mainloop
+`multi:lightloop()` — A light version of the mainloop doesn't run Coroutine based threads
 </br>`multi:loveloop([BOOLEAN: light true])` — Run's all the love related features as well
 </br>`multi:mainloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running
 </br>`multi:threadloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
@@ -153,7 +153,7 @@ The connect feature has some syntax sugar to it as seen below
 
 Example:
 ```lua
-local multi = require("multi")
+multi,thread = require("multi"):init()
 -- Let’s create the events
 yawn={}
 OnCustomSafeEvent=multi:newConnection(true) -- lets pcall the calls in case something goes wrong default
@@ -201,7 +201,7 @@ Timeouts are a collection of methods that allow you to handle timeouts. These on
 
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-multi = require("multi")
+multi,thread = require("multi"):init()
 
 loop = multi:newLoop(function()
 	-- do stuff
@@ -224,7 +224,7 @@ loop:OnTimerResolved(function(self,...)
 	print(...)
 end)
 
-multi:lightloop()
+multi:mainloop()
 ```
 As mentioned above this is made much easier using threads
 ```lua
@@ -255,14 +255,14 @@ print(func(0))
 Example:
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-multi = require("multi")
+multi,thread = require("multi"):init()
 multi:scheduleJob({min = 30},function() -- Every hour at minute 30 this event will be triggered! You can mix and match as well!
 	print("Hi")
 end)
 multi:scheduleJob({min = 30,hour = 0},function() -- Every day at 12:30AM this event will be triggered
 	print("Hi")
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Universal Actor methods
@@ -287,7 +287,7 @@ All of these functions are found on actors
 
 Example:
 ```lua
-local multi = require("multi")
+multi,thread = require("multi"):init()
 count=0
 -- A loop object is used to demostrate how one could use an event object.
 loop=multi:newLoop(function(self,dt)
@@ -298,7 +298,7 @@ event:OnEvent(function(self) -- connect to the event object
 	loop:Destroy() -- destroys the loop from running!
 	print("Stopped that loop!",count)
 end) -- events like alarms need to be reset the Reset() command works here as well
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: Updaters
@@ -311,12 +311,12 @@ Updaters are a mix between both loops and steps. They were a way to add basic pr
 
 Example:
 ```lua
-local multi = require("multi")
+multi,thread = require("multi"):init()
 updater=multi:newUpdater(5000) -- simple, think of a loop with the skip feature of a step
 updater:OnUpdate(function(self)
 	print("updating...")
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: Alarms
@@ -328,13 +328,13 @@ Alarms ring after a certain amount of time, but you need to reset the alarm ever
 
 Example:
 ```lua
-local multi = require("multi")
+multi,thread = require("multi"):init()
 alarm=multi:newAlarm(3) -- in seconds can go to .001 uses the built in os.clock()
 alarm:OnRing(function(a)
 	print("3 Seconds have passed!")
 	a:Reset(n) -- if n were nil it will reset back to 3, or it would reset to n seconds
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: Loops
@@ -346,7 +346,7 @@ Loops are events that happen over and over until paused. They act like a while l
 Example:
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 local a = 0
 loop = multi:newLoop(function()
 	a = a + 1
@@ -355,7 +355,7 @@ loop = multi:newLoop(function()
     	loop:Pause()
     end
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: TLoops
@@ -366,7 +366,7 @@ multi:lightloop()
 Example:
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 local a = 0
 loop = multi:newTLoop(function()
 	a = a + 1
@@ -375,7 +375,7 @@ loop = multi:newTLoop(function()
     	loop:Pause()
     end
 end,1)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: Steps
@@ -390,13 +390,13 @@ multi:lightloop()
 Example:
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 multi:newStep(1,10,1,0):OnStep(function(step,pos)
 	print(step,pos)
 end):OnEnd(fucntion(step)
 	step:Destroy()
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Actor: TSteps
@@ -411,13 +411,13 @@ multi:lightloop()
 Example:
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 multi:newTStep(1,10,1,1):OnStep(function(step,pos)
 	print(step,pos)
 end):OnEnd(fucntion(step)
 	step:Destroy()
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # Coroutine based Threading (CBT)
@@ -474,7 +474,7 @@ Example:
 -- Jobs are not natively part of the multi library. I planned on adding them, but decided against it. Below is the code that would have been used.
 -- Implementing a job manager using services
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 multi.Jobs = multi:newService(function(self,jobs)
 	local job = table.remove(jobs,1)
 	if job and job.removed==nil then
@@ -532,6 +532,7 @@ jobsn[1]:removeJob() -- Select a job and remove it
 multi.Jobs:removeJobs("test2") -- Remove all jobs names 'test2'
 multi.Jobs.SetScheme(1) -- Jobs are internally a service, so setting scheme and priority
 multi.Jobs.SetPriority(multi.Priority_Core)
+multi:mainloop()
 ```
 
 # CBT: newThread()
@@ -556,21 +557,82 @@ Constants
 Examples:
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
-local multi = require("multi")
+multi,thread = require("multi"):init()
 multi:newThread("Example of basic usage",function()
 	while true do
     	thread.sleep(1)
         print("We just made an alarm!")
     end
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
+# CBT: newISOThread()
+`th = multi:newThread([STRING name,] FUNCTION func, TABLE: env)` — Creates a new thread with name and function func. Sets the enviroment of the func to env. Both the thread.* and multi.* are automatically placed in the enviroment.
+
+When within a thread, if you have any holding code you will want to use thread.* to give time to other threads while your code is running. This type of thread does not have access to outside local or globals. Only what is in the env can be seen. (This thread was made so pesudo threading could work)
+Constants
+---
+- `th.Name` — Name of thread
+- `th.Type` — Type="thread"
+- `th.TID` — Thread ID
+- `conn = th.OnError(FUNCTION: callback)` — Connect to an event which is triggered when an error is encountered within a thread
+- `conn = th.OnDeath(FUNCTION: callback)` — Connect to an event which is triggered when the thread had either been killed or stopped running. (Not triggered when there is an error!)
+- `boolean = th:isPaused()`\* — Returns true if a thread has been paused
+- `self = th:Pause()`\* — Pauses a thread
+- `self = th:Resume()`\* — Resumes a paused thread
+- `self = th:Kill()`\* — Kills a thread
+- `self = th:Destroy()`\* — Destroys a thread
+
+<b>*</b>Using these methods on a thread directly you are making a request to a thread! The thread may not accept your request, but it most likely will. You can contorl the thread flow within the thread's function itself
+```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
+
+jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
+func = jq:newFunction("test",function(a,b)
+    THREAD.sleep(2)
+    return a+b
+end)
+
+for i = 1,10 do
+    func(i,i*3).connect(function(data)
+        print(data)
+    end)
+end
+
+local a = true
+b = false
+
+multi:newThread("Standard Thread 1",function()
+    while true do
+        thread.sleep(1)
+        print("Testing 1 ...",a,b,test)
+    end
+end).OnError(function(self,msg)
+    print(msg)
+end)
+
+-- All upvalues are stripped! no access to the global, multi and thread are exposed however
+multi:newISOThread("ISO Thread 2",function()
+    while true do
+        thread.sleep(1)
+        print("Testing 2 ...",a,b,test) -- a and b are nil, but test is true
+    end
+end,{test=true,print=print})
+
+.OnError(function(self,msg)
+    print(msg)
+end)
+
+multi:mainloop()
+```
 # System Threads (ST) - Multi-Integration Getting Started
 The system threads need to be required seperatly.
 ```lua
 -- I recommend keeping these as globals. When using lanes you can use local and things will work, but if you use love2d and locals, upvalues are not transfered over threads and this can be an issue
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init() -- We will talk about the global and thread interface that is returned
+GLOBAL, THREAD = require("multi.integration.threading"):init() -- We will talk about the global and thread interface that is returned
 GLOBAL, THREAD = require("multi.integration.loveManager"):init()
 GLOBAL, THREAD = require("luvitManager") --*
 ```
@@ -609,8 +671,8 @@ ST - System Threads
 System Threads are the feature that allows a user to interact with systen threads. It differs from regular coroutine based thread in how it can interact with variables. When using system threads the GLOBAL table is the "only way"* to send data. Spawning a System thread is really simple once all the required libraries are in place. See example below:
 
 ```lua
-local multi = require("multi") -- keep this global when using lanes or implicitly define multi within the spawned thread
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
+multi,thread = require("multi"):init() -- keep this global when using lanes or implicitly define multi within the spawned thread
+local GLOBAL, THREAD = require("multi.integration.threading").init()
 multi:newSystemThread("Example thread",function()
 	local multi = require("multi") -- we are in a thread so lets not refer to that upvalue!
 	print("We have spawned a thread!")
@@ -624,7 +686,7 @@ end,"A message that we are passing") -- There are restrictions on what can be pa
 tloop = multi:newTLoop(function()
 	print("I'm still kicking!")
 end,1)
-multi:lightloop()
+multi:mainloop()
 ```
 
 <b>*</b>This isn't entirely true, as of right now the compatiablity with the lanes library and love2d engine have their own methods to share data, but if you would like to have your code work in both enviroments then using the GLOBAL table and the data structures provided by the multi library will ensure this happens. If you do not plan on having support for both platforms then feel free to use linda's in lanes and channels in love2d.
@@ -638,8 +700,8 @@ When creating objects with a name they are automatically exposed to the GLOBAL t
 
 ```lua
 -- Exposing a queue
-multi = require("multi")
-local GLOBAL, THREAD = require("multi.integration.lanesManager").init() -- The standard setup above
+multi,thread = require("multi"):init()
+local GLOBAL, THREAD = require("multi.integration.threading").init() -- The standard setup above
 queue = multi:newSystemThreadedQueue("myQueue"):init() -- We create and initiate the queue for the main thread
 queue:push("This is a test!") -- We push some data onto the queue that other threads can consume and do stuff with
 multi:newSystemThread("Example thread",function() -- Create a system thread
@@ -647,7 +709,7 @@ multi:newSystemThread("Example thread",function() -- Create a system thread
     local data = queue:pop() -- Get the data
     print(data) -- print the data
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 # ST - SystemThreadedQueue
@@ -659,9 +721,9 @@ multi:lightloop()
 
 Let's get into some examples:
 ```lua
-multi = require("multi")
+multi,thread = require("multi"):init()
 thread_names = {"Thread_A","Thread_B","Thread_C","Thread_D"}
-local GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+local GLOBAL, THREAD = require("multi.integration.threading"):init()
 queue = multi:newSystemThreadedQueue("myQueue"):init()
 for _,n in pairs(thread_names) do
 	multi:newSystemThread(n,function()
@@ -683,11 +745,21 @@ end):OnEvent(function()
 	print("No more data within the queue!")
 	os.exit()
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 
 You have probable noticed that the output from this is a total mess! Well I though so too, and created the system threaded console!
 
+# ST - Using the Console
+`console = THREAD.getConsole()`
+
+This does guarantee an order to console output, it does ensure that all things are on nice neat lines
+```lua
+multi,thread = require("multi"):init()
+local GLOBAL, THREAD = require("multi.integration.threading"):init()
+
+console.print("Hello World!")
+```
 # ST - SystemThreadedJobQueue
 `jq = multi:newSystemThreadedJobQueue([NUMBER: threads])` — Creates a system threaded job queue with an optional number of threads
 - `jq.cores = (supplied number) or (the number of cores on your system*2)`
@@ -703,8 +775,8 @@ You have probable noticed that the output from this is a total mess! Well I thou
 Example:
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-multi = require("multi")
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+multi,thread = require("multi"):init()
+GLOBAL, THREAD = require("multi.integration.threading"):init()
 local jq = multi:newSystemThreadedJobQueue(4) -- job queue using 4 cores
 jq:doToAll(function()
 	Important = 15
@@ -727,7 +799,7 @@ func(5,5).connect(function(ret)
     print("Connected",ret)
     os.exit()
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 # ST - SystemThreadedTable
 `stt = multi:newSystemThreadedTable(STRING: name)`
@@ -738,15 +810,15 @@ multi:lightloop()
 Example:
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-multi = require("multi")
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+multi,thread = require("multi"):init()
+GLOBAL, THREAD = require("multi.integration.threading"):init()
 local stt = multi:newSystemThreadedTable("stt")
 stt["hello"] = "world"
 multi:newSystemThread("test thread",function()
     local stt = GLOBAL["stt"]:init()
     print(stt["hello"])
 end)
-multi:lightloop()
+multi:mainloop()
 ```
 # Network Threads - Multi-Integration WIP Being Reworked
 More of a fun project of mine then anything core to to the library it will be released and documented when it is ready. I do not have a timeframe for this

@@ -1,6 +1,8 @@
-# Multi Version: 15.0.0 Fake it, until you make it
+# Multi Version: 15.0.0 Fake it till you make it
 **Key Changes**
 - Emulating system threading on a single thread
+    - Purpose to allow consistant code that can scale when threading is available. Check out the changelog for more details
+- Proper support for lua versions above 5.1 (More testing is needed, a full test suite is being developed and should be made available soon)
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
 
@@ -8,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 INSTALLING
 ----------
-Links to dependicies:
+Links to dependencies:
 [lanes](https://github.com/LuaLanes/lanes)
 
 To install copy the multi folder into your environment and you are good to go</br>
@@ -26,20 +28,29 @@ https://discord.gg/U8UspuA</br>
 Planned features/TODO
 ---------------------
 - [x] ~~Finish Documentation~~ Finished
+- [ ] Create test suite
 - [ ] Network Parallelism rework
+- [ ] Fix some bugs
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----
 ```lua
-local multi, thread = require("multi").init()
-mutli:newThread("Example",function()
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+local multi, thread = require("multi"):init()
+GLOBAL, THREAD = require("multi.integration.threading"):init()
+multi:newSystemThread("System Thread",function()
     while true do
-        thread.sleep(1)
-        print("Hello!")
+        THREAD.sleep(1)
+        print("World!")
     end
 end)
-multi:lightloop()
---multi:mainloop()
+multi:newThread("Coroutine Based Thread",function()
+    while true do
+        print("Hello")
+        thread.sleep(1)
+    end
+end)
+multi:mainloop()
 --[[
 while true do
     multi:uManager()

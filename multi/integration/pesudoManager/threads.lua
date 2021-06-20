@@ -28,7 +28,7 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT()
+local function INIT(env)
     local THREAD = {}
     local GLOBAL = {}
     THREAD.Priority_Core = 3
@@ -45,6 +45,7 @@ local function INIT()
         return GLOBAL[name]
     end
     function THREAD.waitFor(name)
+        print("Waiting",thread)
         return thread.hold(function() return GLOBAL[name] end)
     end
     function THREAD.getCores()
@@ -54,7 +55,7 @@ local function INIT()
         local c = {}
         c.print = print
         function c.error(err)
-            error("ERROR in <"..__THREADNAME__..">: "..err)
+            error("ERROR in <"..GLOBAL["$__THREADNAME__"]..">: "..err)
         end
         return c
     end
@@ -63,17 +64,17 @@ local function INIT()
     end
     THREAD.__CORES = thread.__CORES
     function THREAD.getName()
-        local t = thread.getRunningThread()
-        return t.Name
+        return GLOBAL["$THREAD_NAME"]
     end
     function THREAD.getID()
-        local t = thread.getRunningThread()
-        return t.TID
+        return GLOBAL["$THREAD_ID"]
     end
-    _G.THREAD_ID = 0
-    THREAD.kill = thread.kill
-    THREAD.sleep = thread.sleep
-    THREAD.hold = thread.hold
+    function THREAD.sleep(n)
+        thread.sleep(n)
+    end
+    function THREAD.hold(n)
+        return thread.hold(n)
+    end
     return GLOBAL, THREAD
 end
 return {init = function()
