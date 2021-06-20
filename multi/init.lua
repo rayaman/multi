@@ -1022,13 +1022,13 @@ function multi.holdFor(n,func)
 	end)
 end
 local function cleanReturns(...)
-	local n = select("#", ...)
 	local returns = {...}
 	local rets = {}
 	local ind = 0
-	for i=n,1,-1 do
+	for i=#returns,1,-1 do
 		if returns[i] then
-			ind=i
+			ind = i
+			break
 		end
 	end
 	return unpack(returns,1,ind)
