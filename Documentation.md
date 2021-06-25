@@ -20,6 +20,34 @@ Current Multi Version: 15.0.0
 </br>`multi:threadloop([TABLE settings])` — This runs the mainloop by having its own internal while loop running, but prioritizes threads over multi-objects
 </br>`multi:uManager([TABLE settings])` — This runs the mainloop, but does not have its own while loop and thus needs to be within a loop of some kind.
 
+# Global Methods
+
+`multi:init()` — Uesd to initiate the library, should only be called once
+`multi.getCurrentProcess()` — Returns currently running Process
+`multi.`
+
+# Processor Methods
+
+These methods can be called either on the multi namespace or a process returned by `multi:newProcessor()`
+
+`proc.Stop()` — Stops the main process/child process. **Note:** If the main process is stopped all child processes are stopped as well
+`proc:getTasksDetails([STRING: displaytype])` — Gets a table or string of all the running tasks
+
+Processor Attributes
+---
+
+| Attribute | Type | Returns | Description |
+---|---|---|---
+Start|Method()|self| Starts the process
+Stop|Method()|self| Stops the process
+OnError|Connection|connection| Allows connection to the process error handler
+Type|Member:`string`|"process"| Contains the type of object
+Active|Member:`boolean`|variable| If false the process is not active
+Name|Member:`string`|variable| The name set at process creation
+process|Thread|thread| A handle to a multi thread object 
+
+[Refer to the objects for more methods](#non-actors)
+
 # Multi Settings
 
 **Note:** Most settings have been fined tuned to be at the peak of performance already, however preLoop, protect (Which drastically lowers preformance), and stopOnError should be used freely to fit your needs.

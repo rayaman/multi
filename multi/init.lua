@@ -120,7 +120,7 @@ function multi:getTasksDetails(t)
 				dat2 = dat2.."<SystemThread: "..multi.SystemThreads[i].Name.." | "..os.clock()-multi.SystemThreads[i].creationTime..">\n"
 			end
 		end
-		local load, steps = multi:getLoad()
+		local load, steps = self:getLoad()
 		if thread.__threads then
 			for i=1,#thread.__threads do
 				dat = dat .. "<THREAD: "..thread.__threads[i].Name.." | "..os.clock()-thread.__threads[i].creationTime..">\n"
@@ -130,7 +130,7 @@ function multi:getTasksDetails(t)
 			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s..dat2
 		end
 	elseif t == "t" or t == "table" then
-		local load,steps = multi:getLoad()
+		local load,steps = self:getLoad()
 		str = {
 			ProcessName = (self.Name or "Unnamed"),
 			ThreadCount = #thread.__threads,
@@ -206,9 +206,9 @@ end
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
-	local c=multi:newBase()
+	local c=self:newBase()
 	c.Type='timemaster'
-	c.timer=multi:newTimer()
+	c.timer=self:newTimer()
 	c.timer:Start()
 	c.set=n
 	c.link=self
@@ -552,7 +552,7 @@ function multi:newTimer()
 		time=os.clock()-time
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 
@@ -580,7 +580,7 @@ function multi:newEvent(task)
 		return self
 	end
 	self:setPriority("core")
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newUpdater(skip)
@@ -602,7 +602,7 @@ function multi:newUpdater(skip)
 		return self
 	end
 	c.OnUpdate=self.OnMainConnect
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newAlarm(set)
@@ -642,7 +642,7 @@ function multi:newAlarm(set)
 		self.Parent.Pause(self)
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newLoop(func)
@@ -662,7 +662,7 @@ function multi:newLoop(func)
 		table.insert(funcs,func)
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newFunction(func)
@@ -688,7 +688,7 @@ function multi:newFunction(func)
 		return self
 	end
 	setmetatable(c,mt)
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newStep(start,reset,count,skip)
@@ -759,7 +759,7 @@ function multi:newStep(start,reset,count,skip)
 		self:Resume()
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:newTLoop(func,set)
@@ -795,7 +795,7 @@ function multi:newTLoop(func,set)
 		table.insert(self.func,func)
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 function multi:setTimeout(func,t)
@@ -869,7 +869,7 @@ function multi:newTStep(start,reset,count,set)
 		self:Resume()
 		return self
 	end
-	self:create(c)
+	multi:create(c)
 	return c
 end
 local scheduledjobs = {}
@@ -902,6 +902,48 @@ function multi:scheduleJob(time,func)
 	table.insert(scheduledjobs,{time, func,false})
 end
 
+local __CurrentProcess = multi
+function multi.getCurrentProcess()
+	return __CurrentProcess
+end
+
+local globalThreads = {}
+
+local sandcount = 0
+function multi:newProcessor(name)
+    local c = {}
+    setmetatable(c,{__index = self})
+    local multi,thread = require("multi"):init() -- We need to capture the t in thread
+    local name = name or "Processor_"..sandcount
+    sandcount = sandcount + 1
+    c.Mainloop = {}
+    c.Type = "process"
+    c.Active = false
+    c.Name = "multi.process<".. (name or "") .. ">"
+    c.process = self:newThread(c.Name,function()
+        while true do
+            thread.hold(function()
+                return c.Active
+            end)
+			__CurrentProcess = c
+            c:uManager()
+			__CurrentProcess = self
+        end
+    end)
+	c.OnError = c.process.OnError
+    function c.Start()
+        c.Active = true
+		return self
+    end
+    function c.Stop()
+        c.Active = false
+		return self
+    end
+    c:attachScheduler()
+    c.initThreads()
+    return c
+end
+
 -- Threading stuff
 local initT = false
 local threadCount = 0
@@ -917,6 +959,7 @@ function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
 end
 function thread.getRunningThread()
+	local threads = globalThreads
 	local t = coroutine.running()
 	if t then
 		for i,v in pairs(threads) do
@@ -1036,7 +1079,7 @@ function multi.hold(func,no)
 	end
 	local death = false
 	if type(func)=="number" then
-		multi:newThread("Hold_func",function()
+		self:newThread("Hold_func",function()
 			thread.sleep(func)
 			death = true
 		end)
@@ -1045,7 +1088,7 @@ function multi.hold(func,no)
 		end
 	else
 		local rets
-		multi:newThread("Hold_func",function()
+		self:newThread("Hold_func",function()
 			rets = {thread.hold(func)}
 			death = true
 		end)
@@ -1057,11 +1100,11 @@ function multi.hold(func,no)
 end
 function multi.holdFor(n,func)
 	local temp
-	multi:newThread(function()
+	multi.getCurrentProcess():newThread(function()
 		thread.sleep(n)
 		temp = true
 	end)
-	return multi.hold(function()
+	return multi.getCurrentProcess().hold(function()
 		if func() then
 			return func()
 		elseif temp then
@@ -1103,7 +1146,7 @@ function thread:newFunction(func,holdme)
 				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 			end
 		end
-		local t = multi:newThread("TempThread",func,...)
+		local t = multi.getCurrentProcess():newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
 		if holdme then
@@ -1127,308 +1170,313 @@ function multi.setEnv(func,env)
     return chunk
 end
 
-function multi:newThread(name,func,...)
-	multi.OnLoad:Fire()
-	local func = func or name
-	if type(name) == "function" then
-		name = "Thread#"..threadCount
-	end
-	local c={}
-	local env = {self=c}
-	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
-	c.startArgs = {...}
-	c.ref={}
-	c.Name=name
-	c.thread=coroutine.create(func)
-	c.sleep=1
-	c.Type="thread"
-	c.TID = threadid
-	c.firstRunDone=false
-	c.timer=multi:newTimer()
-	c._isPaused = false
-	c.returns = {}
-	c.isError = false 
-	c.OnError = multi:newConnection(true,nil,true)
-	c.OnDeath = multi:newConnection(true,nil,true)
-	function c:isPaused()
-		return self._isPaused
-	end
-	local resumed = false
-	function c:Pause()
-		if not self._isPaused then
-			thread.request(self,"exec",function()
-				thread.hold(function()
-					return resumed
+function multi:attachScheduler()
+	local threads = {}
+	self.threadsRef = threads
+	function self:newThread(name,func,...)
+		self.OnLoad:Fire()
+		local func = func or name
+		if type(name) == "function" then
+			name = "Thread#"..threadCount
+		end
+		local c={}
+		local env = {self=c}
+		c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
+		c.startArgs = {...}
+		c.ref={}
+		c.Name=name
+		c.thread=coroutine.create(func)
+		c.sleep=1
+		c.Type="thread"
+		c.TID = threadid
+		c.firstRunDone=false
+		c.timer=self:newTimer()
+		c._isPaused = false
+		c.returns = {}
+		c.isError = false 
+		c.OnError = self:newConnection(true,nil,true)
+		c.OnDeath = self:newConnection(true,nil,true)
+		function c:isPaused()
+			return self._isPaused
+		end
+		local resumed = false
+		function c:Pause()
+			if not self._isPaused then
+				thread.request(self,"exec",function()
+					thread.hold(function()
+						return resumed
+					end)
+					resumed = false
+					self._isPaused = false
 				end)
-				resumed = false
-				self._isPaused = false
-			end)
-			self._isPaused = true
-		end
-		return self
-	end
-	function c:Resume()
-		resumed = true
-		return self
-	end
-	function c:Kill()
-		thread.request(self,"kill")
-		return self
-	end
-	c.Destroy = c.Kill
-	function c.ref:send(name,val)
-		ret=coroutine.yield({Name=name,Value=val})
-	end
-	function c.ref:get(name)
-		return self.Globals[name]
-	end
-	function c.ref:kill()
-		dRef[1] = "_kill_"
-		dRef[2] = "I Was killed by You!"
-		err = coroutine.yield(dRef)
-		if err then
-			error("Failed to kill a thread! Exiting...")
-		end
-	end
-	function c.ref:sleep(n)
-		if type(n)=="function" then
-			ret=thread.hold(n)
-		elseif type(n)=="number" then
-			ret=thread.sleep(tonumber(n) or 0)
-		else
-			error("Invalid Type for sleep!")
-		end
-	end
-	function c.ref:syncGlobals(v)
-		self.Globals=v
-	end
-	table.insert(threads,c)
-	if initT==false then
-		multi.initThreads()
-	end
-	c.creationTime = os.clock()
-	threadid = threadid + 1
-	self:create(c)
-	return c
-end
-function multi:newISOThread(name,func,_env,...)
-	multi.OnLoad:Fire()
-	local func = func or name
-	local env = _env or {}
-	if not env.thread then
-		env.thread = thread
-	end
-	if not env.multi then
-		env.multi = multi
-	end
-	if type(name) == "function" then
-		name = "Thread#"..threadCount
-	end
-	local func = isolateFunction(func,env)
-	return self:newThread(name,func)
-end
-function multi.initThreads(justThreads)
-	initT = true
-	multi.scheduler=multi:newLoop():setName("multi.thread")
-	multi.scheduler.Type="scheduler"
-	function multi.scheduler:setStep(n)
-		self.skip=tonumber(n) or 24
-	end
-	multi.scheduler.skip=0
-	local t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15
-	local r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16
-	local ret,_
-	local function CheckRets(i)
-		if threads[i] and not(threads[i].isError) then
-			if not _ then
-				threads[i].isError = true
-				threads[i].TempRets[1] = ret
-				return
+				self._isPaused = true
 			end
-			if ret or r1 or r2 or r3 or r4 or r5 or r6 or r7 or r8 or r9 or r10 or r11 or r12 or r13 or r14 or r15 or r16 then
-				threads[i].TempRets[1] = ret
-				threads[i].TempRets[2] = r1
-				threads[i].TempRets[3] = r2
-				threads[i].TempRets[4] = r3
-				threads[i].TempRets[5] = r4
-				threads[i].TempRets[6] = r5
-				threads[i].TempRets[7] = r6
-				threads[i].TempRets[8] = r7
-				threads[i].TempRets[9] = r8
-				threads[i].TempRets[10] = r9
-				threads[i].TempRets[11] = r10
-				threads[i].TempRets[12] = r11
-				threads[i].TempRets[13] = r12
-				threads[i].TempRets[14] = r13
-				threads[i].TempRets[15] = r14
-				threads[i].TempRets[16] = r15
-				threads[i].TempRets[17] = r16
+			return self
+		end
+		function c:Resume()
+			resumed = true
+			return self
+		end
+		function c:Kill()
+			thread.request(self,"kill")
+			return self
+		end
+		c.Destroy = c.Kill
+		function c.ref:send(name,val)
+			ret=coroutine.yield({Name=name,Value=val})
+		end
+		function c.ref:get(name)
+			return self.Globals[name]
+		end
+		function c.ref:kill()
+			dRef[1] = "_kill_"
+			dRef[2] = "I Was killed by You!"
+			err = coroutine.yield(dRef)
+			if err then
+				error("Failed to kill a thread! Exiting...")
 			end
 		end
+		function c.ref:sleep(n)
+			if type(n)=="function" then
+				ret=thread.hold(n)
+			elseif type(n)=="number" then
+				ret=thread.sleep(tonumber(n) or 0)
+			else
+				error("Invalid Type for sleep!")
+			end
+		end
+		function c.ref:syncGlobals(v)
+			self.Globals=v
+		end
+		table.insert(threads,c)
+		table.insert(globalThreads,c)
+		if initT==false then
+			self.initThreads()
+		end
+		c.creationTime = os.clock()
+		threadid = threadid + 1
+		multi:create(c)
+		return c
 	end
-	local function holdconn(n)
-		if type(ret[n])=="table" and ret[n].Type=='connector' then
-			local letsgo
-			ret[n](function(...) letsgo = {...} end)
-			ret[n] = function()
-				if letsgo then
-					return unpack(letsgo)
+	function self:newISOThread(name,func,_env,...)
+		self.OnLoad:Fire()
+		local func = func or name
+		local env = _env or {}
+		if not env.thread then
+			env.thread = thread
+		end
+		if not env.multi then
+			env.multi = self
+		end
+		if type(name) == "function" then
+			name = "Thread#"..threadCount
+		end
+		local func = isolateFunction(func,env)
+		return self:newThread(name,func)
+	end
+	function self.initThreads(justThreads)
+		initT = true
+		self.scheduler=self:newLoop():setName("multi.thread")
+		self.scheduler.Type="scheduler"
+		function self.scheduler:setStep(n)
+			self.skip=tonumber(n) or 24
+		end
+		self.scheduler.skip=0
+		local t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15
+		local r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16
+		local ret,_
+		local function CheckRets(i)
+			if threads[i] and not(threads[i].isError) then
+				if not _ then
+					threads[i].isError = true
+					threads[i].TempRets[1] = ret
+					return
+				end
+				if ret or r1 or r2 or r3 or r4 or r5 or r6 or r7 or r8 or r9 or r10 or r11 or r12 or r13 or r14 or r15 or r16 then
+					threads[i].TempRets[1] = ret
+					threads[i].TempRets[2] = r1
+					threads[i].TempRets[3] = r2
+					threads[i].TempRets[4] = r3
+					threads[i].TempRets[5] = r4
+					threads[i].TempRets[6] = r5
+					threads[i].TempRets[7] = r6
+					threads[i].TempRets[8] = r7
+					threads[i].TempRets[9] = r8
+					threads[i].TempRets[10] = r9
+					threads[i].TempRets[11] = r10
+					threads[i].TempRets[12] = r11
+					threads[i].TempRets[13] = r12
+					threads[i].TempRets[14] = r13
+					threads[i].TempRets[15] = r14
+					threads[i].TempRets[16] = r15
+					threads[i].TempRets[17] = r16
 				end
 			end
 		end
-	end
-	local function helper(i)
-		if type(ret)=="table" then
-			if ret[1]=="_kill_" then
-				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
-				multi.setType(threads[i],multi.DestroyedObj)
-				table.remove(threads,i)
-				ret = nil
-			elseif ret[1]=="_sleep_" then
-				threads[i].sec = ret[2]
-				threads[i].time = clock()
-				threads[i].task = "sleep"
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_skip_" then
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].task = "skip"
-				threads[i].__ready = false
-				ret = nil
-			elseif ret[1]=="_hold_" then
-				holdconn(2)
-				threads[i].func = ret[2]
-				threads[i].task = "hold"
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
-			elseif ret[1]=="_holdF_" then
-				holdconn(3)
-				threads[i].sec = ret[2]
-				threads[i].func = ret[3]
-				threads[i].task = "holdF"
-				threads[i].time = clock()
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
-			elseif ret[1]=="_holdW_" then
-				holdconn(3)
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].func = ret[3]
-				threads[i].task = "holdW"
-				threads[i].time = clock()
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
+		local function holdconn(n)
+			if type(ret[n])=="table" and ret[n].Type=='connector' then
+				local letsgo
+				ret[n](function(...) letsgo = {...} end)
+				ret[n] = function()
+					if letsgo then
+						return unpack(letsgo)
+					end
+				end
 			end
 		end
-		CheckRets(i)
-	end
-	multi.scheduler:OnLoop(function(self)
-		for i=#threads,1,-1 do
-			if threads[i].isError then
-				if coroutine.status(threads[i].thread)=="dead" then
-					threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
-					multi.setType(threads[i],multi.DestroyedObj)
+		local function helper(i)
+			if type(ret)=="table" then
+				if ret[1]=="_kill_" then
+					threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+					self.setType(threads[i],self.DestroyedObj)
 					table.remove(threads,i)
+					ret = nil
+				elseif ret[1]=="_sleep_" then
+					threads[i].sec = ret[2]
+					threads[i].time = clock()
+					threads[i].task = "sleep"
+					threads[i].__ready = false
+					ret = nil
+				elseif ret[1]=="_skip_" then
+					threads[i].count = ret[2]
+					threads[i].pos = 0
+					threads[i].task = "skip"
+					threads[i].__ready = false
+					ret = nil
+				elseif ret[1]=="_hold_" then
+					holdconn(2)
+					threads[i].func = ret[2]
+					threads[i].task = "hold"
+					threads[i].__ready = false
+					threads[i].interval = ret[4] or 0
+					threads[i].intervalR = clock()
+					ret = nil
+				elseif ret[1]=="_holdF_" then
+					holdconn(3)
+					threads[i].sec = ret[2]
+					threads[i].func = ret[3]
+					threads[i].task = "holdF"
+					threads[i].time = clock()
+					threads[i].__ready = false
+					threads[i].interval = ret[4] or 0
+					threads[i].intervalR = clock()
+					ret = nil
+				elseif ret[1]=="_holdW_" then
+					holdconn(3)
+					threads[i].count = ret[2]
+					threads[i].pos = 0
+					threads[i].func = ret[3]
+					threads[i].task = "holdW"
+					threads[i].time = clock()
+					threads[i].__ready = false
+					threads[i].interval = ret[4] or 0
+					threads[i].intervalR = clock()
+					ret = nil
 				end
 			end
-			if threads[i] and not threads[i].__started then
-				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
+			CheckRets(i)
+		end
+		self.scheduler:OnLoop(function(self)
+			for i=#threads,1,-1 do
+				if threads[i].isError then
+					if coroutine.status(threads[i].thread)=="dead" then
+						threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+						self.setType(threads[i],self.DestroyedObj)
+						table.remove(threads,i)
+					end
 				end
-				threads[i].__started = true
+				if threads[i] and not threads[i].__started then
+					if coroutine.running() ~= threads[i].thread then
+						_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,unpack(threads[i].startArgs))
+					end
+					threads[i].__started = true
+					helper(i)
+				end
+				if threads[i] and not _ then
+					threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
+					threads[i].isError = true
+				end
+				if threads[i] and coroutine.status(threads[i].thread)=="dead" then
+					local t = threads[i].TempRets or {}
+					threads[i].OnDeath:Fire(threads[i],"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
+					self.setType(threads[i],self.DestroyedObj)
+					table.remove(threads,i)
+				elseif threads[i] and threads[i].task == "skip" then
+					threads[i].pos = threads[i].pos + 1
+					if threads[i].count==threads[i].pos then
+						threads[i].task = ""
+						threads[i].__ready = true
+					end
+				elseif threads[i] and threads[i].task == "hold" then
+					if clock() - threads[i].intervalR>=threads[i].interval then
+						t0,t1,t2,t3,t4,t5,t6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = threads[i].func()
+						if t0 then
+							if t0==self.NIL then
+								t0 = nil
+							end
+							threads[i].task = ""
+							threads[i].__ready = true
+						end
+						threads[i].intervalR = clock()
+					end
+				elseif threads[i] and threads[i].task == "sleep" then
+					if clock() - threads[i].time>=threads[i].sec then
+						threads[i].task = ""
+						threads[i].__ready = true
+					end
+				elseif threads[i] and threads[i].task == "holdF" then
+					if clock() - threads[i].intervalR>=threads[i].interval then
+						t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
+						if t0 then
+							threads[i].task = ""
+							threads[i].__ready = true
+						elseif clock() - threads[i].time>=threads[i].sec then
+							threads[i].task = ""
+							threads[i].__ready = true
+							t0 = nil
+							t1 = "TIMEOUT"
+						end
+						threads[i].intervalR = clock()
+					end
+				elseif threads[i] and threads[i].task == "holdW" then
+					if clock() - threads[i].intervalR>=threads[i].interval then
+						threads[i].pos = threads[i].pos + 1
+						print(threads[i].pos,threads[i].count)
+						t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
+						if t0 then
+							threads[i].task = ""
+							threads[i].__ready = true
+						elseif threads[i].count==threads[i].pos then
+							threads[i].task = ""
+							threads[i].__ready = true
+							t0 = nil
+							t1 = "TIMEOUT"
+						end
+						threads[i].intervalR = clock()
+					end
+				end
+				if threads[i] and threads[i].__ready then
+					threads[i].__ready = false
+					if coroutine.running() ~= threads[i].thread then
+						_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15)
+						CheckRets(i)
+					end
+				end
 				helper(i)
 			end
-			if threads[i] and not _ then
-				threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
-				threads[i].isError = true
+		end)
+		if justThreads then
+			while true do
+				self.scheduler:Act()
 			end
-			if threads[i] and coroutine.status(threads[i].thread)=="dead" then
-				local t = threads[i].TempRets or {}
-				threads[i].OnDeath:Fire(threads[i],"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
-				multi.setType(threads[i],multi.DestroyedObj)
-				table.remove(threads,i)
-			elseif threads[i] and threads[i].task == "skip" then
-				threads[i].pos = threads[i].pos + 1
-				if threads[i].count==threads[i].pos then
-					threads[i].task = ""
-					threads[i].__ready = true
-				end
-			elseif threads[i] and threads[i].task == "hold" then
-				if clock() - threads[i].intervalR>=threads[i].interval then
-					t0,t1,t2,t3,t4,t5,t6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = threads[i].func()
-					if t0 then
-						if t0==multi.NIL then
-							t0 = nil
-						end
-						threads[i].task = ""
-						threads[i].__ready = true
-					end
-					threads[i].intervalR = clock()
-				end
-			elseif threads[i] and threads[i].task == "sleep" then
-				if clock() - threads[i].time>=threads[i].sec then
-					threads[i].task = ""
-					threads[i].__ready = true
-				end
-			elseif threads[i] and threads[i].task == "holdF" then
-				if clock() - threads[i].intervalR>=threads[i].interval then
-					t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
-					if t0 then
-						threads[i].task = ""
-						threads[i].__ready = true
-					elseif clock() - threads[i].time>=threads[i].sec then
-						threads[i].task = ""
-						threads[i].__ready = true
-						t0 = nil
-						t1 = "TIMEOUT"
-					end
-					threads[i].intervalR = clock()
-				end
-			elseif threads[i] and threads[i].task == "holdW" then
-				if clock() - threads[i].intervalR>=threads[i].interval then
-					threads[i].pos = threads[i].pos + 1
-					print(threads[i].pos,threads[i].count)
-					t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
-					if t0 then
-						threads[i].task = ""
-						threads[i].__ready = true
-					elseif threads[i].count==threads[i].pos then
-						threads[i].task = ""
-						threads[i].__ready = true
-						t0 = nil
-						t1 = "TIMEOUT"
-					end
-					threads[i].intervalR = clock()
-				end
-			end
-			if threads[i] and threads[i].__ready then
-				threads[i].__ready = false
-				if coroutine.running() ~= threads[i].thread then
-					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=coroutine.resume(threads[i].thread,t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15)
-					CheckRets(i)
-				end
-			end
-			helper(i)
-		end
-	end)
-	if justThreads then
-		while true do
-			multi.scheduler:Act()
 		end
 	end
 end
 function multi:newService(func) -- Priority managed threads
 	local c = {}
 	c.Type = "service"
-	c.OnStopped = multi:newConnection()
-	c.OnStarted = multi:newConnection()
+	c.OnStopped = self:newConnection()
+	c.OnStarted = self:newConnection()
 	local Service_Data = {}
 	local active
 	local time
@@ -1438,7 +1486,7 @@ function multi:newService(func) -- Priority managed threads
 	local scheme = 1
 	function c.Start()
 		if not active then
-			time = multi:newTimer()
+			time = self:newTimer()
 			time:Start()
 			active = true
 			c:OnStarted(c,Service_Data)
@@ -1453,7 +1501,7 @@ function multi:newService(func) -- Priority managed threads
 		task(ap)
 		return c
 	end
-	local th = multi:newThread(function()
+	local th = self:newThread(function()
 		while true do
 			process()
 		end
@@ -1537,6 +1585,7 @@ function multi:lightloop(settings)
 	end
 end
 function multi:mainloop(settings)
+	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
@@ -1591,8 +1640,10 @@ function multi:mainloop(settings)
 									self.CID=_D
 									if not protect then
 										Loop[_D]:Act()
+										__CurrentProcess = self
 									else
 										local status, err=pcall(Loop[_D].Act,Loop[_D])
+										__CurrentProcess = self
 										if err then
 											Loop[_D].error=err
 											self.OnError:Fire(Loop[_D],err)
@@ -1614,8 +1665,10 @@ function multi:mainloop(settings)
 								self.CID=_D
 								if not protect then
 									Loop[_D]:Act()
+									__CurrentProcess = self
 								else
 									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									__CurrentProcess = self
 									if err then
 										Loop[_D].error=err
 										self.OnError:Fire(Loop[_D],err)
@@ -1646,8 +1699,10 @@ function multi:mainloop(settings)
 								self.CID=_D
 								if not protect then
 									Loop[_D]:Act()
+									__CurrentProcess = self
 								else
 									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									__CurrentProcess = self
 									if err then
 										Loop[_D].error=err
 										self.OnError:Fire(Loop[_D],err)
@@ -1670,6 +1725,7 @@ function multi:mainloop(settings)
 								if not protect then
 									if sRef.solid then
 										sRef:Act()
+										__CurrentProcess = self
 										solid = true
 									else
 										time = multi.timer(sRef.Act,sRef)
@@ -1686,9 +1742,11 @@ function multi:mainloop(settings)
 								else
 									if Loop[_D].solid then
 										Loop[_D]:Act()
+										__CurrentProcess = self
 										solid = true
 									else
 										time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+										__CurrentProcess = self
 										Loop[_D].solid = true
 										solid = false
 									end
@@ -1728,8 +1786,10 @@ function multi:mainloop(settings)
 							self.CID=_D
 							if not protect then
 								Loop[_D]:Act()
+								__CurrentProcess = self
 							else
 								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								__CurrentProcess = self
 								if err then
 									Loop[_D].error=err
 									self.OnError:Fire(Loop[_D],err)
@@ -1748,6 +1808,7 @@ function multi:mainloop(settings)
 	end
 end
 function multi:uManager(settings)
+	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.t,self.tt = clock(),0
@@ -1786,8 +1847,10 @@ function multi:uManagerRef(settings)
 								self.CID=_D
 								if not multi.defaultSettings.protect then
 									Loop[_D]:Act()
+									__CurrentProcess = self
 								else
 									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									__CurrentProcess = self
 									if err then
 										Loop[_D].error=err
 										self.OnError:Fire(Loop[_D],err)
@@ -1809,8 +1872,10 @@ function multi:uManagerRef(settings)
 							self.CID=_D
 							if not multi.defaultSettings.protect then
 								Loop[_D]:Act()
+								__CurrentProcess = self
 							else
 								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								__CurrentProcess = self
 								if err then
 									Loop[_D].error=err
 									self.OnError:Fire(Loop[_D],err)
@@ -1837,8 +1902,10 @@ function multi:uManagerRef(settings)
 							self.CID=_D
 							if not protect then
 								Loop[_D]:Act()
+								__CurrentProcess = self
 							else
 								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								__CurrentProcess = self
 								if err then
 									Loop[_D].error=err
 									self.OnError:Fire(Loop[_D],err)
@@ -1861,6 +1928,7 @@ function multi:uManagerRef(settings)
 							if not protect then
 								if sRef.solid then
 									sRef:Act()
+									__CurrentProcess = self
 									solid = true
 								else
 									time = multi.timer(sRef.Act,sRef)
@@ -1877,9 +1945,11 @@ function multi:uManagerRef(settings)
 							else
 								if Loop[_D].solid then
 									Loop[_D]:Act()
+									__CurrentProcess = self
 									solid = true
 								else
 									time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+									__CurrentProcess = self
 									Loop[_D].solid = true
 									solid = false
 								end
@@ -1919,8 +1989,10 @@ function multi:uManagerRef(settings)
 						self.CID=_D
 						if not multi.defaultSettings.protect then
 							Loop[_D]:Act()
+							__CurrentProcess = self
 						else
 							local status, err=pcall(Loop[_D].Act,Loop[_D])
+							__CurrentProcess = self
 							if err then
 								Loop[_D].error=err
 								self.OnError:Fire(Loop[_D],err)
@@ -1987,7 +2059,7 @@ multi.defaultSettings = {
 function multi:enableLoadDetection()
 	if multi.maxSpd then return end
 	-- here we are going to run a quick benchMark solo
-	local temp = multi:newProcessor()
+	local temp = self:newProcessor()
 	temp:Start()
 	local t = os.clock()
 	local stop = false
@@ -2006,12 +2078,12 @@ local lastVal = 0
 local bb = 0
 
 function multi:getLoad()
-	if not multi.maxSpd then multi:enableLoadDetection() end
+	if not multi.maxSpd then self:enableLoadDetection() end
 	if busy then return lastVal end
 	local val = nil
 	if thread.isThread() then
 		local bench
-		multi:benchMark(.01):OnBench(function(time,steps)
+		self:benchMark(.01):OnBench(function(time,steps)
 			bench = steps
 			bb = steps
 		end)
@@ -2023,12 +2095,12 @@ function multi:getLoad()
 	else
 		busy = true
 		local bench
-		multi:benchMark(.01):OnBench(function(time,steps)
+		self:benchMark(.01):OnBench(function(time,steps)
 			bench = steps
 			bb = steps
 		end)
 		while not bench do
-			multi:uManager()
+			self:uManager()
 		end
 		bench = bench^1.5
 		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
@@ -2276,4 +2348,5 @@ else
 	multi.m.sentinel = newproxy(true)
 	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
 end
+multi:attachScheduler()
 return multi

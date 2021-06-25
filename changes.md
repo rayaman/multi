@@ -28,11 +28,90 @@ multi:newThread("testing",function()
 end).OnError(function(...)
     print(...)
 end)
+
+sandbox = multi:newProcessor()
+sandbox:newTLoop(function()
+    print("testing...")
+end,1)
+
+test2 = multi:newTLoop(function()
+    print("testing2...")
+end,1)
+
+sandbox:newThread("Test Thread",function()
+    local a = 0
+    while true do
+        thread.sleep(1)
+        a = a + 1
+        print("Thread Test: ".. multi.getCurrentProcess().Name)
+        if a == 10 then
+            sandbox.Stop()
+        end
+    end
+end).OnError(function(...)
+    print(...)
+end)
+multi:newThread("Test Thread",function()
+    while true do
+        thread.sleep(1)
+        print("Thread Test: ".. multi.getCurrentProcess().Name)
+    end
+end).OnError(function(...)
+    print(...)
+end)
+
+sandbox.Start()
+
+multi:mainloop()
 ```
 
 Added:
 ---
-- N/A
+
+## multi:newProcessor(name)
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+sandbox = multi:newProcessor()
+
+sandbox:newTLoop(function()
+	print("testing...")
+end,1)
+
+sandbox:newThread("Test Thread",function()
+	local a = 0
+	while true do
+		thread.sleep(1)
+		a = a + 1
+		print("Thread Test: ".. multi.getCurrentProcess().Name)
+		if a == 10 then
+			sandbox.Stop()
+		end
+	end
+end).OnError(function(...)
+	print(...)
+end)
+
+sandbox.Start() -- Start the process
+
+multi:mainloop()
+```
+
+| Attribute | Type | Returns | Description |
+---|---|---|---
+Start|Method()|self| Starts the process
+Stop|Method()|self| Stops the process
+OnError|Connection|connection| Allows connection to the process error handler
+Type|Member:`string`|"process"| Contains the type of object
+Active|Member:`boolean`|variable| If false the process is not active
+Name|Member:`string`|variable| The name set at process creation
+process|Thread|thread| A handle to a multi thread object 
+
+**Note:** All tasks/threads created on a process are linked to that process. If a process is stopped all tasks/threads will be halted until the process is started back up.
+
+
 
 Changed:
 ---
