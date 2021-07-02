@@ -23,11 +23,11 @@ SOFTWARE.
 ]]
 -- TODO make compatible with lovr
 if ISTHREAD then
-    error("You cannot require the loveManager from within a thread!")
+    error("You cannot require the lovrManager from within a thread!")
 end
 local ThreadFileData = [[
 ISTHREAD = true
-THREAD = require("multi.integration.loveManager.threads") -- order is important!
+THREAD = require("multi.integration.lovrManager.threads") -- order is important!
 sThread = THREAD
 __IMPORTS = {...}
 __FUNC__=table.remove(__IMPORTS,1)
@@ -38,13 +38,13 @@ GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
-local multi, thread = require("multi.compat.love2d"):init()
+local multi, thread = require("multi.compat.lovr2d"):init()
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
 multi.integration={}
-multi.integration.love2d={}
-local THREAD = require("multi.integration.loveManager.threads")
+multi.integration.lovr2d={}
+local THREAD = require("multi.integration.lovrManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
 local OBJECT_ID = 0
@@ -68,7 +68,7 @@ function multi:newSystemThread(name,func,...)
     local c = {}
     c.name = name
     c.ID=THREAD_ID
-    c.thread=love.thread.newThread(ThreadFileData)
+    c.thread=lovr.thread.newThread(ThreadFileData)
     c.thread:start(THREAD.dump(func),c.ID,c.name,...)
     c.stab = THREAD.createStaticTable(name)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
@@ -76,13 +76,13 @@ function multi:newSystemThread(name,func,...)
     THREAD_ID=THREAD_ID+1
     return c
 end
-function love.threaderror(thread, errorstr)
+function lovr.threaderror(thread, errorstr)
   print("Thread error!\n"..errorstr)
 end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
-require("multi.integration.loveManager.extensions")
-print("Integrated Love Threading!")
+require("multi.integration.lovrManager.extensions")
+print("Integrated lovr Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

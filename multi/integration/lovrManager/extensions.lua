@@ -30,7 +30,7 @@ function multi:newSystemThreadedQueue(name)
 	local fRef = {"func",nil}
 	function c:init()
 		local q = {}
-		q.chan = love.thread.getChannel(self.Name)
+		q.chan = lovr.thread.getChannel(self.Name)
 		function q:push(dat)
 			if type(dat) == "function" then
 				fRef[2] = THREAD.dump(dat)
@@ -76,9 +76,9 @@ function multi:newSystemThreadedJobQueue(n)
 	c.cores = n or THREAD.getCores()
 	c.registerQueue = {}
 	c.funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
-	c.queue = love.thread.getChannel("__JobQueue_"..jqc.."_queue")
-	c.queueReturn = love.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
-	c.queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
+	c.queue = lovr.thread.getChannel("__JobQueue_"..jqc.."_queue")
+	c.queueReturn = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
+	c.queueAll = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 	c.id = 0
 	c.OnJobCompleted = multi:newConnection()
 	local allfunc = 0
@@ -138,16 +138,16 @@ function multi:newSystemThreadedJobQueue(n)
 	for i=1,c.cores do
 		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
 			local multi, thread = require("multi"):init()
-			require("love.timer")
+			require("lovr.timer")
 			local function atomic(channel)
 				return channel:pop()
 			end
 			local clock = os.clock
 			local funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
-			local queue = love.thread.getChannel("__JobQueue_"..jqc.."_queue")
-			local queueReturn = love.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
+			local queue = lovr.thread.getChannel("__JobQueue_"..jqc.."_queue")
+			local queueReturn = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
 			local lastProc = clock()
-			local queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
+			local queueAll = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
 			setmetatable(_G,{__index = funcs})
 			multi:newThread("startUp",function()

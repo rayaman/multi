@@ -22,9 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 -- TODO make compatible with lovr
-require("love.timer")
-require("love.system")
-require("love.data")
+require("lovr.timer")
+require("lovr.system")
+require("lovr.data")
 local socket = require("socket")
 local multi, thread = require("multi").init()
 local threads = {}
@@ -32,7 +32,7 @@ function threads.loadDump(d)
     return loadstring(d:getString())
 end
 function threads.dump(func)
-    return love.data.newByteData(string.dump(func))
+    return lovr.data.newByteData(string.dump(func))
 end
 local fRef = {"func",nil}
 local function manage(channel, value)
@@ -56,11 +56,11 @@ end
 local GNAME = "__GLOBAL_"
 local proxy = {}
 function threads.set(name,val)
-    if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
+    if not proxy[name] then proxy[name] = lovr.thread.getChannel(GNAME..name) end
     proxy[name]:performAtomic(manage, val) 
 end
 function threads.get(name)
-    if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
+    if not proxy[name] then proxy[name] = lovr.thread.getChannel(GNAME..name) end
     local dat = proxy[name]:peek()
     if type(dat)=="table" and dat[1]=="func" then
         return THREAD.loadDump(dat[2])
@@ -75,7 +75,7 @@ function threads.waitFor(name)
         end)
     end
     while threads.get(name)==nil do
-        love.timer.sleep(.001)
+        lovr.timer.sleep(.001)
     end
     local dat = threads.get(name)
     if type(dat) == "table" and dat.init then
@@ -90,7 +90,7 @@ function threads.package(name,val)
     val.init=init
 end
 function threads.getCores()
-    return love.system.getProcessorCount()
+    return lovr.system.getProcessorCount()
 end
 function threads.kill()
     error("Thread Killed!")
@@ -112,7 +112,7 @@ function threads.getID()
     return __THREADID__
 end
 function threads.sleep(n)
-    love.timer.sleep(n)
+    lovr.timer.sleep(n)
 end
 function threads.getGlobal()
     return setmetatable({},
@@ -129,11 +129,11 @@ end
 function threads.createTable(n)
     local _proxy = {}
     local function set(name,val)
-        if not _proxy[name] then _proxy[name] = love.thread.getChannel(n..name) end
+        if not _proxy[name] then _proxy[name] = lovr.thread.getChannel(n..name) end
         _proxy[name]:performAtomic(manage, val) 
     end
     local function get(name)
-        if not _proxy[name] then _proxy[name] = love.thread.getChannel(n..name) end
+        if not _proxy[name] then _proxy[name] = lovr.thread.getChannel(n..name) end
         local dat = _proxy[name]:peek()
         if type(dat)=="table" and dat[1]=="func" then
             return THREAD.loadDump(dat[2])
@@ -154,7 +154,7 @@ function threads.createTable(n)
 end
 function threads.getConsole()
     local c = {}
-    c.queue = love.thread.getChannel("__CONSOLE__")
+    c.queue = lovr.thread.getChannel("__CONSOLE__")
     function c.print(...)
         c.queue:push{...}
     end
@@ -167,7 +167,7 @@ end
 if not ISTHREAD then
     local clock = os.clock
     local lastproc = clock()
-    local queue = love.thread.getChannel("__CONSOLE__")
+    local queue = lovr.thread.getChannel("__CONSOLE__")
     multi:newThread("consoleManager",function()
         while true do
             thread.yield()
@@ -186,14 +186,14 @@ function threads.createStaticTable(n)
     local __proxy = {}
     local function set(name,val)
         if __proxy[name] then return end
-        local chan = love.thread.getChannel(n..name)
+        local chan = lovr.thread.getChannel(n..name)
         if chan:getCount()>0 then return end
         chan:performAtomic(manage, val)
         __proxy[name] = val
     end
     local function get(name)
         if __proxy[name] then return __proxy[name] end
-        local dat = love.thread.getChannel(n..name):peek()
+        local dat = lovr.thread.getChannel(n..name):peek()
         if type(dat)=="table" and dat[1]=="func" then
             __proxy[name] = THREAD.loadDump(dat[2])
             return __proxy[name]

@@ -46,6 +46,7 @@ multi.clock = os.clock
 multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
+multi.TIMEOUT = "TIMEOUT"
 
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
@@ -1108,7 +1109,7 @@ function multi.holdFor(n,func)
 		if func() then
 			return func()
 		elseif temp then
-			return multi.NIL, "TIMEOUT"
+			return multi.NIL, multi.TIMEOUT
 		end
 	end)
 end
@@ -1434,7 +1435,7 @@ function multi:attachScheduler()
 							threads[i].task = ""
 							threads[i].__ready = true
 							t0 = nil
-							t1 = "TIMEOUT"
+							t1 = multi.TIMEOUT
 						end
 						threads[i].intervalR = clock()
 					end
@@ -1450,7 +1451,7 @@ function multi:attachScheduler()
 							threads[i].task = ""
 							threads[i].__ready = true
 							t0 = nil
-							t1 = "TIMEOUT"
+							t1 = multi.TIMEOUT
 						end
 						threads[i].intervalR = clock()
 					end
