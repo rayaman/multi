@@ -1,8 +1,7 @@
-# Multi Version: 15.1.0 LÖVR Integration
+# Multi Version: 15.1.0 Hold the thread
 **Key Changes**
-- Emulating system threading on a single thread
-    - Purpose to allow consistant code that can scale when threading is available. Check out the changelog for more details
-- Proper support for lua versions above 5.1 (More testing is needed, a full test suite is being developed and should be made available soon)
+- thread.hold has been updated to allow all variants to work as well as some new features. Check the changelog or documentation for more info.
+- multi:newProccesor() Creates a process that acts like the multi namespace that can be managed independently from the mainloop.
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
 
