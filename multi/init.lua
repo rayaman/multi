@@ -30,7 +30,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "15.0.0"
+multi.Version = "15.1.0"
 multi.stage = "stable"
 multi.Name = "multi.root"
 multi.Mainloop = {}
