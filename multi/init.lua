@@ -102,7 +102,7 @@ function multi:getTasksDetails(t)
 			count = count + 1
 			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
 		end
-		for v,i in pairs(multi.PausedObjects) do
+		for v,i in pairs(self.PausedObjects) do
 			local name = v.Name or ""
 			if name~="" then
 				name = " <"..name..">"
@@ -1007,6 +1007,10 @@ function thread.hold(n,opt)
 			dRef[2] = opt.sleep
 			dRef[3] = n or dFunc
 			return coroutine.yield(dRef)
+		elseif opt.skip then
+			dRef[1] = "_skip_"
+			dRef[2] = opt.skip or 1
+			return coroutine.yield(dRef)
 		end
 	end
 	if type(n) == "number" then
@@ -1126,27 +1130,50 @@ local function cleanReturns(...)
 	return unpack(returns,1,ind)
 end
 function thread:newFunction(func,holdme)
-    return function(...)
-		local rets, err
+	local tfunc = {}
+	tfunc.Active = true
+	function tfunc:Pause()
+		self.Active = false
+	end
+	function tfunc:Resume()
+		self.Active = true
+	end
+	local function noWait()
+		return nil, "Function is paused"
+	end
+	local rets, err
 		local function wait(no) 
-			if thread.isThread() and not (no) then
-				return multi.hold(function()
-					if err then
-						return multi.NIL, err
-					elseif rets then
-						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
-					end
-				end)
-			else
-				while not rets and not err do
-					multi.scheduler:Act()
-				end
+		if thread.isThread() and not (no) then
+			return multi.hold(function()
 				if err then
-					return nil,err
+					return multi.NIL, err
+				elseif rets then
+					return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 				end
-				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
+			end)
+		else
+			while not rets and not err do
+				multi.scheduler:Act()
 			end
+			if err then
+				return nil,err
+			end
+			return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 		end
+	end
+	tfunc.__call = function(t,...)
+		if not t.Active then 
+			if holdme then
+				return nil, "Function is paused"
+			end
+			return {
+				isTFunc = true,
+				wait = noWait,
+				connect = function(f)
+					f(nil,"Function is paused")
+				end
+			}
+		end 
 		local t = multi.getCurrentProcess():newThread("TempThread",func,...)
 		t.OnDeath(function(self,status,...) rets = {...}  end)
 		t.OnError(function(self,e) err = e end)
@@ -1158,11 +1185,13 @@ function thread:newFunction(func,holdme)
 			wait = wait,
 			connect = function(f)
 				t.OnDeath(function(self,status,...) f(...)  end) 
-				t.OnError(function(self,err) f(err) end) 
+				t.OnError(function(self,err) f(nil,err) end) 
 			end
 		}
 		return temp
     end
+	setmetatable(tfunc,tfunc)
+	return tfunc
 end
 -- A cross version way to set enviroments, not the same as fenv though
 function multi.setEnv(func,env)

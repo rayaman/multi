@@ -120,15 +120,84 @@ process|Thread|thread| A handle to a multi thread object
 Changed:
 ---
 
+- `f = thread:newFunction(func,holdme)`
+	- Nothing changed that will affect how the object functions defaulty. The returned function is now a table that is callable and 2 new methods have been added:
+
+	Method | Description
+	---|---
+	Pause() | Pauses the function, Will cause the function to return `nil, Function is paused`
+	Resume() | Resumes the function
+	
+	```lua
+	package.path = "./?/init.lua;"..package.path
+	multi, thread = require("multi"):init()
+
+	test = thread:newFunction(function(a,b)
+    	thread.sleep(1)
+		return a,b
+	end, true)
+
+	print(test(1,2))
+
+	test:Pause()
+
+	print(test(1,2))
+
+	test:Resume()
+
+	print(test(1,2))
+
+	--[[ -- If you left holdme nil/false
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	test:Pause()
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	test:Resume()
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	]]
+
+	multi:mainloop()
+	```
+
+	**Output:**
+
+	```
+	1       2
+	nil     Function is paused
+	1       2
+	```
+
+	**If holdme is nil/false:**
+
+	```
+	nil     Function is paused
+
+
+	1       2       nil...
+	1       2       nil...
+	```
+
 - thread.hold(n,opt) [Ref. Issue](https://github.com/rayaman/multi/issues/24)
 	- Added option table to thread.hold
 		| Option | Description |
 		---|---
+		| interval | Time between each poll |
 		| cycles | Number of cycles before timing out |
 		| sleep | Number of seconds before timing out |
-		| interval | Time between each poll |
+		| skip | Number of cycles before testing again, does not cause a timeout! |
 
-		**Note:** cycles and sleep options cannot both be used at the same time. Cycles take priority if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
+		**Note:** cycles and sleep options cannot both be used at the same time. Interval and skip cannot be used at the same time either. Cycles take priority than sleep if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
 		
 		Using cycles, sleep or interval will cause a timeout; returning nil, multi.TIMEOUT
 	- `n` can be a number and thread.hold will act like thread.sleep. When `n` is a number the option table will be ignored!
