@@ -33,12 +33,13 @@ end
 multi.Version = "15.1.0"
 multi.stage = "stable"
 multi.Name = "multi.root"
+multi.NIL = {Type="NIL"}
 multi.Mainloop = {}
 multi.Garbage = {}
 multi.ender = {}
 multi.Children = {}
 multi.Active = true
-multi.Type = "mainprocess"
+multi.Type = "rootprocess"
 multi.Rest = 0
 multi._type = type
 multi.queue = {}
@@ -76,7 +77,6 @@ multi.threshold=256
 multi.threstimed=.001
 	
 function multi.init()
-	multi.NIL = {Type="NIL"}
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 
@@ -86,7 +86,7 @@ function multi.Stop()
 end
 
 --Processor
-local priorityTable = {[0]="Round-Robin",[1]="Just-Right",[2]="Top-heavy",[3]="Timed-Based-Balancer"}
+local priorityTable = {[0]="Round-Robin",[1]="Balanced",[2]="Top-Down",[3]="Timed-Based-Balancer"}
 local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
 function multi:getTasksDetails(t)
 	if t == "string" or not t then
@@ -249,7 +249,7 @@ end
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
-	if self.Type=='mainprocess' then
+	if self.Type=='rootprocess' then
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
@@ -266,7 +266,7 @@ function multi:Pause()
 end
 
 function multi:Resume()
-	if self.Type=='process' or self.Type=='mainprocess' then
+	if self.Type=='process' or self.Type=='rootprocess' then
 		self.Active=true
 		local c=self:getChildren()
 		for i=1,#c do
@@ -283,7 +283,7 @@ function multi:Resume()
 end
 
 function multi:Destroy()
-	if self.Type=='process' or self.Type=='mainprocess' then
+	if self.Type=='process' or self.Type=='rootprocess' then
 		local c=self:getChildren()
 		for i=1,#c do
 			self.OnObjectDestroyed:Fire(c[i])
@@ -324,7 +324,7 @@ end
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
-	if not(self.Type=='mainprocess' or self.Type=='process' or self.Type=='queue' or self.Type == 'sandbox') then error('Can only create an object on multi or an interface obj') return false end
+	if not(self.Type=='rootprocess' or self.Type=='process' or self.Type=='queue' or self.Type == 'sandbox') then error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
     if self.Type=='process' or self.Type=='queue' or self.Type=='sandbox' then
 		setmetatable(c, {__index = multi})
@@ -1129,6 +1129,10 @@ local function cleanReturns(...)
 	end
 	return unpack(returns,1,ind)
 end
+function thread.pushStatus(...)
+	local t = thread.getRunningThread()
+	t.statusconnector:Fire(...)
+end
 function thread:newFunction(func,holdme)
 	local tfunc = {}
 	tfunc.Active = true
@@ -1137,6 +1141,9 @@ function thread:newFunction(func,holdme)
 	end
 	function tfunc:Resume()
 		self.Active = true
+	end
+	function tfunc:holdMe(b)
+		holdme = b
 	end
 	local function noWait()
 		return nil, "Function is paused"
@@ -1181,18 +1188,24 @@ function thread:newFunction(func,holdme)
 			return wait()
 		end
 		local temp = {
+			OnStatus = multi:newConnection(),
 			isTFunc = true,
 			wait = wait,
 			connect = function(f)
-				t.OnDeath(function(self,status,...) f(...)  end) 
-				t.OnError(function(self,err) f(nil,err) end) 
+				local tempConn = multi:newConnection()
+				t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
+				t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
+				return tempConn
 			end
 		}
+		t.linkedFunction = temp
+		t.statusconnector = temp.OnStatus
 		return temp
     end
 	setmetatable(tfunc,tfunc)
 	return tfunc
 end
+
 -- A cross version way to set enviroments, not the same as fenv though
 function multi.setEnv(func,env)
     local f = string.dump(func)

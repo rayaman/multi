@@ -1,22 +1,56 @@
 package.path = "./?/init.lua;"..package.path
 multi,thread = require("multi"):init()
---GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
-test = thread:newFunction(function(a,b)
-    thread.sleep(1)
-    return a,b
+func = thread:newFunction(function()
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(1)
+        thread.pushStatus(a)
+        if a == 10 then break end
+    end
+    return "Done"
 end)
-print(test(1,2).connect(function(...)
-    print(...)
-end))
-test:Pause()
-print(test(1,2).connect(function(...)
-    print(...)
-end))
-test:Resume()
-print(test(1,2).connect(function(...)
-    print(...)
-end))
+
+multi:newThread("test",function()
+    local ret = func()
+    ret.OnStatus(function(test)
+        print(test)
+    end)
+    thread.hold(ret.connect())
+    print("Function Done!")
+    os.exit()
+end)
+
+--GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your environment and uses what's available
+
+-- func = thread:newFunction(function()
+--     thread.sleep(3)
+--     print("Hello World!")
+--     return true
+-- end,true) -- set holdme to true
+
+-- func:holdMe(false) -- reset holdme to false
+-- print("Calling func...")
+-- print(func())
+
+
+
+-- test = thread:newFunction(function(a,b)
+--     thread.sleep(1)
+--     return a,b
+-- end)
+-- print(test(1,2).connect(function(...)
+--     print(...)
+-- end))
+-- test:Pause()
+-- print(test(1,2).connect(function(...)
+--     print(...)
+-- end))
+-- test:Resume()
+-- print(test(1,2).connect(function(...)
+--     print(...)
+-- end))
 
 -- test = thread:newFunction(function()
 --     return 1,2,nil,3,4,5,6,7,8,9
