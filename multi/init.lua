@@ -1189,6 +1189,8 @@ function thread:newFunction(func,holdme)
 		end
 		local temp = {
 			OnStatus = multi:newConnection(),
+			OnError = multi:newConnection(),
+			OnReturn = multi:newConnection(),
 			isTFunc = true,
 			wait = wait,
 			connect = function(f)
@@ -1198,6 +1200,8 @@ function thread:newFunction(func,holdme)
 				return tempConn
 			end
 		}
+		t.OnDeath(function(self,status,...) temp.OnReturn:Fire(...) end) 
+		t.OnError(function(self,err) temp.OnError:Fire(err) end)
 		t.linkedFunction = temp
 		t.statusconnector = temp.OnStatus
 		return temp
