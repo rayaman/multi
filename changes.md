@@ -121,7 +121,7 @@ Changed:
 ---
 
 - `f = thread:newFunction(func,holdme)`
-	- Nothing changed that will affect how the object functions defaulty. The returned function is now a table that is callable and 2 new methods have been added:
+	- Nothing changed that will affect how the object functions by default. The returned function is now a table that is callable and 2 new methods have been added:
 
 	Method | Description
 	---|---
