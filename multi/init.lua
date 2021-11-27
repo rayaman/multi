@@ -167,15 +167,15 @@ end
 
 -- Used with ISO Threads
 local function isolateFunction(func,env)
-    local dmp = string.dump(func)
-    local env = env or {}
-    if setfenv then
-        local f = loadstring(dmp,"IsolatedThread_PesudoThreading")
-        setfenv(f,env)
-        return f
-    else
-        return load(dmp,"IsolatedThread_PesudoThreading","bt",env)
-    end
+	local dmp = string.dump(func)
+	local env = env or {}
+	if setfenv then
+		local f = loadstring(dmp,"IsolatedThread_PesudoThreading")
+		setfenv(f,env)
+		return f
+	else
+		return load(dmp,"IsolatedThread_PesudoThreading","bt",env)
+	end
 end
 
 function multi:Break()
@@ -326,7 +326,7 @@ local _tid = 0
 function multi:newBase(ins)
 	if not(self.Type=='rootprocess' or self.Type=='process' or self.Type=='queue' or self.Type == 'sandbox') then error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
-    if self.Type=='process' or self.Type=='queue' or self.Type=='sandbox' then
+	if self.Type=='process' or self.Type=='queue' or self.Type=='sandbox' then
 		setmetatable(c, {__index = multi})
 	else
 		setmetatable(c, {__index = multi})
@@ -373,6 +373,29 @@ function multi:newConnection(protect,func,kill)
 		else
 			return self:connect(...)
 		end
+	end,
+	__add = function(c1,c2)
+		cn = multi:newConnection()
+		if not c1.__hasInstances then
+			cn.__hasInstances = 2
+			cn.__count = 0
+		else
+			cn.__hasInstances = c1.__hasInstances + 1
+			cn.__count = c1.__count
+		end
+		c1(function(...)
+			cn.__count = cn.__count + 1
+			if cn.__count == cn.__hasInstances then
+				cn:Fire(...)
+			end
+		end)
+		c2(function(...)
+			cn.__count = cn.__count + 1
+			if cn.__count == cn.__hasInstances then
+				cn:Fire(...)
+			end
+		end)
+		return cn
 	end})
 	c.Type='connector'
 	c.func={}
@@ -521,6 +544,7 @@ function multi:newConnection(protect,func,kill)
 	end
 	return c
 end
+
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
 multi.OnLoad = multi:newConnection(nil,nil,true)
@@ -912,37 +936,37 @@ local globalThreads = {}
 
 local sandcount = 0
 function multi:newProcessor(name)
-    local c = {}
-    setmetatable(c,{__index = self})
-    local multi,thread = require("multi"):init() -- We need to capture the t in thread
-    local name = name or "Processor_"..sandcount
-    sandcount = sandcount + 1
-    c.Mainloop = {}
-    c.Type = "process"
-    c.Active = false
-    c.Name = "multi.process<".. (name or "") .. ">"
-    c.process = self:newThread(c.Name,function()
-        while true do
-            thread.hold(function()
-                return c.Active
-            end)
+	local c = {}
+	setmetatable(c,{__index = self})
+	local multi,thread = require("multi"):init() -- We need to capture the t in thread
+	local name = name or "Processor_"..sandcount
+	sandcount = sandcount + 1
+	c.Mainloop = {}
+	c.Type = "process"
+	c.Active = false
+	c.Name = "multi.process<".. (name or "") .. ">"
+	c.process = self:newThread(c.Name,function()
+		while true do
+			thread.hold(function()
+				return c.Active
+			end)
 			__CurrentProcess = c
-            c:uManager()
+			c:uManager()
 			__CurrentProcess = self
-        end
-    end)
+		end
+	end)
 	c.OnError = c.process.OnError
-    function c.Start()
-        c.Active = true
+	function c.Start()
+		c.Active = true
 		return self
-    end
-    function c.Stop()
-        c.Active = false
+	end
+	function c.Stop()
+		c.Active = false
 		return self
-    end
-    c:attachScheduler()
-    c.initThreads()
-    return c
+	end
+	c:attachScheduler()
+	c.initThreads()
+	return c
 end
 
 -- Threading stuff
@@ -1205,16 +1229,16 @@ function thread:newFunction(func,holdme)
 		t.linkedFunction = temp
 		t.statusconnector = temp.OnStatus
 		return temp
-    end
+	end
 	setmetatable(tfunc,tfunc)
 	return tfunc
 end
 
 -- A cross version way to set enviroments, not the same as fenv though
 function multi.setEnv(func,env)
-    local f = string.dump(func)
-    local chunk = load(f,"env","bt",env)
-    return chunk
+	local f = string.dump(func)
+	local chunk = load(f,"env","bt",env)
+	return chunk
 end
 
 function multi:attachScheduler()
@@ -2055,18 +2079,18 @@ end
 -- UTILS
 --------
 function table.merge(t1, t2)
-    for k,v in pairs(t2) do
-        if type(v) == 'table' then
-            if type(t1[k] or false) == 'table' then
-                table.merge(t1[k] or {}, t2[k] or {})
-            else
-                t1[k] = v
-            end
-        else
-            t1[k] = v
-        end
-    end
-    return t1
+	for k,v in pairs(t2) do
+		if type(v) == 'table' then
+			if type(t1[k] or false) == 'table' then
+				table.merge(t1[k] or {}, t2[k] or {})
+			else
+				t1[k] = v
+			end
+		else
+			t1[k] = v
+		end
+	end
+	return t1
 end
 if table.unpack and not unpack then
 	unpack=table.unpack

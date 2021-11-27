@@ -68,6 +68,9 @@ function multi:newSystemThreadedJobQueue(n)
     local doAll = multi:newSystemThreadedQueue()
     local ID=1
     local jid = 1
+    function c:isEmpty()
+        return queueJob:peek()==nil
+    end
     function c:doToAll(func)
         for i=1,c.cores do
             doAll:push{ID,func}

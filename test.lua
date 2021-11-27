@@ -1,23 +1,31 @@
 package.path = "./?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 
-func = thread:newFunction(function()
+func = thread:newFunction(function(count)
     local a = 0
     while true do
         a = a + 1
-        thread.sleep(1)
-        thread.pushStatus(a)
-        if a == 10 then break end
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
     end
     return "Done"
 end)
 
 multi:newThread("test",function()
-    local ret = func()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
     ret.OnStatus(function(part,whole)
-        print(math.ceil((part/whole)*1000)/10)
+        print("Ret1: ",math.ceil((part/whole)*1000)/10 .."%")
     end)
-    thread.hold(ret.OnReturn)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
     print("Function Done!")
     os.exit()
 end)

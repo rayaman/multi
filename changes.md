@@ -11,6 +11,36 @@ Full Update Showcase
 package.path = "./?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 
+func = thread:newFunction(function(count)
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
+    end
+    return "Done"
+end)
+
+multi:newThread("Function Status Test",function()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    ret.OnStatus(function(part,whole)
+        print("Ret1: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+	-- Connections can now be added together, if you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
+    print("Function Done!")
+    os.exit()
+end)
+
 test = thread:newFunction(function()
     return 1,2,nil,3,4,5,6,7,8,9
 end,true)
@@ -68,9 +98,57 @@ multi:mainloop()
 Added:
 ---
 
+## multi:newSystemThreadedJobQueue(n) isEmpty()
+
+- returns true if the queue is empty, false if there are items in the queue. 
+
+**Note:** a queue might be empty, but the job may still be running and not finished yet!
+
+Example:
+```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+package.cpath = [[C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?.dll;C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?\core.dll;]] ..package.cpath
+multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
+
+jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
+func = jq:newFunction("test",function(a,b)
+    THREAD.sleep(2)
+    return a+b
+end)
+for i = 1,10 do
+    func(i,i*3).connect(function(data)
+        print(data)
+    end)
+end
+
+local a = true
+b = false
+
+multi:newThread("Standard Thread 1",function()
+    while true do
+        thread.sleep(.1)
+        print("Empty:",jq:isEmpty())
+    end
+end).OnError(function(self,msg)
+    print(msg)
+end)
+multi:mainloop()
+```
+
 ## multi.TIMEOUT
 
 `multi.TIMEOUT` is equal to "TIMEOUT", it is reccomended to use this incase things change later on. There are plans to change the timeout value to become a custom object instead of a string.
+
+## new connections on threaded functions
+
+- `func.OnStatus(...)`
+
+	Allows you to connect to the status of a function see [thread.pushStatus()](#status-added-to-threaded-functions)
+
+- `func.OnReturn(...)`
+
+	Allows you to connect to the functions return event and capture its returns see [Example](#status-added-to-threaded-functions) for an example of it in use.
 
 ## multi:newProcessor(name)
 
@@ -78,30 +156,42 @@ Added:
 package.path = "./?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 
+-- Create a processor object, it works a lot like the multi object
 sandbox = multi:newProcessor()
 
+-- On our processor object create a TLoop that prints "testing..." every second
 sandbox:newTLoop(function()
 	print("testing...")
 end,1)
 
+-- Create a thread on the processor object
 sandbox:newThread("Test Thread",function()
+	-- Create a counter named 'a'
 	local a = 0
+	-- Start of the while loop that ends when a = 10
 	while true do
+		-- pause execution of the thread for 1 second
 		thread.sleep(1)
+		-- increment a by 1
 		a = a + 1
+		-- display the name of the current process
 		print("Thread Test: ".. multi.getCurrentProcess().Name)
 		if a == 10 then
+			-- Stopping the processor stops all objects created inside that process including threads. In the backend threads use a regular multiobject to handle the scheduler and all of the holding functions. These all stop when a processor is stopped. This can be really useful to sandbox processes that might need to turned on and off with ease and not having to think about it.
 			sandbox.Stop()
 		end
 	end
+	-- Catch any errors that may come up
 end).OnError(function(...)
 	print(...)
 end)
 
 sandbox.Start() -- Start the process
 
-multi:mainloop()
+multi:mainloop() -- The main loop that allows all processes to continue
 ```
+
+**Note:** Processor objects have been added and removed many times in the past, but will remain with this update. 
 
 | Attribute | Type | Returns | Description |
 ---|---|---|---
@@ -115,7 +205,70 @@ process|Thread|thread| A handle to a multi thread object
 
 **Note:** All tasks/threads created on a process are linked to that process. If a process is stopped all tasks/threads will be halted until the process is started back up.
 
+## Connection can now be added together
 
+Very useful when using thread.hold for multiple connections to trigger.
+
+Iif you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+
+`print(conn + conn2 + conn3 + connN)`
+
+Can be chained as long as you want! See example below
+
+## Status added to threaded functions
+- `thread.pushStatus(...)`
+	
+	Allows a developer to push a status from a function.
+
+- `tFunc.OnStatus(func(...))`
+
+	A connection that can be used on a function to view the status of the threaded function
+
+Example:
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+func = thread:newFunction(function(count)
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
+    end
+    return "Done"
+end)
+
+multi:newThread("Function Status Test",function()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    ret.OnStatus(function(part,whole)
+        --[[ Print out the current status. In this case every second it will update with:
+		10%
+		20%
+		30%
+		...
+		100%
+
+		Function Done!
+		]]
+        print(math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+	-- Connections can now be added together, if you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
+    print("Function Done!")
+    os.exit()
+end)
+```
 
 Changed:
 ---
@@ -339,7 +492,7 @@ multi:lightloop()
 ```
 Going Forward:
 ---
--  There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
+- There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
 
 Quality Of Life:
 ---
@@ -583,7 +736,7 @@ Changed:
 - thread:newFunction(func,holup) — Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) — Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
-- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
+- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping through upvalues and sterlizing them and sending them are very complex and slow. 
 
 Removed:
 ---
@@ -831,7 +984,7 @@ Tasks Details Table format
 # Update 13.0.0 - Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
-This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
+This update I went all in finding bugs and improving performance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
 
 Fixed:
 ---

@@ -102,6 +102,9 @@ function multi:newSystemThreadedJobQueue(n)
 		self.queue:push{name,self.id,...}
 		return self.id
 	end
+	function c:isEmpty()
+        return queueJob:peek()==nil
+    end
 	local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
         if type(name)=="function" then
