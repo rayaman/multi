@@ -1,4 +1,4 @@
-package.path = "./?/init.lua;"..package.path
+--package.path = "./?/init.lua;"..package.path
 multi,thread = require("multi"):init()
 
 func = thread:newFunction(function(count)

@@ -69,7 +69,7 @@ multi.PriorityResolve = {
 	[256]="Normal",
 	[1024]="Below Normal",
 	[4096]="Low",
-	[16384]="Very Low"
+	[16384]="Very Low",
 	[65536]="Idle",
 }
 
