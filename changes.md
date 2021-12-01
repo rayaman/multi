@@ -364,12 +364,14 @@ Fixed:
 ---
 
 - Threaded functions not returning multiple values [Ref. Issue](https://github.com/rayaman/multi/issues/21)
+- Priority Lists not containing Very_High and Very_Low from previous update
+- All functions that should have chaining now do, reminder all functions that don't return any data return a reference to itself to allow chaining of method calls.
 
 ToDo
 ---
 
-- N/A
-
+- Work on network parallelism (I really want to make this, but time and getting it right is proving much more difficult)
+- Work on QOL changes to allow cleaner code like [this](#connection-can-now-be-added-together)
 
 # Update 15.0.0 - The art of faking it
 Full Update Showcase

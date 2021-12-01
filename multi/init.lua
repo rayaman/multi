@@ -21,11 +21,13 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+
 local multi = {}
 local mainloopActive = false
 local isRunning = false
 local clock = os.clock
 local thread = {}
+
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
@@ -61,16 +63,18 @@ multi.Priority_Idle = 65536
 
 multi.PriorityResolve = {
 	[1]="Core",
-	[4]="High",
-	[16]="Above Normal",
-	[64]="Normal",
-	[256]="Below Normal",
-	[1024]="Low",
-	[4096]="Idle",
+	[4]="Very High",
+	[16]="High",
+	[64]="Above Normal",
+	[256]="Normal",
+	[1024]="Below Normal",
+	[4096]="Low",
+	[16384]="Very Low"
+	[65536]="Idle",
 }
 
 multi.PStep = 1
-multi.PList = {multi.Priority_Core,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Idle}
+multi.PList = {multi.Priority_Core,multi.Priority_Very_High,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Very_Low,multi.Priority_Idle}
 multi.PriorityTick=1
 multi.Priority=multi.Priority_High
 multi.threshold=256
@@ -314,6 +318,7 @@ end
 
 function multi:create(ref)
 	multi.OnObjectCreated:Fire(ref,self)
+	return self
 end
 
 function multi:setName(name)
@@ -429,9 +434,11 @@ function multi:newConnection(protect,func,kill)
 	end
 	function c:Lock()
 		c.lock = true
+		return self
 	end
 	function c:Unlock()
 		c.lock = false
+		return self
 	end
 	function c:Fire(...)
 		local ret={}
@@ -1582,6 +1589,7 @@ function multi:newService(func) -- Priority managed threads
 		th:kill()
 		c.Stop()
 		multi.setType(c,multi.DestroyedObj)
+		return c
 	end
 	function c:SetScheme(n)
 		if type(self)=="number" then n = self end
@@ -1630,6 +1638,7 @@ function multi:newService(func) -- Priority managed threads
 		if type(self)=="number" then pri = self end
 		p = pri
 		c.SetScheme(scheme)
+		return c
 	end
 	multi.create(multi,c)
 	return c
@@ -2212,10 +2221,12 @@ function multi:setPriority(s)
 		self.defPriority = self.Priority
 		self.PrioritySet = true
 	end
+	return self
 end
 
 function multi:ResetPriority()
 	self.Priority = self.defPriority
+	return self
 end
 
 function os.getOS()
@@ -2348,6 +2359,7 @@ function multi:reallocate(o,n)
 	self.Parent=o
 	table.insert(o.Mainloop,n,self)
 	self.Active=true
+	return self
 end
 
 function multi.timer(func,...)
@@ -2366,6 +2378,7 @@ end
 
 function multi:FreeMainEvent()
 	self.func={}
+	return self
 end
 
 function multi:connectFinal(func)
@@ -2379,6 +2392,7 @@ function multi:connectFinal(func)
 		multi.print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
 		self:OnBreak(func)
 	end
+	return self
 end
 
 if os.getOS()=="windows" then

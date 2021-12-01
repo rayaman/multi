@@ -3,7 +3,7 @@
 - thread.hold has been updated to allow all variants to work as well as some new features. Check the changelog or documentation for more info.
 - multi:newProccesor() Creates a process that acts like the multi namespace that can be managed independently from the mainloop.
 
-Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
+Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
 My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat. If you find any bugs or have any issues, please [let me know](https://github.com/rayaman/multi/issues) and I'll look into it!.
 
@@ -33,6 +33,7 @@ Planned features/TODO
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----
+
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi, thread = require("multi"):init()
