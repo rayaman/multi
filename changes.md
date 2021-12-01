@@ -1,7 +1,378 @@
 # Changelog
 Table of contents
 ---
-[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+[Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 15.1.0 - Hold the thread!
+
+Full Update Showcase
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+func = thread:newFunction(function(count)
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
+    end
+    return "Done"
+end)
+
+multi:newThread("Function Status Test",function()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    ret.OnStatus(function(part,whole)
+        print("Ret1: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+	-- Connections can now be added together, if you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
+    print("Function Done!")
+    os.exit()
+end)
+
+test = thread:newFunction(function()
+    return 1,2,nil,3,4,5,6,7,8,9
+end,true)
+print(test())
+multi:newThread("testing",function()
+    print("#Test = ",test())
+    print(thread.hold(function()
+        print("Hello!")
+        return false
+    end,{
+        interval = 2,
+        cycles = 3
+    })) -- End result, 3 attempts within 6 seconds. If still false then timeout
+    print("held")
+end).OnError(function(...)
+    print(...)
+end)
+
+sandbox = multi:newProcessor()
+sandbox:newTLoop(function()
+    print("testing...")
+end,1)
+
+test2 = multi:newTLoop(function()
+    print("testing2...")
+end,1)
+
+sandbox:newThread("Test Thread",function()
+    local a = 0
+    while true do
+        thread.sleep(1)
+        a = a + 1
+        print("Thread Test: ".. multi.getCurrentProcess().Name)
+        if a == 10 then
+            sandbox.Stop()
+        end
+    end
+end).OnError(function(...)
+    print(...)
+end)
+multi:newThread("Test Thread",function()
+    while true do
+        thread.sleep(1)
+        print("Thread Test: ".. multi.getCurrentProcess().Name)
+    end
+end).OnError(function(...)
+    print(...)
+end)
+
+sandbox.Start()
+
+multi:mainloop()
+```
+
+Added:
+---
+
+## multi:newSystemThreadedJobQueue(n) isEmpty()
+
+- returns true if the queue is empty, false if there are items in the queue. 
+
+**Note:** a queue might be empty, but the job may still be running and not finished yet! Also if a registered function is called directly instead of pushed, it will not reflect inside the queue until the next cycle!
+
+Example:
+```lua
+package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+package.cpath = [[C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?.dll;C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?\core.dll;]] ..package.cpath
+multi,thread = require("multi"):init()
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
+
+jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
+func = jq:newFunction("test",function(a,b)
+    THREAD.sleep(2)
+    return a+b
+end)
+for i = 1,10 do
+    func(i,i*3).connect(function(data)
+        print(data)
+    end)
+end
+
+local a = true
+b = false
+
+multi:newThread("Standard Thread 1",function()
+    while true do
+        thread.sleep(.1)
+        print("Empty:",jq:isEmpty())
+    end
+end).OnError(function(self,msg)
+    print(msg)
+end)
+multi:mainloop()
+```
+
+## multi.TIMEOUT
+
+`multi.TIMEOUT` is equal to "TIMEOUT", it is reccomended to use this incase things change later on. There are plans to change the timeout value to become a custom object instead of a string.
+
+## new connections on threaded functions
+
+- `func.OnStatus(...)`
+
+	Allows you to connect to the status of a function see [thread.pushStatus()](#status-added-to-threaded-functions)
+
+- `func.OnReturn(...)`
+
+	Allows you to connect to the functions return event and capture its returns see [Example](#status-added-to-threaded-functions) for an example of it in use.
+
+## multi:newProcessor(name)
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+-- Create a processor object, it works a lot like the multi object
+sandbox = multi:newProcessor()
+
+-- On our processor object create a TLoop that prints "testing..." every second
+sandbox:newTLoop(function()
+	print("testing...")
+end,1)
+
+-- Create a thread on the processor object
+sandbox:newThread("Test Thread",function()
+	-- Create a counter named 'a'
+	local a = 0
+	-- Start of the while loop that ends when a = 10
+	while true do
+		-- pause execution of the thread for 1 second
+		thread.sleep(1)
+		-- increment a by 1
+		a = a + 1
+		-- display the name of the current process
+		print("Thread Test: ".. multi.getCurrentProcess().Name)
+		if a == 10 then
+			-- Stopping the processor stops all objects created inside that process including threads. In the backend threads use a regular multiobject to handle the scheduler and all of the holding functions. These all stop when a processor is stopped. This can be really useful to sandbox processes that might need to turned on and off with ease and not having to think about it.
+			sandbox.Stop()
+		end
+	end
+	-- Catch any errors that may come up
+end).OnError(function(...)
+	print(...)
+end)
+
+sandbox.Start() -- Start the process
+
+multi:mainloop() -- The main loop that allows all processes to continue
+```
+
+**Note:** Processor objects have been added and removed many times in the past, but will remain with this update. 
+
+| Attribute | Type | Returns | Description |
+---|---|---|---
+Start|Method()|self| Starts the process
+Stop|Method()|self| Stops the process
+OnError|Connection|connection| Allows connection to the process error handler
+Type|Member:`string`|"process"| Contains the type of object
+Active|Member:`boolean`|variable| If false the process is not active
+Name|Member:`string`|variable| The name set at process creation
+process|Thread|thread| A handle to a multi thread object 
+
+**Note:** All tasks/threads created on a process are linked to that process. If a process is stopped all tasks/threads will be halted until the process is started back up.
+
+## Connection can now be added together
+
+Very useful when using thread.hold for multiple connections to trigger.
+
+Iif you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+
+`print(conn + conn2 + conn3 + connN)`
+
+Can be chained as long as you want! See example below
+
+## Status added to threaded functions
+- `thread.pushStatus(...)`
+	
+	Allows a developer to push a status from a function.
+
+- `tFunc.OnStatus(func(...))`
+
+	A connection that can be used on a function to view the status of the threaded function
+
+Example:
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+func = thread:newFunction(function(count)
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
+    end
+    return "Done"
+end)
+
+multi:newThread("Function Status Test",function()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    ret.OnStatus(function(part,whole)
+        --[[ Print out the current status. In this case every second it will update with:
+		10%
+		20%
+		30%
+		...
+		100%
+
+		Function Done!
+		]]
+        print(math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+	-- Connections can now be added together, if you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
+    print("Function Done!")
+    os.exit()
+end)
+```
+
+Changed:
+---
+
+- `f = thread:newFunction(func,holdme)`
+	- Nothing changed that will affect how the object functions by default. The returned function is now a table that is callable and 3 new methods have been added:
+
+	Method | Description
+	---|---
+	Pause() | Pauses the function, Will cause the function to return `nil, Function is paused`
+	Resume() | Resumes the function
+	holdMe(set) | Sets the holdme argument that existed at function creation
+	
+	```lua
+	package.path = "./?/init.lua;"..package.path
+	multi, thread = require("multi"):init()
+
+	test = thread:newFunction(function(a,b)
+    	thread.sleep(1)
+		return a,b
+	end, true)
+
+	print(test(1,2))
+
+	test:Pause()
+
+	print(test(1,2))
+
+	test:Resume()
+
+	print(test(1,2))
+
+	--[[ -- If you left holdme nil/false
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	test:Pause()
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	test:Resume()
+
+	print(test(1,2).connect(function(...)
+		print(...)
+	end))
+
+	]]
+
+	multi:mainloop()
+	```
+
+	**Output:**
+
+	```
+	1       2
+	nil     Function is paused
+	1       2
+	```
+
+	**If holdme is nil/false:**
+
+	```
+	nil     Function is paused
+
+
+	1       2       nil...
+	1       2       nil...
+	```
+
+- thread.hold(n,opt) [Ref. Issue](https://github.com/rayaman/multi/issues/24)
+	- Added option table to thread.hold
+		| Option | Description |
+		---|---
+		| interval | Time between each poll |
+		| cycles | Number of cycles before timing out |
+		| sleep | Number of seconds before timing out |
+		| skip | Number of cycles before testing again, does not cause a timeout! |
+
+		**Note:** cycles and sleep options cannot both be used at the same time. Interval and skip cannot be used at the same time either. Cycles take priority over sleep if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
+		
+		Using cycles, sleep or interval will cause a timeout; returning nil, multi.TIMEOUT
+	- `n` can be a number and thread.hold will act like thread.sleep. When `n` is a number the option table will be ignored!
+
+Removed:
+---
+
+- N/A
+
+Fixed:
+---
+
+- Threaded functions not returning multiple values [Ref. Issue](https://github.com/rayaman/multi/issues/21)
+- Priority Lists not containing Very_High and Very_Low from previous update
+- All functions that should have chaining now do, reminder all functions that don't return any data return a reference to itself to allow chaining of method calls.
+
+ToDo
+---
+
+- Work on network parallelism (I really want to make this, but time and getting it right is proving much more difficult)
+- Work on QOL changes to allow cleaner code like [this](#connection-can-now-be-added-together)
 
 # Update 15.0.0 - The art of faking it
 Full Update Showcase
@@ -67,6 +438,7 @@ Fixed:
 ---
 - pseudoThreading and threads had an issue where they weren't executing properly
 - lanesManager THREAD:get(STRING: name) not returning the value
+- Issue where threaded function were not returning multiple values
 
 Todo:
 ---
@@ -123,7 +495,7 @@ multi:lightloop()
 ```
 Going Forward:
 ---
--  There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
+- There is no longer any plans for sterilization! Functions do not play nice on different platforms and there is no simple way to ensure that things work.
 
 Quality Of Life:
 ---
@@ -367,7 +739,7 @@ Changed:
 - thread:newFunction(func,holup) — Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) — Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
 	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
-- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping thorugh upvalues and sterlizing them and sending them are very complex and slow opperations. 
+- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping through upvalues and sterlizing them and sending them are very complex and slow. 
 
 Removed:
 ---
@@ -615,7 +987,7 @@ Tasks Details Table format
 # Update 13.0.0 - Added some documentation, and some new features too check it out!
 -------------
 **Quick note** on the 13.0.0 update:
-This update I went all in finding bugs and improving proformance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
+This update I went all in finding bugs and improving performance within the library. I added some new features and the new task manager, which I used as a way to debug the library was a great help, so much so thats it is now a permanent feature. It's been about half a year since my last update, but so much work needed to be done. I hope you can find a use in your code to use my library. I am extremely proud of my work; 7 years of development, I learned so much about lua and programming through the creation of this library. It was fun, but there will always be more to add and bugs crawling there way in. I can't wait to see where this library goes in the future!
 
 Fixed:
 ---

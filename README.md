@@ -1,12 +1,12 @@
-# Multi Version: 15.0.0 Fake it till you make it
+# Multi Version: 15.1.0 Hold the thread
 **Key Changes**
-- Emulating system threading on a single thread
-    - Purpose to allow consistant code that can scale when threading is available. Check out the changelog for more details
-- Proper support for lua versions above 5.1 (More testing is needed, a full test suite is being developed and should be made available soon)
+- thread.hold has been updated to allow all variants to work as well as some new features. Check the changelog or documentation for more info.
+- multi:newProccesor() Creates a process that acts like the multi namespace that can be managed independently from the mainloop.
+- Connections can be added together
 
-Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and I'll look into it!
+Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
-My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat. If you find any bugs or have any issues, please [let me know](https://github.com/rayaman/multi/issues) and I'll look into it!.
+My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat.
 
 INSTALLING
 ----------
@@ -22,7 +22,7 @@ Going forward I will include a Release zip for love2d.
 
 Discord
 -------
-Have a question that you need asking? Or need realtime assistance? Feel free to join the discord!</br>
+Have a question? Or need realtime assistance? Feel free to join the discord!</br>
 https://discord.gg/U8UspuA</br>
 
 Planned features/TODO
@@ -30,10 +30,10 @@ Planned features/TODO
 - [x] ~~Finish Documentation~~ Finished
 - [ ] Create test suite
 - [ ] Network Parallelism rework
-- [ ] Fix some bugs
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----
+
 ```lua
 package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi, thread = require("multi"):init()

@@ -93,6 +93,10 @@ function multi:newSystemThreadedJobQueue(n)
         jid = jid + 1
         return jid-1
     end
+    function c:isEmpty()
+        print(#jobs)
+        return #jobs == 0
+    end
     local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
         local func = stripUpValues(func)
