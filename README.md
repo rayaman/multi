@@ -2,10 +2,11 @@
 **Key Changes**
 - thread.hold has been updated to allow all variants to work as well as some new features. Check the changelog or documentation for more info.
 - multi:newProccesor() Creates a process that acts like the multi namespace that can be managed independently from the mainloop.
+- Connections can be added together
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
-My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat. If you find any bugs or have any issues, please [let me know](https://github.com/rayaman/multi/issues) and I'll look into it!.
+My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat.
 
 INSTALLING
 ----------
@@ -29,7 +30,6 @@ Planned features/TODO
 - [x] ~~Finish Documentation~~ Finished
 - [ ] Create test suite
 - [ ] Network Parallelism rework
-- [ ] Fix some bugs
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
 -----

@@ -102,7 +102,7 @@ Added:
 
 - returns true if the queue is empty, false if there are items in the queue. 
 
-**Note:** a queue might be empty, but the job may still be running and not finished yet!
+**Note:** a queue might be empty, but the job may still be running and not finished yet! Also if a registered function is called directly instead of pushed, it will not reflect inside the queue until the next cycle!
 
 Example:
 ```lua
@@ -274,12 +274,13 @@ Changed:
 ---
 
 - `f = thread:newFunction(func,holdme)`
-	- Nothing changed that will affect how the object functions by default. The returned function is now a table that is callable and 2 new methods have been added:
+	- Nothing changed that will affect how the object functions by default. The returned function is now a table that is callable and 3 new methods have been added:
 
 	Method | Description
 	---|---
 	Pause() | Pauses the function, Will cause the function to return `nil, Function is paused`
 	Resume() | Resumes the function
+	holdMe(set) | Sets the holdme argument that existed at function creation
 	
 	```lua
 	package.path = "./?/init.lua;"..package.path
@@ -350,7 +351,7 @@ Changed:
 		| sleep | Number of seconds before timing out |
 		| skip | Number of cycles before testing again, does not cause a timeout! |
 
-		**Note:** cycles and sleep options cannot both be used at the same time. Interval and skip cannot be used at the same time either. Cycles take priority than sleep if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
+		**Note:** cycles and sleep options cannot both be used at the same time. Interval and skip cannot be used at the same time either. Cycles take priority over sleep if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
 		
 		Using cycles, sleep or interval will cause a timeout; returning nil, multi.TIMEOUT
 	- `n` can be a number and thread.hold will act like thread.sleep. When `n` is a number the option table will be ignored!

@@ -1,7 +1,9 @@
-Current Multi Version: 15.0.0
+Current Multi Version: 15.1.0
 
 # Multi static variables
 `multi.Version` — The current version of the library
+
+`multi.TIMEOUT` — The value returned when a timed method times out
 
 `multi.Priority_Core` — Highest level of pirority that can be given to a process
 </br>`multi.Priority_Very_High`
@@ -28,7 +30,7 @@ Current Multi Version: 15.0.0
 
 # Processor Methods
 
-These methods can be called either on the multi namespace or a process returned by `multi:newProcessor()`
+These methods can be called either on the multi namespace or a process returned by `proc = multi:newProcessor()`
 
 `proc.Stop()` — Stops the main process/child process. **Note:** If the main process is stopped all child processes are stopped as well
 `proc:getTasksDetails([STRING: displaytype])` — Gets a table or string of all the running tasks
@@ -47,6 +49,46 @@ Name|Member:`string`|variable| The name set at process creation
 process|Thread|thread| A handle to a multi thread object 
 
 [Refer to the objects for more methods](#non-actors)
+
+Example:
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+-- Create a processor object, it works a lot like the multi object
+sandbox = multi:newProcessor()
+
+-- On our processor object create a TLoop that prints "testing..." every second
+sandbox:newTLoop(function()
+	print("testing...")
+end,1)
+
+-- Create a thread on the processor object
+sandbox:newThread("Test Thread",function()
+	-- Create a counter named 'a'
+	local a = 0
+	-- Start of the while loop that ends when a = 10
+	while true do
+		-- pause execution of the thread for 1 second
+		thread.sleep(1)
+		-- increment a by 1
+		a = a + 1
+		-- display the name of the current process
+		print("Thread Test: ".. multi.getCurrentProcess().Name)
+		if a == 10 then
+			-- Stopping the processor stops all objects created inside that process including threads. In the backend threads use a regular multiobject to handle the scheduler and all of the holding functions. These all stop when a processor is stopped. This can be really useful to sandbox processes that might need to turned on and off with ease and not having to think about it.
+			sandbox.Stop()
+		end
+	end
+	-- Catch any errors that may come up
+end).OnError(function(...)
+	print(...)
+end)
+
+sandbox.Start() -- Start the process
+
+multi:mainloop() -- The main loop that allows all processes to continue
+```
 
 # Multi Settings
 
@@ -178,6 +220,9 @@ returns or nil
 
 The connect feature has some syntax sugar to it as seen below
 - `link = conn(FUNCTION func, [STRING name nil], [NUMBER #conns+1])`
+- `combinedconn = conn1 + conn2` — A combined connection is triggered when all connections are triggered. See example [here](#coroutine-based-threading-cbt)
+
+
 
 Example:
 ```lua
@@ -453,7 +498,23 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 
 **threads.\* used within threaded enviroments**
 - `thread.sleep(NUMBER n)` — Holds execution of the thread until a certain amount of time has passed
-- `VARIABLE returns = thread.hold(FUNCTION func)` — Hold execution until the function returns non nil. All returns are passed to the thread once the conditions have been met. To pass nil use `multi.NIL`\*
+- `VARIABLE val = THREAD.hold(FUNCTION|CONNCETION|NUMBER func, TABLE options)` — Holds the current thread until a condition is met
+
+	| Option | Description |
+	---|---
+	| interval | Time between each poll |
+	| cycles | Number of cycles before timing out |
+	| sleep | Number of seconds before timing out |
+	| skip | Number of cycles before testing again, does not cause a timeout! |
+
+	**Note:** cycles and sleep options cannot both be used at the same time. Interval and skip cannot be used at the same time either. Cycles take priority over sleep if both are present! HoldFor and HoldWithin can be emulated using the new features. Old functions will remain for backward compatibility.
+
+	Using cycles, sleep or interval will cause a timeout; returning nil, multi.TIMEOUT
+
+	`func` can be a number and `thread.hold` will act like `thread.sleep`. When `func` is a number the option table will be ignored!
+	
+	`func` can be a connection and will hold until the condition is triggered. When using a connection the option table is ignored!
+
 - `thread.skip(NUMBER n)` — How many cycles should be skipped until I execute again
 - `thread.kill()` — Kills the thread
 - `thread.yeild()` — Is the same as using thread.skip(0) or thread.sleep(0), hands off control until the next cycle
@@ -466,9 +527,64 @@ Helpful methods are wrapped around the builtin coroutine module which make it fe
 - `th = thread.getRunningThread()` — Returns the currently running thread
 - `VARIABLE returns or nil, "TIMEOUT" = thread.holdFor(NUMBER: sec, FUNCTION: condition)` — Holds until a condidtion is met, or if there is a timeout nil,"TIMEOUT"
 - `VARIABLE returns or nil, "TIMEOUT" = thread.holdWithin(NUMBER: skip, FUNCTION: func)` — Holds until a condition is met or n cycles have happened.
-- `returns or handler = thread:newFunction(FUNCTION: func, [BOOLEAN: holdme false])` — func: The function you want to be threaded. holdme: If true the function waits until it has returns and then returns them. Otherwise the function returns a table
-	- `handler.connect(Function: func(returns))` — Connects to the event that is triggered when the returns are avaiable
-	- `VARIAABLE returns = handler.wait()` — Waits until returns are avaiable and then returns them
+- `func = thread:newFunction(FUNCTION: func, [BOOLEAN: holdme false])` — func: The function you want to be threaded. holdme: If true the function waits until it has returns and then returns them. Otherwise the function returns a table
+	- `func:Pause()` — Pauses a function, function will return `nil`, `"Function is paused"`
+	- `func:Resume()` — Resumes a paused function
+	- `func:holdMe(BOOLEAN: set)` — Sets the holdme argument to `set`
+	- `handler = func(VARIABLE args)` — Calls the function, will return
+		- `handler.isTFunc` — if true then its a threaded function
+		- `handler.wait()` — waits for the function to finish and returns like normal
+		- `handler.connect(Function: func(returns))` — Connects to the event that is triggered when the returns are avaiable and returns them
+		- `VARIABLE returns = handler.wait()` — Waits until returns are avaiable and then 
+		- `handler.OnStatus(connector(VARIABLE args))` — A connection to the running function's status see example below
+		- `handler.OnReturn(connector(VARIABLE args))` — A connection that is triggered when the running function is finished see example below
+		- `handler.OnError(connector(nil,error))`
+
+Example:
+
+```lua
+package.path = "./?/init.lua;"..package.path
+multi,thread = require("multi"):init()
+
+func = thread:newFunction(function(count)
+    local a = 0
+    while true do
+        a = a + 1
+        thread.sleep(.1)
+        thread.pushStatus(a,count)
+        if a == count then break end
+    end
+    return "Done"
+end)
+
+multi:newThread("Function Status Test",function()
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    ret.OnStatus(function(part,whole)
+        --[[ Print out the current status. In this case every second it will update with:
+		10%
+		20%
+		30%
+		...
+		100%
+
+		Function Done!
+		]]
+        print(math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret2.OnStatus(function(part,whole)
+        print("Ret2: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+    ret3.OnStatus(function(part,whole)
+        print("Ret3: ",math.ceil((part/whole)*1000)/10 .."%")
+    end)
+	-- Connections can now be added together, if you had multiple holds and one finished before others and wasn't consumed it would lock forever! This is now fixed
+    thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn)
+    print("Function Done!")
+    os.exit()
+end)
+```
 
 <b>\*</b>A note about multi.NIL, this should only be used within the hold and hold like methods. thread.hold(), thread.holdFor(), and thread.holdWithin() methods. This is not needed within threaded functions! The reason hold prevents nil and false is because it is testing for a condition so the first argument needs to be non nil nor false! multi.NIL should not be used anywhere else. Sometimes you may need to pass a 'nil' value or return. While you could always return true or something you could use multi.NIL to force a nil value through a hold like method.
 
@@ -679,7 +795,7 @@ Using this integration modifies some methods that the multi library has.
 - `THREAD.kill()` — Kills the thread
 - `THREAD.getName()` — Returns the name of the working thread
 - `THREAD.sleep(NUMBER n)` — Sleeps for an amount of time stopping the current thread
-- `THREAD.hold(FUNCTION func)` — Holds the current thread until a condition is met
+- `THREAD.hold(FUNCTION func, TABLE options)` — Holds the current thread until a condition is met
 - `THREAD.getID()` — returns a unique ID for the current thread. This varaiable is visible to the main thread as well as by accessing it through the returned thread object. OBJ.Id
 
 # ST - GLOBAL namespace
@@ -790,6 +906,7 @@ console.print("Hello World!")
 ```
 # ST - SystemThreadedJobQueue
 `jq = multi:newSystemThreadedJobQueue([NUMBER: threads])` — Creates a system threaded job queue with an optional number of threads
+- `boolean jq:isEmpty()` — Returns true if the jobqueue is empty false otherwise
 - `jq.cores = (supplied number) or (the number of cores on your system*2)`
 - `jq.OnJobCompleted(FUNCTION: func(jID,...))` — Connection that is triggered when a job has been completed. The jobID and returns of the job are supplies as arguments
 - `self = jq:doToAll(FUNCTION: func)` — Send data to every thread in the job queue. Useful if you want to require a module and have it available on all threads
@@ -798,6 +915,7 @@ console.print("Hello World!")
 - `handler = jq:newFunction([STRING: name], FUNCTION: func)` — returns a threaded Function that wraps around jq.registerFunction, jq.pushJob() and jq.OnJobCompleted() to provide an easy way to create and work with the jobqueue
 	- `handler.connect(Function: func(returns))` — Connects to the event that is triggered when the returns are avaiable
 	- `VARIAABLE returns = handler.wait()` — Waits until returns are avaiable and then returns them
+
 **Note:** Created functions using this method act as normal functions on the queue side of things. So you can call the functions from other queue functions as if they were normal functions.
 
 Example:
