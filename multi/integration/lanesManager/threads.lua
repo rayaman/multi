@@ -82,7 +82,7 @@ local function INIT(__GlobalLinda,__SleepingLinda)
         THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
     end
     function THREAD.kill() -- trigger the lane destruction
-        error("Thread was killed!")
+        error("Thread was killed!\1")
     end
     function THREAD.getName()
         return THREAD_NAME
