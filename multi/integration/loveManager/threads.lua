@@ -92,7 +92,7 @@ function threads.getCores()
     return love.system.getProcessorCount()
 end
 function threads.kill()
-    error("Thread Killed!")
+    error("Thread Killed!\1")
 end
 function threads.getThreads()
     local t = {}

@@ -50,6 +50,7 @@ multi.time = os.time
 multi.LinkedPath = multi
 multi.lastTime = clock()
 multi.TIMEOUT = "TIMEOUT"
+multi.TID = 0
 
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
@@ -92,8 +93,9 @@ end
 --Processor
 local priorityTable = {[0]="Round-Robin",[1]="Balanced",[2]="Top-Down",[3]="Timed-Based-Balancer"}
 local ProcessName = {[true]="SubProcessor",[false]="MainProcessor"}
+local globalThreads = {}
 function multi:getTasksDetails(t)
-	if t == "string" or not t then
+	if not(t) then
 		str = {
 			{"Type <Identifier>","Uptime","Priority","TID"}
 		}
@@ -126,19 +128,37 @@ function multi:getTasksDetails(t)
 			end
 		end
 		local load, steps = self:getLoad()
-		if thread.__threads then
-			for i=1,#thread.__threads do
-				dat = dat .. "<THREAD: "..thread.__threads[i].Name.." | "..os.clock()-thread.__threads[i].creationTime..">\n"
+		local thread_count = 0
+		local process_count = 0
+		if globalThreads then
+			local th_tab = {
+				{"Thread Name","Uptime","TID","Attached To"}
+			}
+			local proc_tab = {
+				{"Process Name", "Uptime", "PID", "Load", "Cycles per Second per task"}
+			}
+			for th,process in pairs(globalThreads) do
+				if tostring(th.isProcessThread) == "destroyed" then
+					globalThreads[th] = nil
+				elseif th.isProcessThread then
+					local load, steps = process:getLoad()
+					process_count = process_count + 1
+					table.insert(proc_tab,{th.Name,os.clock()-th.creationTime,(th.PID or "-1"),load,steps})
+				else
+					thread_count = thread_count + 1
+					table.insert(th_tab,{th.Name,os.clock()-th.creationTime,(th.TID or "-1"),process.Name})
+				end
 			end
-			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: "..#thread.__threads.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s.."\n\n"..dat..dat2
+			dat = multi.AlignTable(proc_tab).. "\n"
+			dat = dat .. "\n" .. multi.AlignTable(th_tab)
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat..dat2.."\n\n"..s
 		else
-			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..s..dat2
+			return "Load on "..ProcessName[self.Type=="process"].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat2.."\n\n"..s
 		end
-	elseif t == "t" or t == "table" then
+	else
 		local load,steps = self:getLoad()
 		str = {
 			ProcessName = (self.Name or "Unnamed"),
-			ThreadCount = #thread.__threads,
 			MemoryUsage = math.ceil(collectgarbage("count")),
 			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
 			SystemLoad = multi.Round(load,2),
@@ -148,6 +168,7 @@ function multi:getTasksDetails(t)
 		str.Tasks = {}
 		str.PausedTasks = {}
 		str.Threads = {}
+		str.Processes = {}
 		str.Systemthreads = {}
 		for i,v in pairs(self.Mainloop) do
 			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
@@ -155,9 +176,18 @@ function multi:getTasksDetails(t)
 		for v,i in pairs(multi.PausedObjects) do
 			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
 		end
-		for i=1,#thread.__threads do
-			table.insert(str.Threads,{Uptime = os.clock()-thread.__threads[i].creationTime,Name = thread.__threads[i].Name,Link = thread.__threads[i],TID = thread.__threads[i].TID})
+		for th,process in pairs(globalThreads) do
+			if tostring(th.isProcessThread) == "destroyed" then
+				globalThreads[th] = nil
+			elseif th.isProcessThread then
+				local load, steps = process:getLoad()
+				table.insert(str.Processes,{Uptime = os.clock()-th.creationTime, Name = th.Name, Link = th, TID = th.TID,Load = load,Steps = steps})
+			else
+				table.insert(str.Threads,{Uptime = os.clock()-th.creationTime,Name = th.Name,Link = th,TID = th.TID,Attached_to = process})
+			end
 		end
+		str.ThreadCount = #str.Threads
+		str.ProcessCount = #str.Processes
 		if multi.SystemThreads then
 			for i=1,#multi.SystemThreads do
 				table.insert(str.Systemthreads,{Uptime = os.clock()-multi.SystemThreads[i].creationTime,Name = multi.SystemThreads[i].Name,Link = multi.SystemThreads[i],TID = multi.SystemThreads[i].count})
@@ -293,6 +323,17 @@ function multi:Destroy()
 			self.OnObjectDestroyed:Fire(c[i])
 			c[i]:Destroy()
 		end
+		local new = {}
+		for th,proc in pairs(globalThreads) do
+			if proc == self then
+				th:Destroy()
+				table.remove(globalThreads,th)
+			else
+				new[th]=proc
+			end
+		end
+		globalThreads = new
+		multi.setType(self,multi.DestroyedObj)
 	else
 		for i=1,#self.Parent.Mainloop do
 			if self.Parent.Mainloop[i]==self then
@@ -806,11 +847,12 @@ function multi:newTLoop(func,set)
 	end
 	function c:Act()
 		if self.timer:Get()>=self.set then
+			print("Acting...")
 			self.life=self.life+1
+			self.timer:Reset()
 			for i=1,#self.func do
 				self.func[i](self,self.life)
 			end
-			self.timer:Reset()
 		end
 	end
 	function c:Resume()
@@ -939,11 +981,10 @@ function multi.getCurrentProcess()
 	return __CurrentProcess
 end
 
-local globalThreads = {}
-
-local sandcount = 0
+local sandcount = 1
 function multi:newProcessor(name)
 	local c = {}
+	print("Proc Created:",sandcount)
 	setmetatable(c,{__index = self})
 	local multi,thread = require("multi"):init() -- We need to capture the t in thread
 	local name = name or "Processor_"..sandcount
@@ -951,7 +992,7 @@ function multi:newProcessor(name)
 	c.Mainloop = {}
 	c.Type = "process"
 	c.Active = false
-	c.Name = "multi.process<".. (name or "") .. ">"
+	c.Name = name or ""
 	c.process = self:newThread(c.Name,function()
 		while true do
 			thread.hold(function()
@@ -962,6 +1003,8 @@ function multi:newProcessor(name)
 			__CurrentProcess = self
 		end
 	end)
+	c.process.isProcessThread = true
+	c.process.PID = sandcount
 	c.OnError = c.process.OnError
 	function c.Start()
 		c.Active = true
@@ -970,6 +1013,9 @@ function multi:newProcessor(name)
 	function c.Stop()
 		c.Active = false
 		return self
+	end
+	function c:Destroy()
+		self.OnObjectDestroyed:Fire(c)
 	end
 	c:attachScheduler()
 	c.initThreads()
@@ -995,7 +1041,7 @@ function thread.getRunningThread()
 	local t = coroutine.running()
 	if t then
 		for i,v in pairs(threads) do
-			if t==v.thread then
+			if t==i.thread then
 				return v
 			end
 		end
@@ -1180,7 +1226,7 @@ function thread:newFunction(func,holdme)
 		return nil, "Function is paused"
 	end
 	local rets, err
-		local function wait(no) 
+	local function wait(no) 
 		if thread.isThread() and not (no) then
 			return multi.hold(function()
 				if err then
@@ -1300,6 +1346,7 @@ function multi:attachScheduler()
 			return self
 		end
 		c.Destroy = c.Kill
+		c.kill = c.Kill
 		function c.ref:send(name,val)
 			ret=coroutine.yield({Name=name,Value=val})
 		end
@@ -1327,7 +1374,7 @@ function multi:attachScheduler()
 			self.Globals=v
 		end
 		table.insert(threads,c)
-		table.insert(globalThreads,c)
+		globalThreads[c] = self
 		if initT==false then
 			self.initThreads()
 		end
@@ -1519,7 +1566,6 @@ function multi:attachScheduler()
 				elseif threads[i] and threads[i].task == "holdW" then
 					if clock() - threads[i].intervalR>=threads[i].interval then
 						threads[i].pos = threads[i].pos + 1
-						print(threads[i].pos,threads[i].count)
 						t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15 = threads[i].func()
 						if t0 then
 							threads[i].task = ""
@@ -2155,11 +2201,12 @@ end
 
 local busy = false
 local lastVal = 0
+local last_step = 0
 local bb = 0
 
 function multi:getLoad()
 	if not multi.maxSpd then self:enableLoadDetection() end
-	if busy then return lastVal end
+	if busy then return lastVal,last_step end
 	local val = nil
 	if thread.isThread() then
 		local bench
@@ -2189,7 +2236,8 @@ function multi:getLoad()
 	if val<0 then val = 0 end
 	if val > 100 then val = 100 end
 	lastVal = val
-	return val,bb*100
+	last_step = bb*100
+	return val,last_step
 end
 
 function multi:setPriority(s)

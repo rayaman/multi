@@ -55,19 +55,84 @@ local threads = {}
 local count = 1
 local started = false
 local livingThreads = {}
-function THREAD:newFunction(func,holup)
-	return function(...)
-		local t = multi:newSystemThread("SystemThreadedFunction",function(...)
-			return func(...)
-		end,...)
-		return thread:newFunction(function()
-			thread.hold(function() return t.thread end)
-			return thread.hold(function()
-				return t.thread:join(.001)
-			end)
-		end,holup)()
+
+function THREAD:newFunction(func,holdme)
+    local tfunc = {}
+	tfunc.Active = true
+	function tfunc:Pause()
+		self.Active = false
 	end
+	function tfunc:Resume()
+		self.Active = true
+	end
+	function tfunc:holdMe(b)
+		holdme = b
+	end
+	local function noWait()
+		return nil, "Function is paused"
+	end
+    local rets, err
+	local function wait(no) 
+		if thread.isThread() and not (no) then
+			return multi.hold(function()
+				if err then
+					return nil, err
+				elseif rets then
+					return unpack(rets)
+				end
+			end)
+		else
+			while not rets and not err do
+				multi.scheduler:Act()
+			end
+			if err then
+				return nil,err
+			end
+			return unpack(rets)
+		end
+	end
+    tfunc.__call = function(t,...)
+		if not t.Active then 
+			if holdme then
+				return nil, "Function is paused"
+			end
+			return {
+				isTFunc = true,
+				wait = noWait,
+				connect = function(f)
+					f(nil,"Function is paused")
+				end
+			}
+		end 
+        local t = multi:newSystemThread("SystemThreadedFunction",func,...)
+		t.OnDeath(function(self,...) rets = {...}  end)
+		t.OnError(function(self,e) err = e end)
+		if holdme then
+			return wait()
+		end
+		local temp = {
+			OnStatus = multi:newConnection(),
+			OnError = multi:newConnection(),
+			OnReturn = multi:newConnection(),
+			isTFunc = true,
+			wait = wait,
+			connect = function(f)
+				local tempConn = multi:newConnection()
+				t.OnDeath(function(self,...) if f then f(...) else tempConn:Fire(...) end end) 
+				t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
+				return tempConn
+			end
+		}
+		t.OnDeath(function(self,...) temp.OnReturn:Fire(...) end) 
+		t.OnError(function(self,err) temp.OnError:Fire(err) end)
+		t.linkedFunction = temp
+		t.statusconnector = temp.OnStatus
+		return temp
+	end
+	setmetatable(tfunc,tfunc)
+    return tfunc
 end
+
 function multi:newSystemThread(name, func, ...)
 	multi.InitSystemThreadErrorHandler()
 	rand = math.random(1, 10000000)
@@ -104,48 +169,66 @@ function multi:newSystemThread(name, func, ...)
 		self.alive = false
 	end
 	table.insert(multi.SystemThreads, c)
+	c.OnDeath = multi:newConnection()
 	c.OnError = multi:newConnection()
 	GLOBAL["__THREADS__"] = livingThreads
 	return c
 end
-multi.OnSystemThreadDied = multi:newConnection()
+
+local function detectLuaError(str)
+	return type(str)=="string" and str:match("%.lua:%d*:")
+end
+
+local function tableLen(tab)
+	local len = 0
+	for i,v in pairs(tab) do
+		len = len + 1
+	end
+	return len
+end
+
 function multi.InitSystemThreadErrorHandler()
 	if started == true then
 		return
 	end
 	started = true
-	multi:newThread(
-"ThreadErrorHandler",
-		function()
-			local threads = multi.SystemThreads
-			while true do
-				thread.sleep(.5) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
-				for i = #threads, 1, -1 do
-					local v, err, t = threads[i].thread:join(.001)
-					if err then
-						if err:find("Thread was killed!") then
-							print(err)
-							livingThreads[threads[i].Id] = {false, threads[i].Name}
-							threads[i].alive = false
-							multi.OnSystemThreadDied:Fire(threads[i].Id)
-							GLOBAL["__THREADS__"] = livingThreads
-							table.remove(threads, i)
-						elseif err:find("stack traceback") then
-							print(err)
-							threads[i].OnError:Fire(threads[i], err, "Error in systemThread: '" .. threads[i].name .. "' <" .. err .. ">")
-							threads[i].alive = false
-							livingThreads[threads[i].Id] = {false, threads[i].Name}
-							multi.OnSystemThreadDied:Fire(threads[i].Id)
-							GLOBAL["__THREADS__"] = livingThreads
-							table.remove(threads, i)
-						end
+	multi:newThread("ThreadErrorHandler",function()
+		local threads = multi.SystemThreads
+		while true do
+			thread.sleep(.1) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
+			for i = #threads, 1, -1 do
+				local _,data = pcall(function()
+					return {threads[i].thread:join(1)}
+				end)
+				local v, err, t = data[1],data[2],data[3]
+				if detectLuaError(err) then
+					if err:find("Thread was killed!\1") then
+						livingThreads[threads[i].Id] = {false, threads[i].Name}
+						threads[i].alive = false
+						threads[i].OnDeath:Fire(threads[i],nil,"Thread was killed!")
+						GLOBAL["__THREADS__"] = livingThreads
+						table.remove(threads, i)
+					else
+						threads[i].OnError:Fire(threads[i], err, "Error in systemThread: '" .. threads[i].name .. "' <" .. err .. ">")
+						threads[i].alive = false
+						livingThreads[threads[i].Id] = {false, threads[i].Name}
+						GLOBAL["__THREADS__"] = livingThreads
+						table.remove(threads, i)
 					end
+				elseif tableLen(data)>0 then
+					livingThreads[threads[i].Id] = {false, threads[i].Name}
+					threads[i].alive = false
+					threads[i].OnDeath:Fire(threads[i],unpack(data))
+					GLOBAL["__THREADS__"] = livingThreads
+					table.remove(threads, i)
 				end
 			end
 		end
-	)
+	end).OnError(function(...)
+		print("Error!",...)
+	end)
 end
-print("Integrated Lanes!")
+multi.print("Integrated Lanes!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
