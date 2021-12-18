@@ -984,7 +984,6 @@ end
 local sandcount = 1
 function multi:newProcessor(name)
 	local c = {}
-	print("Proc Created:",sandcount)
 	setmetatable(c,{__index = self})
 	local multi,thread = require("multi"):init() -- We need to capture the t in thread
 	local name = name or "Processor_"..sandcount
