@@ -1,8 +1,7 @@
-# Multi Version: 15.1.0 Hold the thread
+# Multi Version: 16.0.0 Upgrade Complete
 **Key Changes**
-- thread.hold has been updated to allow all variants to work as well as some new features. Check the changelog or documentation for more info.
-- multi:newProccesor() Creates a process that acts like the multi namespace that can be managed independently from the mainloop.
-- Connections can be added together
+- All objects now use connections internally
+- Updated getTasksDetails() to handle the new method of managing threads and processors
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 

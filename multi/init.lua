@@ -394,14 +394,18 @@ function multi:newBase(ins)
 	_tid = _tid + 1
 	return c
 end
+
 function multi:newConnector()
 	local c = {Type = "connector"}
 	return c
 end
+
 local CRef = {
 	Fire = function() end
 }
+
 local ignoreconn = true
+
 function multi:newConnection(protect,func,kill)
 	local c={}
 	c.callback = func
