@@ -3,6 +3,97 @@ Table of contents
 ---
 [Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
+# Update 15.2.0 - Upgrade Complete
+
+Full Update Showcase
+
+```lua
+
+```
+
+Added:
+---
+
+- multi:newTLoop() member functions
+	- `Loop:Set(set)` - Sets the time to wait for the TLoop
+
+- multi:newStep() member functions
+	- `Step:Count(count)` - Sets the amount a step should count by
+
+- multi:newTStep() member functions
+	- `TStep:Set(set)` - Sets the time to wait for the TStep
+
+
+Changed:
+---
+
+- Connection Objects now pass on the parent object if created on a multiobj. This was to allow chaining to work properly with the new update
+
+	```lua
+	package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
+	multi,thread = require("multi"):init()
+
+	loop = multi:newTLoop()
+
+	function loop:testing()
+    	print("testing haha")
+	end
+
+
+	loop:Set(1)
+	t = loop:OnLoop(function()
+		print("Looping...")
+	end):testing()
+
+	multi:mainloop()
+	
+	--[[Returns as expected:
+
+		testing haha
+		Looping...
+		Looping...
+		Looping...
+		...
+		Looping...
+		Looping...
+		Looping...
+	]]
+	```
+
+	While chaining on the OnSomeEventMethod() wasn't really a used feature, I still wanted to keep it just incase someone was relying on this working. And it does have it uses
+
+- All Multi Objects now use Connection objects
+
+	`multiobj:OnSomeEvent(func)` or `multiobj.OnSomeEvent(func)`
+
+- Connection Objects no longer Fire with syntax sugar when attached to an object:
+
+	`multiobj:OnSomeEvent(arg1,arg2.arg3)` No longer triggers the Fire event. As part of the update to make all objects use connections internally this little used feature had to be scrapped!
+
+- multi:newTStep now derives it's functionality from multi:newStep (Cut's down on code length a bit)
+
+- 
+
+### Developer Note:
+
+
+Connections are some of the most complex objects that this library has outside of some of the system threaded stuff. I tend to add features to connection objects quite often. Just last update connections can be "added" together creating a temp connection that only triggers when all of the added connections got triggered as well. Thinking about the possibilities this could give developers using the library I had to changed the base classes to use connections. 
+
+The best part about this is that connections allow for greater control over an object's events. You can add and remove events that have been connected to as well as a lot of other things. Reference the documentation [here](./Documentation.md#non-actor-connections)
+
+
+Removed:
+---
+
+Fixed:
+---
+- [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Fixed it with pcall
+- [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not up to date with threaded functions
+
+ToDo:
+---
+
+
 # Update 15.1.0 - Hold the thread!
 
 Full Update Showcase
@@ -98,9 +189,11 @@ multi:mainloop()
 Added:
 ---
 
-## multi:newSystemThreadedJobQueue(n) isEmpty()
-
-- returns true if the queue is empty, false if there are items in the queue. 
+- multi:newSystemThreadedJobQueue(n)
+	
+	`queue:isEmpty()`
+	
+	Returns true if the queue is empty, false if there are items in the queue. 
 
 **Note:** a queue might be empty, but the job may still be running and not finished yet! Also if a registered function is called directly instead of pushed, it will not reflect inside the queue until the next cycle!
 
@@ -413,6 +506,7 @@ multi:mainloop()
 Note:
 ---
 This was supposed to be released over a year ago, but work and other things got in my way. Pesudo Threading now works. The goal of this is so you can write modules that can be scaled up to utilize threading features when available.
+
 Added:
 ---
 - multi:newISOThread(name,func,env)
@@ -790,15 +884,18 @@ Added:
 -- If the created function encounters an error, it will return nil, the error message!
 - special variable multi.NIL was added to allow error handling in threaded functions.
 -- multi.NIL can be used in to force a nil value when using thread.hold()
-- All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features. **Note:** these functions are local to the function! And are only converted if they aren't set as local! Otherwise the function
+- All functions created in the root of a thread are now converted to threaded functions, which allow for wait and connect features.
+
+	**Note:** these functions are local to the function! And are only converted if they aren't set as local! Otherwise the function is converted into a threaded function
+
 - lanes threads can now have their priority set using: sThread.priority = 
--- thread.Priority_Core
--- thread.Priority_High
--- thread.Priority_Above_Normal
--- thread.Priority_Normal
--- thread.Priority_Below_Normal
--- thread.Priority_Low
--- thread.Priority_Idle
+	- thread.Priority_Core
+	- thread.Priority_High
+	- thread.Priority_Above_Normal
+	- thread.Priority_Normal
+	- thread.Priority_Below_Normal
+	- thread.Priority_Low
+	- thread.Priority_Idle
 - thread.hold() and multi.hold() now accept connections as an argument. See example below
 
 ```lua
@@ -1203,7 +1300,7 @@ L: 6543
 I: 1635
 ~n=n*4
 ```
-P3 Ignores using a basic funceion and instead bases its processing time on the amount of cpu time is there. If  cpu-time is low and a process is set at a lower priority it will get its time reduced. There is no formula, at idle almost all process work at the same speed!
+P3 Ignores using a basic function and instead bases its processing time on the amount of cpu time is there. If cpu-time is low and a process is set at a lower priority it will get its time reduced. There is no formula, at idle almost all process work at the same speed!
 ```
 C: 2120906
 H: 2120906
@@ -1218,10 +1315,10 @@ Auto Priority works by seeing what should be set high or low. Due to lua not hav
 
 **Improved:**
 - Performance at the base level has been doubled! On my machine benchmark went from ~9mil to ~20 mil steps/s.
-Note: If you write slow code this library's improbements wont make much of a difference.
+Note: If you write slow code this library's improvements wont make much of a difference.
 - Loops have been optimised as well! Being the most used objects I felt they needed to be made as fast as possible
 
-I usually give an example of the changes made, but this time I have an explantion for multi.nextStep(). It's not an entirely new feature since multi:newJob() does something like this, but is completely different. nextStep addes a function that is executed first on the next step. If multiple things are added to next step, then they will be executed in the order that they were added.
+I usually give an example of the changes made, but this time I have an explantion for `multi.nextStep()`. It's not an entirely new feature since multi:newJob() does something like this, but is completely different. nextStep adds a function that is executed first on the next step. If multiple things are added to next step, then they will be executed in the order that they were added.
 
 Note:
 The upper limit of this libraries performance on my machine is ~39mil. This is simply a while loop counting up from 0 and stops after 1 second. The 20mil that I am currently getting is probably as fast as it can get since its half of the max performance possible, and each layer I have noticed that it doubles complexity. Throughout the years with this library I have seen massive improvements in speed. In the beginning we had only ~2000 steps per second. Fast right? then after some tweaks we went to about 300000 steps per second, then 600000. Some more tweaks brought me to ~1mil steps per second, then to ~4 mil then ~9 mil and now finally ~20 mil... the doubling effect that i have now been seeing means that odds are I have reach the limit. I will aim to add more features and optimize individule objects. If its possible to make the library even faster then I will go for it.
@@ -1235,7 +1332,7 @@ Fixed:
 Changed:
 ---
 - thread.hold() now returns the arguments that were pass by the event function
-- event objexts now contain a copy of what returns were made by the function that called it in a table called returns that exist inside of the object
+- event objects now contain a copy of what returns were made by the function that called it in a table called returns that exist inside of the object
 
 ```lua
 package.path="?/init.lua;?.lua;"..package.path
@@ -1935,41 +2032,6 @@ GLOBAL,sThread=require("multi.integration.loveManager").init() -- load the love2
 -- Also, each thread has a .1 second delay! This is used to generate a random value for each thread!
 require("core.GuiManager")
 gui.ff.Color=Color.Black
-function multi:newSystemThreadedQueue(name) -- in love2d this will spawn a channel on both ends
-	local c={}
-	c.name=name
-	if love then
-		if love.thread then
-			function c:init()
-				self.chan=love.thread.getChannel(self.name)
-				function self:push(v)
-					self.chan:push(v)
-				end
-				function self:pop()
-					return self.chan:pop()
-				end
-				GLOBAL[self.name]=self
-				return self
-			end
-			return c
-		else
-			error("Make sure you required the love.thread module!")
-		end
-	else
-		c.linda=lanes.linda()
-		function c:push(v)
-			self.linda:send("Q",v)
-		end
-		function c:pop()
-			return ({self.linda:receive(0,"Q")})[2]
-		end
-		function c:init()
-			return self
-		end
-		GLOBAL[name]=c
-	end
-	return c
-end
 queue=multi:newSystemThreadedQueue("QUEUE"):init()
 queue:push("This is a test")
 queue:push("This is a test2")
@@ -2251,7 +2313,7 @@ Change:
 
 Upcomming:
 ---
-- Threaded objects wrapped in corutines, so you can hold/sleep without problems!
+- Threaded objects wrapped in coroutines, so you can hold/sleep without problems!
 
 # Update: 1.4.0 (3/20/2017)
 Added:
@@ -2325,8 +2387,10 @@ Added:
 # Update: 1.2.0 (12.31.2016)
 Added:
 ---
-- connectionobj.getConnection(name) — returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name) if you can orginize data before hand you can route info to certain connections thus saving a lot of cpu time. 
+- connectionobj.getConnection(name) — returns a list of an instance (or instances) of a single connect made with connectionobj:connect(func,name) or connectionobj(func,name) if you can organize data before hand you can route info to certain connections thus saving a lot of cpu time. 
+
 **NOTE:** Only one name per each connection... you can't have 2 of the same names in a dictonary... the last one will be used
+
 Changed:
 ---
 - Started keeping track of dates
@@ -2385,6 +2449,7 @@ Changed:
 Changed:
 ---
 - Everything, complete restructuring of the library from function based to object based. Resembles the modern version of the library
+
 Added:
 ---
 - Love2d support basic
