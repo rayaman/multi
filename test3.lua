@@ -1,5 +1,6 @@
 lanes = require("lanes").configure({allocator="protected",verbose_errors=""})
 local multi,thread = require("multi"):init()
+
 function sleep(n)
 	if n > 0 then os.execute("ping -n " .. tonumber(n+1) .. " localhost > NUL") end
 end
