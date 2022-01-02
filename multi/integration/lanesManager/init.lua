@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
-multi, thread = require("multi"):init() -- get it all and have it on all lanes
+local multi, thread = require("multi"):init() -- get it all and have it on all lanes
 if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassle
 	return {
 		init = function()
@@ -53,7 +53,7 @@ multi:newLoop(function()
 		print(unpack(data))
 	end
 end)
-local GLOBAL,THREAD = {},{}-- require("multi.integration.lanesManager.threads").init(__GlobalLinda,__SleepingLinda)
+local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda,__SleepingLinda)
 local count = 1
 local started = false
 local livingThreads = {}
@@ -66,7 +66,7 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
-	--multi.InitSystemThreadErrorHandler()
+	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
 	local c = {}
@@ -94,7 +94,6 @@ function multi:newSystemThread(name, func, ...)
 		local has_error = true
 		return_linda:set("returns",{func(...)})
 		has_error = false
-		--error("thread killed")
 		print("Thread ending")
 	end)(...)
 	count = count + 1
@@ -106,7 +105,7 @@ function multi:newSystemThread(name, func, ...)
 	table.insert(multi.SystemThreads, c)
 	c.OnDeath = multi:newConnection()
 	c.OnError = multi:newConnection()
-	--GLOBAL["__THREADS__"] = livingThreads
+	GLOBAL["__THREADS__"] = livingThreads
 	return c
 end
 
@@ -126,7 +125,7 @@ function multi.InitSystemThreadErrorHandler()
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
 					temp.OnDeath:Fire(temp,nil,unpack(({temp.returns:receive(0, "returns")})[2]))
-					--GLOBAL["__THREADS__"] = livingThreads
+					GLOBAL["__THREADS__"] = livingThreads
 					--print(temp.thread:cancel(10,true))
 					table.remove(threads, i)
 				elseif status == "running" then
@@ -137,19 +136,19 @@ function multi.InitSystemThreadErrorHandler()
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,nil,unpack(temp.returns:receive(0,"returns")))
-					--GLOBAL["__THREADS__"] = livingThreads
+					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "cancelled" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,nil,"thread_cancelled")
-					--GLOBAL["__THREADS__"] = livingThreads
+					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "killed" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,nil,"thread_killed")
-					--GLOBAL["__THREADS__"] = livingThreads
+					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				end
 			end

@@ -1,6 +1,6 @@
 
 *.code-workspace
 *.dat
-*test*
-test*
-*test
+test.lua
+test2.lua
+test3.lua
