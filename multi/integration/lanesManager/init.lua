@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
-local multi, thread = require("multi"):init() -- get it all and have it on all lanes
+multi, thread = require("multi"):init() -- get it all and have it on all lanes
 if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassle
 	return {
 		init = function()
@@ -57,7 +57,6 @@ local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__G
 local count = 1
 local started = false
 local livingThreads = {}
-local threads = {}
 
 function THREAD:newFunction(func,holdme)
 	return thread:newFunctionBase(function(...)
@@ -69,7 +68,7 @@ function multi:newSystemThread(name, func, ...)
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
-	local c = {}
+	c = {}
 	c.name = name
 	c.Name = name
 	c.Id = count
@@ -94,12 +93,10 @@ function multi:newSystemThread(name, func, ...)
 		local has_error = true
 		return_linda:set("returns",{func(...)})
 		has_error = false
-		print("Thread ending")
 	end)(...)
 	count = count + 1
 	function c:kill()
 		self.thread:cancel()
-		multi.print("Thread: '" .. self.name .. "' has been stopped!")
 		self.alive = false
 	end
 	table.insert(multi.SystemThreads, c)
@@ -108,7 +105,6 @@ function multi:newSystemThread(name, func, ...)
 	GLOBAL["__THREADS__"] = livingThreads
 	return c
 end
-
 function multi.InitSystemThreadErrorHandler()
 	if started == true then
 		return

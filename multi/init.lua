@@ -1197,7 +1197,7 @@ function thread:newFunctionBase(generator,holdme)
 					end
 				}
 			end 
-			local t = generator(...) --multi.getCurrentProcess():newThread("TempThread",func,...)
+			local t = generator(...)
 			t.OnDeath(function(self,status,...) rets = {...}  end)
 			t.OnError(function(self,e) err = e end)
 			if holdme then
@@ -1209,6 +1209,9 @@ function thread:newFunctionBase(generator,holdme)
 				OnReturn = multi:newConnection(),
 				isTFunc = true,
 				wait = wait,
+				getReturns = function()
+					return unpack(rets)
+				end,
 				connect = function(f)
 					local tempConn = multi:newConnection()
 					t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
