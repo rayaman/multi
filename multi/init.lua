@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -1148,81 +1148,88 @@ function thread.pushStatus(...)
 	local t = thread.getRunningThread()
 	t.statusconnector:Fire(...)
 end
-function thread:newFunction(func,holdme)
-	local tfunc = {}
-	tfunc.Active = true
-	function tfunc:Pause()
-		self.Active = false
-	end
-	function tfunc:Resume()
-		self.Active = true
-	end
-	function tfunc:holdMe(b)
-		holdme = b
-	end
-	local function noWait()
-		return nil, "Function is paused"
-	end
-	local rets, err
-	local function wait(no) 
-		if thread.isThread() and not (no) then
-			return multi.hold(function()
-				if err then
-					return multi.NIL, err
-				elseif rets then
-					return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
-				end
-			end)
-		else
-			while not rets and not err do
-				multi.scheduler:Act()
-			end
-			if err then
-				return nil,err
-			end
-			return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
+function thread:newFunctionBase(generator,holdme)
+	return function()
+		local tfunc = {}
+		tfunc.Active = true
+		function tfunc:Pause()
+			self.Active = false
 		end
-	end
-	tfunc.__call = function(t,...)
-		if not t.Active then 
-			if holdme then
-				return nil, "Function is paused"
+		function tfunc:Resume()
+			self.Active = true
+		end
+		function tfunc:holdMe(b)
+			holdme = b
+		end
+		local function noWait()
+			return nil, "Function is paused"
+		end
+		local rets, err
+		local function wait(no) 
+			if thread.isThread() and not (no) then
+				return multi.hold(function()
+					if err then
+						return multi.NIL, err
+					elseif rets then
+						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
+					end
+				end)
+			else
+				while not rets and not err do
+					multi.scheduler:Act()
+				end
+				if err then
+					return nil,err
+				end
+				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 			end
-			return {
+		end
+		tfunc.__call = function(t,...)
+			if not t.Active then 
+				if holdme then
+					return nil, "Function is paused"
+				end
+				return {
+					isTFunc = true,
+					wait = noWait,
+					connect = function(f)
+						f(nil,"Function is paused")
+					end
+				}
+			end 
+			local t = generator(...) --multi.getCurrentProcess():newThread("TempThread",func,...)
+			t.OnDeath(function(self,status,...) rets = {...}  end)
+			t.OnError(function(self,e) err = e end)
+			if holdme then
+				return wait()
+			end
+			local temp = {
+				OnStatus = multi:newConnection(),
+				OnError = multi:newConnection(),
+				OnReturn = multi:newConnection(),
 				isTFunc = true,
-				wait = noWait,
+				wait = wait,
 				connect = function(f)
-					f(nil,"Function is paused")
+					local tempConn = multi:newConnection()
+					t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
+					t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
+					return tempConn
 				end
 			}
-		end 
-		local t = multi.getCurrentProcess():newThread("TempThread",func,...)
-		t.OnDeath(function(self,status,...) rets = {...}  end)
-		t.OnError(function(self,e) err = e end)
-		if holdme then
-			return wait()
+			t.OnDeath(function(self,status,...) temp.OnReturn:Fire(...) end) 
+			t.OnError(function(self,err) temp.OnError:Fire(err) end)
+			t.linkedFunction = temp
+			t.statusconnector = temp.OnStatus
+			return temp
 		end
-		local temp = {
-			OnStatus = multi:newConnection(),
-			OnError = multi:newConnection(),
-			OnReturn = multi:newConnection(),
-			isTFunc = true,
-			wait = wait,
-			connect = function(f)
-				local tempConn = multi:newConnection()
-				t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
-				t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
-				return tempConn
-			end
-		}
-		t.OnDeath(function(self,status,...) temp.OnReturn:Fire(...) end) 
-		t.OnError(function(self,err) temp.OnError:Fire(err) end)
-		t.linkedFunction = temp
-		t.statusconnector = temp.OnStatus
-		return temp
+		setmetatable(tfunc,tfunc)
+		return tfunc
 	end
-	setmetatable(tfunc,tfunc)
-	return tfunc
+end
+function thread:newFunction(func,holdme)
+	return thread:newFunctionBase(function(...)
+		return multi.getCurrentProcess():newThread("TempThread",func,...)
+	end,holdme)()
 end
 
 -- A cross version way to set enviroments, not the same as fenv though
