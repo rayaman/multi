@@ -71,22 +71,23 @@ Changed:
 
 - multi:newTStep now derives it's functionality from multi:newStep (Cut's down on code length a bit)
 
-- 
+- Fixed the getTaskDetails to handle the new format for threads
 
 ### Developer Note:
 
-Connections are some of the most complex objects that this library has outside of some of the system threaded stuff. I tend to add features to connection objects quite often. Just last update connections can be "added" together creating a temp connection that only triggers when all of the added connections got triggered as well. Thinking about the possibilities this could give developers using the library I had to changed the base classes to use connections. 
+Connections are one of the most complex objects that this library has outside of some of the system threaded stuff. I tend to add features to connection objects quite often. Just last update connections can be "added" together creating a temp connection that only triggers when all of the added connections got triggered as well. Thinking about the possibilities this could give developers using the library I had to changed the base classes to use connections. 
 
 The best part about this is that connections allow for greater control over an object's events. You can add and remove events that have been connected to as well as a lot of other things. Reference the documentation [here](./Documentation.md#non-actor-connections)
 
 
 Removed:
 ---
-Nothing
+
+- Calling Fire on a connection no longer returns anything! Now that internal features use connections, I noticed how slow connections are and have increased their speed quite a bit. From 50,000 Steps per seconds to almost 7 Million. All other features should work just fine. Only returning values has been removed
 
 Fixed:
 ---
-- [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Fixed it with pcall
+- [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Issue seems to be related to my filesystem
 - [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not up to date with threaded functions
 
 ToDo:

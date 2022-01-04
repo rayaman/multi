@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+
 package.path = "?/init.lua;?.lua;" .. package.path
 multi, thread = require("multi"):init() -- get it all and have it on all lanes
 if multi.integration then -- This allows us to call the lanes manager from supporting modules without a hassle
@@ -31,7 +32,7 @@ if multi.integration then -- This allows us to call the lanes manager from suppo
 	}
 end
 -- Step 1 get lanes
-lanes = require("lanes").configure({allocator="protected",verbose_errors=""})
+lanes = require("lanes").configure()
 multi.SystemThreads = {}
 multi.isMainThread = true
 
@@ -47,12 +48,6 @@ end
 local __GlobalLinda = lanes.linda() -- handles global stuff
 local __SleepingLinda = lanes.linda() -- handles sleeping stuff
 local __ConsoleLinda = lanes.linda() -- handles console stuff
-multi:newLoop(function()
-	local _,data = __ConsoleLinda:receive(0, "Q")
-	if data then
-		print(unpack(data))
-	end
-end)
 local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda,__SleepingLinda)
 local count = 1
 local started = false
@@ -65,6 +60,7 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
+	print("Creating a thread")
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
@@ -106,6 +102,7 @@ function multi:newSystemThread(name, func, ...)
 	return c
 end
 function multi.InitSystemThreadErrorHandler()
+	print("Thread Created!")
 	if started == true then
 		return
 	end
@@ -113,7 +110,11 @@ function multi.InitSystemThreadErrorHandler()
 	multi:newThread("SystemThreadScheduler",function()
 		local threads = multi.SystemThreads
 		while true do
-			thread.sleep(.01) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
+			thread.sleep(.005) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
+			local _,data = __ConsoleLinda:receive(0, "Q")
+			if data then
+				print(unpack(data))
+			end
 			for i = #threads, 1, -1 do
 				local status = threads[i].thread.status
 				local temp = threads[i]
@@ -153,6 +154,7 @@ function multi.InitSystemThreadErrorHandler()
 		print(...)
 	end)
 end
+
 multi.print("Integrated Lanes!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL

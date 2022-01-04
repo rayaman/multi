@@ -201,6 +201,7 @@ end
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
+	local call_funcs = {}
 	c.callback = func
 	c.Parent=self
 	c.lock = false
@@ -245,8 +246,8 @@ function multi:newConnection(protect,func,kill)
 	c.Type='connector'
 	c.func={}
 	c.ID=0
-	c.protect=protect or true
-	c.connections={}
+	c.protect=protect or false
+	local connections={}
 	c.FC=0
 	function c:holdUT(n)
 		local n=n or 0
@@ -267,9 +268,9 @@ function multi:newConnection(protect,func,kill)
 	c.HoldUT=c.holdUT
 	function c:getConnection(name,ignore)
 		if ignore then
-			return self.connections[name] or CRef
+			return connections[name] or CRef
 		else
-			return self.connections[name] or self
+			return connections[name] or self
 		end
 	end
 	function c:Lock()
@@ -280,51 +281,58 @@ function multi:newConnection(protect,func,kill)
 		c.lock = false
 		return self
 	end
-	function c:Fire(...)
-		local ret={}
-		if self.lock then return end
-		for i=#self.func,1,-1 do
-			if self.protect then
-				if not self.func[i] then return end
-				local temp={pcall(self.func[i][1],...)}
-				if temp[1] then
-					table.remove(temp,1)
-					table.insert(ret,temp)
-				else
-					multi.print(temp[2])
+	if c.protect then
+		function c:Fire(...)
+			if self.lock then return end
+			for i=#call_funcs,1,-1 do
+				if not call_funcs[i] then return end
+				pcall(call_funcs[i],...)
+				if kill then
+					table.remove(call_funcs,i)
 				end
-			else
-				if not self.func[i] then return end
-				table.insert(ret,{self.func[i][1](...)})
-			end
-			if kill then
-				table.remove(self.func,i)
 			end
 		end
-		return ret
+	else
+		function c:Fire(...)
+			for i=#call_funcs,1,-1 do
+				call_funcs[i](...)
+				if kill then
+					table.remove(call_funcs,i)
+				end
+			end
+		end
+	end
+	local fast = {}
+	function c:fastMode()
+		function self:Fire(...)
+			for i=1,#fast do
+				fast[i](...)
+			end
+		end
+		function self:connect(func)
+			table.insert(fast,func)
+		end
 	end
 	function c:Bind(t)
-		local temp = self.func
-		self.func=t
+		local temp = call_funcs
+		call_funcs=t
 		return temp
 	end
 	function c:Remove()
-		local temp = self.func
-		self.func={}
+		local temp = call_funcs
+		call_funcs={}
 		return temp
 	end
 	local function conn_helper(self,func,name,num)
 		self.ID=self.ID+1
 		if num then
-			table.insert(self.func,num,{func,self.ID})
+			table.insert(call_funcs,num,func)
 		else
-			table.insert(self.func,1,{func,self.ID})
+			table.insert(call_funcs,1,func)
 		end
 		local temp = {
-			Link=self.func,
 			func=func,
 			Type="connector_link",
-			ID=self.ID,
 			Parent=self,
 			connect = function(s,...)
 				return self:connect(...)
@@ -350,29 +358,27 @@ function multi:newConnection(protect,func,kill)
 		function temp:Fire(...)
 			if self.Parent.lock then return end
 			if self.Parent.protect then
-				local t=pcall(self.func,...)
+				local t=pcall(call_funcs,...)
 				if t then
 					return t
 				end
 			else
-				return self.func(...)
+				return call_funcs(...)
 			end
 		end
 		function temp:Destroy()
-			for i=1,#self.Link do
-				if self.Link[i][2]~=nil then
-					if self.Link[i][2]==self.ID then
-						table.remove(self.Link,i)
+			for i=1,#call_funcs do
+				if call_funcs[i]~=nil then
+					if call_funcs[i]==self.func then
+						table.remove(call_funcs,i)
 						self.remove=function() end
-						self.Link=nil
-						self.ID=nil
 						multi.setType(temp,multi.DestroyedObj)
 					end
 				end
 			end
 		end
 		if name then
-			self.connections[name]=temp
+			connections[name]=temp
 		end
 		if self.callback then
 			self.callback(temp)
@@ -396,7 +402,6 @@ function multi:newConnection(protect,func,kill)
 		else
 			return conn_helper(self,tab[1],tab[2],tab[3])
 		end
-
 	end
 	c.Connect=c.connect
 	c.GetConnection=c.getConnection
@@ -711,9 +716,14 @@ function multi:newLoop(func)
 		self.OnLoop:Fire(self,clock()-start)
 	end
 	c.OnLoop = self:newConnection()
+	function c:fastMode()
+		self.OnLoop:fastMode()
+	end
+
 	if func then
 		c.OnLoop(func)
 	end
+
 	multi:create(c)
 	return c
 end
@@ -978,9 +988,9 @@ function thread.getRunningThread()
 	local threads = globalThreads
 	local t = coroutine.running()
 	if t then
-		for i,v in pairs(threads) do
-			if t==i.thread then
-				return v
+		for th,process in pairs(threads) do
+			if t==th.thread then
+				return th
 			end
 		end
 	end
@@ -1204,16 +1214,16 @@ function thread:newFunctionBase(generator,holdme)
 				return wait()
 			end
 			local temp = {
-				OnStatus = multi:newConnection(),
-				OnError = multi:newConnection(),
-				OnReturn = multi:newConnection(),
+				OnStatus = multi:newConnection(true),
+				OnError = multi:newConnection(true),
+				OnReturn = multi:newConnection(true),
 				isTFunc = true,
 				wait = wait,
 				getReturns = function()
 					return unpack(rets)
 				end,
 				connect = function(f)
-					local tempConn = multi:newConnection()
+					local tempConn = multi:newConnection(true)
 					t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
 					t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
 					return tempConn
@@ -2291,17 +2301,14 @@ function multi:benchMark(sec,p,pt)
 			if pt then
 				multi.print(pt.." "..c.." Steps in "..sec.." second(s)!")
 			end
-			self.tt(sec,c)
+			self.OnBench:Fire(sec,c)
 			self:Destroy()
 		else
 			c=c+1
 		end
 	end)
+	temp.OnBench = multi:newConnection()
 	temp:setPriority(p or 1)
-	function temp:OnBench(func)
-		self.tt=func
-	end
-	self.tt=function() end
 	return temp
 end
 
