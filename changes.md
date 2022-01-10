@@ -26,6 +26,7 @@ Added:
 
 Changed:
 ---
+- `multi.hold(n,opt)` now supports an option table like thread.hold does.
 - Connection Objects now pass on the parent object if created on a multiobj. This was to allow chaining to work properly with the new update
 
 	```lua
@@ -73,15 +74,10 @@ Changed:
 
 - Fixed the getTaskDetails to handle the new format for threads
 
-### Developer Note:
-
-Connections are one of the most complex objects that this library has outside of some of the system threaded stuff. I tend to add features to connection objects quite often. Just last update connections can be "added" together creating a temp connection that only triggers when all of the added connections got triggered as well. Thinking about the possibilities this could give developers using the library I had to changed the base classes to use connections. 
-
-The best part about this is that connections allow for greater control over an object's events. You can add and remove events that have been connected to as well as a lot of other things. Reference the documentation [here](./Documentation.md#non-actor-connections)
-
-
 Removed:
 ---
+- `multi:newFunction(func)`
+	- `thread:newFunction(func)` Has many more features and replaces completely what this function did
 
 - Calling Fire on a connection no longer returns anything! Now that internal features use connections, I noticed how slow connections are and have increased their speed quite a bit. From 50,000 Steps per seconds to almost 7 Million. All other features should work just fine. Only returning values has been removed
 
@@ -89,6 +85,8 @@ Fixed:
 ---
 - [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Issue seems to be related to my filesystem
 - [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not up to date with threaded functions
+- Issue where gettasksdetails would try to process a destroyed object causing it to crash
+
 
 ToDo:
 ---

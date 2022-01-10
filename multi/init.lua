@@ -114,7 +114,9 @@ function multi:getTasksDetails(t)
 				name = " <"..name..">"
 			end
 			count = count + 1
-			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
+			if not v.Type == "destroyed" then
+				table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
+			end
 		end
 		if count == 0 then
 			table.insert(str,{"Currently no processes running!","","",""})
@@ -202,9 +204,9 @@ local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
 	local call_funcs = {}
+	local lock = false
 	c.callback = func
 	c.Parent=self
-	c.lock = false
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
 		if type(t)=="table" then
@@ -246,7 +248,7 @@ function multi:newConnection(protect,func,kill)
 	c.Type='connector'
 	c.func={}
 	c.ID=0
-	c.protect=protect or false
+	local protect=protect or false
 	local connections={}
 	c.FC=0
 	function c:holdUT(n)
@@ -274,16 +276,16 @@ function multi:newConnection(protect,func,kill)
 		end
 	end
 	function c:Lock()
-		c.lock = true
+		lock = true
 		return self
 	end
 	function c:Unlock()
-		c.lock = false
+		lock = false
 		return self
 	end
-	if c.protect then
+	if protect then
 		function c:Fire(...)
-			if self.lock then return end
+			if lock then return end
 			for i=#call_funcs,1,-1 do
 				if not call_funcs[i] then return end
 				pcall(call_funcs[i],...)
@@ -303,6 +305,9 @@ function multi:newConnection(protect,func,kill)
 		end
 	end
 	local fast = {}
+	function c:getConnections()
+		return call_funcs
+	end
 	function c:fastMode()
 		function self:Fire(...)
 			for i=1,#fast do
@@ -356,8 +361,8 @@ function multi:newConnection(protect,func,kill)
 			end,
 		})
 		function temp:Fire(...)
-			if self.Parent.lock then return end
-			if self.Parent.protect then
+			if lock then return end
+			if protect then
 				local t=pcall(call_funcs,...)
 				if t then
 					return t
@@ -635,17 +640,17 @@ end
 function multi:newEvent(task)
 	local c=self:newBase()
 	c.Type='event'
-	c.Task=task or function() end
+	local task = task or function() end
 	function c:Act()
-		local t = {self.Task(self)}
-		if t[1] then
+		local t = task(self)
+		if t then
 			self:Pause()
 			self.returns = t
 			c.OnEvent:Fire(self)
 		end
 	end
 	function c:SetTask(func)
-		self.Task=func
+		task=func
 		return self
 	end
 	c.OnEvent = self:newConnection()
@@ -656,20 +661,20 @@ end
 function multi:newUpdater(skip)
 	local c=self:newBase()
 	c.Type='updater'
-	c.pos=1
-	c.skip=skip or 1
+	local pos = 1
+	local skip = skip or 1
 	function c:Act()
-		if self.pos>=self.skip then
-			self.pos=0
+		if pos >= skip then
+			pos = 0
 			self.OnUpdate:Fire(self)
 		end
-		self.pos=self.pos+1
+		pos = pos+1
 	end
 	function c:SetSkip(n)
-		self.skip=n
+		skip=n
 		return self
 	end
-	c.OnUpdate=self:newConnection()
+	c.OnUpdate = self:newConnection()
 	multi:create(c)
 	return c
 end
@@ -724,32 +729,6 @@ function multi:newLoop(func)
 		c.OnLoop(func)
 	end
 
-	multi:create(c)
-	return c
-end
-function multi:newFunction(func)
-	local c={}
-	c.func=func
-	c.Type = "mfunc"
-	mt={
-		__index=multi,
-		__call=function(self,...)
-			if self.Active then
-				return self:func(...)
-			end
-			return nil,true
-		end
-	}
-	c.Parent=self
-	function c:Pause()
-		self.Active=false
-		return self
-	end
-	function c:Resume()
-		self.Active=true
-		return self
-	end
-	setmetatable(c,mt)
 	multi:create(c)
 	return c
 end
@@ -1100,10 +1079,10 @@ function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
-function multi.hold(func,no)
-	if thread.isThread() and not(no) then
+function multi.hold(func,opt)
+	if thread.isThread() then
 		if type(func) == "function" or type(func) == "table" then
-			return thread.hold(func)
+			return thread.hold(func,opt)
 		end
 		return thread.sleep(func)
 	end
@@ -1119,7 +1098,7 @@ function multi.hold(func,no)
 	else
 		local rets
 		self:newThread("Hold_func",function()
-			rets = {thread.hold(func)}
+			rets = {thread.hold(func,opt)}
 			death = true
 		end)
 		while not death do
@@ -2166,31 +2145,19 @@ function multi:getLoad()
 	if not multi.maxSpd then self:enableLoadDetection() end
 	if busy then return lastVal,last_step end
 	local val = nil
-	if thread.isThread() then
-		local bench
-		self:benchMark(.01):OnBench(function(time,steps)
-			bench = steps
-			bb = steps
-		end)
-		thread.hold(function()
-			return bench
-		end)
-		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
-	else
-		busy = true
-		local bench
-		self:benchMark(.01):OnBench(function(time,steps)
-			bench = steps
-			bb = steps
-		end)
-		while not bench do
-			self:uManager()
-		end
-		bench = bench^1.5
-		val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
-		busy = false
+	local bench
+	self:benchMark(.01):OnBench(function(time,steps)
+		bench = steps
+		bb = steps
+	end)
+	_,timeout = multi.hold(function()
+		return bench
+	end,{sleep=.011})
+	if timeout then
+		bench = 150000
 	end
+	bench = bench^1.5
+	val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
 	if val<0 then val = 0 end
 	if val > 100 then val = 100 end
 	lastVal = val

@@ -1,6 +1,8 @@
-package.path = "./?/init.lua;"..package.path
+package.path = "./?.lua"
+--require("jitpaths")
+require("luapaths")
 local multi,thread = require("multi"):init()
-local GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
+--local GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 
 -- func = THREAD:newFunction(function(a,b,c)
 -- 	print("Hello Thread!",a,b,c)
@@ -22,7 +24,13 @@ local GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 -- end)
 multi:benchMark(1):OnBench(function(sec,steps)
 	print("Steps:",steps)
-	os.exit()
+	--os.exit()
+end)
+
+multi:newThread(function()
+	print(thread.hold(function()
+		return false
+	end,{sleep=1}))
 end)
 
 multi:mainloop()
