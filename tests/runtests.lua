@@ -1,4 +1,4 @@
-package.path="../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+package.path="./?.lua;../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
 --[[
     This file runs all tests.
     Format:

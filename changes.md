@@ -77,7 +77,7 @@ Changed:
 Removed:
 ---
 - `multi:newFunction(func)`
-	- `thread:newFunction(func)` Has many more features and replaces multi:newFunction did
+	- `thread:newFunction(func)` Has many more features and replaces what multi:newFunction did
 
 - Calling Fire on a connection no longer returns anything! Now that internal features use connections, I noticed how slow connections are and have increased their speed quite a bit. From 50,000 Steps per seconds to almost 7 Million. All other features should work just fine. Only returning values has been removed
 
