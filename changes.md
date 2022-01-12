@@ -15,7 +15,7 @@ Added:
 ---
 
 - multi:newTLoop() member functions
-	- `Loop:Set(set)` - Sets the time to wait for the TLoop
+	- `TLoop:Set(set)` - Sets the time to wait for the TLoop
 
 - multi:newStep() member functions
 	- `Step:Count(count)` - Sets the amount a step should count by
@@ -30,7 +30,6 @@ Changed:
 - Connection Objects now pass on the parent object if created on a multiobj. This was to allow chaining to work properly with the new update
 
 	```lua
-	package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 	multi,thread = require("multi"):init()
 
 	loop = multi:newTLoop()
@@ -38,7 +37,6 @@ Changed:
 	function loop:testing()
     	print("testing haha")
 	end
-
 
 	loop:Set(1)
 	t = loop:OnLoop(function()
@@ -97,8 +95,7 @@ ToDo:
 Full Update Showcase
 
 ```lua
-package.path = "./?/init.lua;"..package.path
-multi,thread = require("multi"):init()
+local multi,thread = require("multi"):init()
 
 func = thread:newFunction(function(count)
     local a = 0
@@ -197,9 +194,7 @@ Added:
 
 Example:
 ```lua
-package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-package.cpath = [[C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?.dll;C:\Program Files (x86)\Lua\5.1\systree\lib\lua\5.1\?\core.dll;]] ..package.cpath
-multi,thread = require("multi"):init()
+local multi,thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
 jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
@@ -244,8 +239,7 @@ multi:mainloop()
 ## multi:newProcessor(name)
 
 ```lua
-package.path = "./?/init.lua;"..package.path
-multi,thread = require("multi"):init()
+local multi,thread = require("multi"):init()
 
 -- Create a processor object, it works a lot like the multi object
 sandbox = multi:newProcessor()
@@ -318,8 +312,7 @@ Can be chained as long as you want! See example below
 Example:
 
 ```lua
-package.path = "./?/init.lua;"..package.path
-multi,thread = require("multi"):init()
+local multi,thread = require("multi"):init()
 
 func = thread:newFunction(function(count)
     local a = 0
@@ -374,8 +367,7 @@ Changed:
 	holdMe(set) | Sets the holdme argument that existed at function creation
 	
 	```lua
-	package.path = "./?/init.lua;"..package.path
-	multi, thread = require("multi"):init()
+	local multi, thread = require("multi"):init()
 
 	test = thread:newFunction(function(a,b)
     	thread.sleep(1)
@@ -469,8 +461,7 @@ ToDo
 Full Update Showcase
 ---
 ```lua
-package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
-multi,thread = require("multi"):init()
+local multi,thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
 jq = multi:newSystemThreadedJobQueue(4) -- Job queue with 4 worker threads
@@ -540,7 +531,6 @@ Todo:
 Full Update Showcase
 ---
 ```lua
-package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 local multi,thread = require("multi"):init()
 
 -- Testing destroying and fixed connections
@@ -607,7 +597,6 @@ Fixed:
 - Issue with connections not returning a handle for managing a specific conn object.
 - Issue with connections where connection chaining wasn't working properly. This has been addressed.
 	```lua
-	package.path="?.lua;?/init.lua;?.lua;?/?/init.lua;"..package.path
 	local multi,thread = require("multi"):init()
 	test = multi:newConnection()
 	test(function(hmm)
@@ -660,7 +649,6 @@ Full Update Showcase
 ---
 Something I plan on doing each version going forward
 ```lua
-package.path="?.lua;?/init.lua;?.lua;"..package.path
 local multi, thread = require("multi"):init()
 GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 serv = multi:newService(function(self,data)
@@ -897,7 +885,6 @@ Added:
 - thread.hold() and multi.hold() now accept connections as an argument. See example below
 
 ```lua
-package.path = "./?/init.lua;"..package.path
 local multi, thread = require("multi"):init()
 conn = multi:newConnection()
 multi:newThread(function()
@@ -928,7 +915,6 @@ end)
 
 thread newFunction using auto convert
 ```lua
-package.path = "./?/init.lua;" .. package.path
 multi, thread = require("multi").init()
 a=5
 multi:newThread("Test",function()
@@ -966,7 +952,7 @@ Changed:
 ---
 - Connections connect function can now chain connections
 ```lua
-	package.path = "./?/init.lua;"..package.path
+	
     local multi, thread = require("multi").init()
     test = multi:newConnection()
     test(function(a)
@@ -1164,7 +1150,6 @@ Added:
 - STC: FireTo(id,...) — Described above.
 
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 local multi = require("multi")
 conn = multi:newConnector()
 conn.OnTest = multi:newConnection()
@@ -1236,7 +1221,6 @@ Going forward:
 Example
 ---
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
 GLOBAL, THREAD = require("multi.integration.lanesManager").init()
 jq = multi:newSystemThreadedJobQueue()
@@ -1333,7 +1317,6 @@ Changed:
 - event objects now contain a copy of what returns were made by the function that called it in a table called returns that exist inside of the object
 
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
 local a = 0
 multi:newThread("test",function()
@@ -1430,7 +1413,6 @@ Now there is a little trick you can do. If you combine both networkmanager and s
 
 **NodeManager.lua**
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
 local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
 nGLOBAL = require("multi.integration.networkManager").init()
@@ -1449,7 +1431,6 @@ Side note: I had a setting called cross talk that would allow nodes to talk to e
 
 **Node.lua**
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 multi = require("multi")
 local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
 nGLOBAL = require("multi.integration.networkManager").init()
@@ -1471,10 +1452,8 @@ multi:mainloop(settings)
 
 **Master.lua**
 ```lua
--- set up the package
-package.path="?/init.lua;?.lua;"..package.path
 -- Import the libraries
-multi = require("multi")
+local multi = require("multi")
 local GLOBAL, THREAD = require("multi.integration.lanesManager").init()
 nGLOBAL = require("multi.integration.networkManager").init()
 -- Act as a master node
@@ -1644,7 +1623,6 @@ Added:
 
 Example of threaded connections
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 local GLOBAL,THREAD=require("multi.integration.lanesManager").init()
 multi:newSystemThread("Test_Thread_1",function()
 	connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
@@ -1681,7 +1659,6 @@ Fixed:
 
 Example of threaded tables
 ```lua
-package.path="?/init.lua;?.lua;"..package.path
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 multi:newSystemThread("Test_Thread_1",function()
 	require("multi")
@@ -2007,7 +1984,6 @@ Added:</br>
 Using multi:systemThreadedBenchmark()
 ---
 ```lua
-package.path="?/init.lua;"..package.path
 local GLOBAL,sThread=require("multi.integration.lanesManager").init()
 multi:systemThreadedBenchmark(3):OnBench(function(self,count)
 	print("First Bench: "..count)

@@ -60,7 +60,6 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
-	print("Creating a thread")
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
@@ -102,7 +101,6 @@ function multi:newSystemThread(name, func, ...)
 	return c
 end
 function multi.InitSystemThreadErrorHandler()
-	print("Thread Created!")
 	if started == true then
 		return
 	end
@@ -123,7 +121,6 @@ function multi.InitSystemThreadErrorHandler()
 					temp.alive = false
 					temp.OnDeath:Fire(temp,nil,unpack(({temp.returns:receive(0, "returns")})[2]))
 					GLOBAL["__THREADS__"] = livingThreads
-					--print(temp.thread:cancel(10,true))
 					table.remove(threads, i)
 				elseif status == "running" then
 					--
@@ -132,7 +129,7 @@ function multi.InitSystemThreadErrorHandler()
 				elseif status == "error" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnError:Fire(temp,nil,unpack(temp.returns:receive(0,"returns")))
+					temp.OnError:Fire(temp,nil,unpack(temp.returns:receive(0,"returns") or {"Thread Killed!"}))
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "cancelled" then
