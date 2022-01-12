@@ -1,6 +1,7 @@
 # Multi Version: 15.2.0 Upgrade Complete
 **Key Changes**
 - All objects now use connections internally
+- Connections now about 23x faster!
 - Updated getTasksDetails() to handle the new method of managing threads and processors
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
@@ -18,15 +19,15 @@ If you want to use the system threads, then you'll need to install lanes!
 
 Discord
 -------
-Have a question? Or need realtime assistance? Feel free to join the discord!</br>
-https://discord.gg/U8UspuA</br>
+Have a question or need realtime assistance? Feel free to join the discord!</br>
+https://discord.gg/U8UspuA
 
 Planned features/TODO
 ---------------------
 - [ ] Create test suite
 - [ ] Network Parallelism rework
 
-Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)</br>
+Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)
 -----
 
 ```lua
