@@ -34,28 +34,28 @@ Usage: [Check out the documentation for more info](https://github.com/rayaman/mu
 local multi, thread = require("multi"):init()
 GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 multi:newSystemThread("System Thread",function()
-    while true do
-        THREAD.sleep(.1)
-        io.write(" World")
+	while true do
+		THREAD.sleep(.1)
+		io.write(" World")
 		THREAD.kill()
-    end
+	end
 end)
 multi:newThread("Coroutine Based Thread",function()
-    while true do
-        io.write("Hello")
-        thread.sleep(.1)
+	while true do
+		io.write("Hello")
+		thread.sleep(.1)
 		thread.kill()
-    end
+	end
 end)
 multi:newTLoop(function(loop)
-    print("!")
-    loop:Destroy()
-    os.exit()
+	print("!")
+	loop:Destroy()
+	os.exit()
 end,.3)
 multi:mainloop()
 --[[
 while true do
-    multi:uManager()
+	multi:uManager()
 end
 ]]
 ```
