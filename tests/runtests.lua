@@ -16,20 +16,18 @@ package.path="./?.lua;../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package
     This will be pushed directly to the master as tests start existing.
 ]]
 local multi, thread = require("multi"):init()
-
 local good = false
 runTest = thread:newFunction(function()
     local objects = multi:newProcessor("Basic Object Tests")
     objects.Start()
-    otest = require("tests/objectTests")(objects,thread)
-    thread.hold(otest.OnEvent)
-    print("Timers: Ok")
-    print("Connections: Ok")
-    print("Threads: Ok")
-    print(objects:getTasksDetails())
-    good = true
-    print("\nTests done")
+    require("tests/objectTests")(objects,thread)
+    objects.Stop()
+    local conn_thread = multi:newProcessor("Connection/Thread Tests")
+    conn_thread.Start()
+    require("tests/connectionTest")(conn_thread,thread)
+    conn_thread.Stop()
+    print(multi:getTasksDetails())
     os.exit()
-end,true)
-print(runTest())
+end)
+runTest()
 multi:mainloop()

@@ -137,7 +137,7 @@ function multi:getTasksDetails(t)
 				{"Thread Name","Uptime","TID","Attached To"}
 			}
 			local proc_tab = {
-				{"Process Name", "Uptime", "PID", "Load", "Cycles per Second per task"}
+				{"Process Name", "Uptime", "PID", "Load", "CpS"}
 			}
 			for th,process in pairs(globalThreads) do
 				if tostring(th.isProcessThread) == "destroyed" then
@@ -372,7 +372,7 @@ function multi:newConnection(protect,func,kill)
 			end
 		end
 		function temp:Destroy()
-			for i=1,#call_funcs do
+			for i=#call_funcs,1,-1 do
 				if call_funcs[i]~=nil then
 					if call_funcs[i]==self.func then
 						table.remove(call_funcs,i)
@@ -742,8 +742,6 @@ function multi:newStep(start,reset,count,skip)
 	c.skip=skip or 0
 	c.spos=0
 	c.count=count or 1*think
-	c.funcE={}
-	c.funcS={}
 	c.start=start or 1
 	if start~=nil and reset~=nil then
 		if start>reset then
@@ -905,8 +903,12 @@ function multi:scheduleJob(time,func)
 end
 
 local __CurrentProcess = multi
+local __CurrentTask
 function multi.getCurrentProcess()
 	return __CurrentProcess
+end
+function multi.getCurrentTask()
+	return __CurrentTask
 end
 
 local sandcount = 1
@@ -1087,14 +1089,17 @@ function multi.hold(func,opt)
 		return thread.sleep(func)
 	end
 	local death = false
+	local proc = multi.getCurrentTask()
+	proc:Pause()
 	if type(func)=="number" then
 		self:newThread("Hold_func",function()
-			thread.sleep(func)
+			thread.hold(func)
 			death = true
 		end)
 		while not death do
-			multi.scheduler:Act()
+			multi:uManager()
 		end
+		proc:Resume()
 	else
 		local rets
 		self:newThread("Hold_func",function()
@@ -1102,25 +1107,13 @@ function multi.hold(func,opt)
 			death = true
 		end)
 		while not death do
-			multi.scheduler:Act()
+			multi:uManager()
 		end
+		proc:Resume()
 		return unpack(rets)
 	end
 end
-function multi.holdFor(n,func)
-	local temp
-	multi.getCurrentProcess():newThread(function()
-		thread.sleep(n)
-		temp = true
-	end)
-	return multi.getCurrentProcess().hold(function()
-		if func() then
-			return func()
-		elseif temp then
-			return multi.NIL, multi.TIMEOUT
-		end
-	end)
-end
+
 local function cleanReturns(...)
 	local returns = {...}
 	local rets = {}
@@ -1133,10 +1126,12 @@ local function cleanReturns(...)
 	end
 	return unpack(returns,1,ind)
 end
+
 function thread.pushStatus(...)
 	local t = thread.getRunningThread()
 	t.statusconnector:Fire(...)
 end
+
 function thread:newFunctionBase(generator,holdme)
 	return function()
 		local tfunc = {}
@@ -1635,12 +1630,14 @@ function multi:lightloop(settings)
 	multi.OnPreLoad:Fire()
 	if not isRunning then
 		local Loop=self.Mainloop
+		local ctask
 		while true do
 			for _D=#Loop,1,-1 do
-				if Loop[_D].Active then
-					self.CID=_D
+				__CurrentTask = Loop[_D]
+				ctask = __CurrentTask
+				if ctask.Active then
 					if not protect then
-						Loop[_D]:Act()
+						ctask:Act()
 					end
 				end
 			end
@@ -1692,26 +1689,29 @@ function multi:mainloop(settings)
 		local autoP = 0
 		local solid,sRef
 		local cc=0
+		local ctask
 		multi.OnLoad:Fire()
 		while mainloopActive do
 			if priority == 1 then
 				for _D=#Loop,1,-1 do
+					__CurrentTask = Loop[_D]
+					ctask = __CurrentTask
 					for P=1,7 do
-						if Loop[_D] then
-							if (PS.PList[P])%Loop[_D].Priority==0 then
-								if Loop[_D].Active then
-									self.CID=_D
+						if ctask then
+							if (PS.PList[P])%ctask.Priority == 0 then
+								if ctask.Active then
+									self.CID = _D
 									if not protect then
-										Loop[_D]:Act()
+										ctask:Act()
 										__CurrentProcess = self
 									else
-										local status, err=pcall(Loop[_D].Act,Loop[_D])
+										local status, err = pcall(ctask.Act,ctask)
 										__CurrentProcess = self
 										if err then
-											Loop[_D].error=err
-											self.OnError:Fire(Loop[_D],err)
+											ctask.error=err
+											self.OnError:Fire(ctask,err)
 											if stopOnError then
-												Loop[_D]:Destroy()
+												ctask:Destroy()
 											end
 										end
 									end
@@ -1722,21 +1722,22 @@ function multi:mainloop(settings)
 				end
 			elseif priority == 2 then
 				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if (PStep)%Loop[_D].Priority==0 then
-							if Loop[_D].Active then
-								self.CID=_D
+					__CurrentTask = Loop[_D]
+					ctask = __CurrentTask
+					if ctask then
+						if (PStep)%ctask.Priority==0 then
+							if ctask.Active then
 								if not protect then
-									Loop[_D]:Act()
+									ctask:Act()
 									__CurrentProcess = self
 								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									local status, err=pcall(ctask.Act,ctask)
 									__CurrentProcess = self
 									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
+										ctask.error=err
+										self.OnError:Fire(ctask,err)
 										if stopOnError then
-											Loop[_D]:Destroy()
+											ctask:Destroy()
 										end
 									end
 								end
@@ -1756,21 +1757,22 @@ function multi:mainloop(settings)
 					cc=0
 				end
 				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if Loop[_D].Priority == p_c or (Loop[_D].Priority == p_h and tt<.5) or (Loop[_D].Priority == p_an and tt<.125) or (Loop[_D].Priority == p_n and tt<.063) or (Loop[_D].Priority == p_bn and tt<.016) or (Loop[_D].Priority == p_l and tt<.003) or (Loop[_D].Priority == p_i and tt<.001) then
-							if Loop[_D].Active then
-								self.CID=_D
+					__CurrentTask = Loop[_D]
+					ctask = __CurrentTask
+					if ctask then
+						if ctask.Priority == p_c or (ctask.Priority == p_h and tt<.5) or (ctask.Priority == p_an and tt<.125) or (ctask.Priority == p_n and tt<.063) or (ctask.Priority == p_bn and tt<.016) or (ctask.Priority == p_l and tt<.003) or (ctask.Priority == p_i and tt<.001) then
+							if ctask.Active then
 								if not protect then
-									Loop[_D]:Act()
+									ctask:Act()
 									__CurrentProcess = self
 								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
+									local status, err=pcall(ctask.Act,ctask)
 									__CurrentProcess = self
 									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
+										ctask.error=err
+										self.OnError:Fire(ctask,err)
 										if stopOnError then
-											Loop[_D]:Destroy()
+											ctask:Destroy()
 										end
 									end
 								end
@@ -1780,51 +1782,51 @@ function multi:mainloop(settings)
 				end
 			elseif priority == -1 then
 				for _D=#Loop,1,-1 do
-					sRef = Loop[_D]
-					if Loop[_D] then
-						if (sRef.Priority == p_c) or PStep==0 then
-							if sRef.Active then
-								self.CID=_D
+					__CurrentTask = Loop[_D]
+					ctask = __CurrentTask
+					if ctask then
+						if (ctask.Priority == p_c) or PStep==0 then
+							if ctask.Active then
 								if not protect then
-									if sRef.solid then
-										sRef:Act()
+									if ctask.solid then
+										ctask:Act()
 										__CurrentProcess = self
 										solid = true
 									else
-										time = multi.timer(sRef.Act,sRef)
-										sRef.solid = true
+										time = multi.timer(ctask.Act,ctask)
+										ctask.solid = true
 										solid = false
 									end
-									if Loop[_D] and not solid then
+									if ctask and not solid then
 										if time == 0 then
-											Loop[_D].Priority = p_c
+											ctask.Priority = p_c
 										else
-											Loop[_D].Priority = P_LB
+											ctask.Priority = P_LB
 										end
 									end
 								else
-									if Loop[_D].solid then
-										Loop[_D]:Act()
+									if ctask.solid then
+										ctask:Act()
 										__CurrentProcess = self
 										solid = true
 									else
-										time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
+										time, status, err=multi.timer(pcall,ctask.Act,ctask)
 										__CurrentProcess = self
-										Loop[_D].solid = true
+										ctask.solid = true
 										solid = false
 									end
-									if Loop[_D] and not solid then
+									if ctask and not solid then
 										if time == 0 then
-											Loop[_D].Priority = p_c
+											ctask.Priority = p_c
 										else
-											Loop[_D].Priority = P_LB
+											ctask.Priority = P_LB
 										end
 									end
 									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
+										ctask.error=err
+										self.OnError:Fire(ctask,err)
 										if stopOnError then
-											Loop[_D]:Destroy()
+											ctask:Destroy()
 										end
 									end
 								end
@@ -1844,20 +1846,21 @@ function multi:mainloop(settings)
 				end
 			else
 				for _D=#Loop,1,-1 do
-					if Loop[_D] then
-						if Loop[_D].Active then
-							self.CID=_D
+					__CurrentTask = Loop[_D]
+					ctask = __CurrentTask
+					if ctask then
+						if ctask.Active then
 							if not protect then
-								Loop[_D]:Act()
+								ctask:Act()
 								__CurrentProcess = self
 							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								local status, err=pcall(ctask.Act,ctask)
 								__CurrentProcess = self
 								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
+									ctask.error=err
+									self.OnError:Fire(ctask,err)
 									if stopOnError then
-										Loop[_D]:Destroy()
+										ctask:Destroy()
 									end
 								end
 							end
@@ -2136,25 +2139,24 @@ function multi:enableLoadDetection()
 	multi.maxSpd = stop
 end
 
-local busy = false
 local lastVal = 0
 local last_step = 0
-local bb = 0
 
 function multi:getLoad()
-	if not multi.maxSpd then self:enableLoadDetection() end
-	if busy then return lastVal,last_step end
+	if not multi.maxSpd then multi:enableLoadDetection() end
 	local val = nil
 	local bench
-	self:benchMark(.01):OnBench(function(time,steps)
+	local bb
+	self:benchMark(.01).OnBench(function(time,steps)
 		bench = steps
 		bb = steps
 	end)
 	_,timeout = multi.hold(function()
 		return bench
-	end,{sleep=.011})
+	end,{sleep=.012})
 	if timeout then
-		bench = 150000
+		bench = 0
+		bb = 0
 	end
 	bench = bench^1.5
 	val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)

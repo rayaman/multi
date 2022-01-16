@@ -66,7 +66,7 @@ Changed:
 
 - Connection Objects no longer Fire with syntax sugar when attached to an object:
 
-	`multiobj:OnSomeEvent(arg1,arg2.arg3)` No longer triggers the Fire event. As part of the update to make all objects use connections internally this little used feature had to be scrapped!
+	`multiobj:OnSomeEvent(...)` No longer triggers the Fire event. As part of the update to make all objects use connections internally this little used feature had to be scrapped!
 
 - multi:newTStep now derives it's functionality from multi:newStep (Cut's down on code length a bit)
 
@@ -76,14 +76,16 @@ Removed:
 ---
 - `multi:newFunction(func)`
 	- `thread:newFunction(func)` Has many more features and replaces what multi:newFunction did
+- `multi.holdFor()` Now that multi.hold takes the option table that thread.hold has this feature can be emulated using that.
 
 - Calling Fire on a connection no longer returns anything! Now that internal features use connections, I noticed how slow connections are and have increased their speed quite a bit. From 50,000 Steps per seconds to almost 7 Million. All other features should work just fine. Only returning values has been removed
 
 Fixed:
 ---
 - [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Issue seems to be related to my filesystem
-- [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not up to date with threaded functions
-- Issue where gettasksdetails would try to process a destroyed object causing it to crash
+- [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not being up to date with threaded functions
+- Issue where gettasksdetails() would try to process a destroyed object causing it to crash
+- Issue with multi.hold() not pumping the mainloop and only the scheduler
 
 
 ToDo:

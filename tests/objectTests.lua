@@ -37,6 +37,6 @@ function objectTests(multi,thread)
         if tloops > 10 then print("TLoops: Ok") else print("TLoops: Bad!") end
         if updaters > 100 then print("Updaters: Ok") else print("Updaters: Bad!") end
     end)
-    return event
+    thread.hold(event.OnEvent)
 end
 return objectTests
