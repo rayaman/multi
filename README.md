@@ -1,7 +1,7 @@
 # Multi Version: 15.2.0 Upgrade Complete
 **Key Changes**
 - All objects now use connections internally
-- Connections now about 23x faster!
+- Connections now about 23x faster! 
 - Updated getTasksDetails() to handle the new method of managing threads and processors
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
