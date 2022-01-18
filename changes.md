@@ -13,6 +13,11 @@ Full Update Showcase
 
 Added:
 ---
+- multi:lManager() the uManager() to mainloop() equivalent to lightloop()
+	- A lightweight version of uManager() Priorities are not supported!
+
+- multi:newProcessor(name,nothread).run()
+	- new function run to the processor object to 
 
 - multi:newTLoop() member functions
 	- `TLoop:Set(set)` - Sets the time to wait for the TLoop
@@ -26,6 +31,8 @@ Added:
 
 Changed:
 ---
+- `multi:newProcessor(name,nothread)` The new argument allows you to tell the system you won't be using the Start() and Stop() functions, rather you will handle the process yourself. Using the proc.run() function. This function needs to be called to pump the events.
+	- Processors now also use lManager instead of uManager.
 - `multi.hold(n,opt)` now supports an option table like thread.hold does.
 - Connection Objects now pass on the parent object if created on a multiobj. This was to allow chaining to work properly with the new update
 

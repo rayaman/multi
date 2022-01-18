@@ -22,8 +22,25 @@ local multi,thread = require("multi"):init()
 -- 	print("Function Done",handler.getReturns())
 -- 	print("Function Done",handler2.getReturns())
 -- end)
-multi:benchMark(1):OnBench(function(sec,steps)
+
+
+-- multi:benchMark(1):OnBench(function(sec,steps)
+-- 	print("Steps:",steps)
+-- 	os.exit()
+-- end)
+
+
+local test = multi:newProcessor("test",true)
+test:benchMark(1):OnBench(function(sec,steps)
 	print("Steps:",steps)
-	os.exit()
+	--os.exit()
 end)
-multi:mainloop()
+test:newThread(function()
+	while true do
+		thread.sleep(1)
+		print("hi")
+	end
+end)
+test:lightloop()
+
+-- multi:lightloop()

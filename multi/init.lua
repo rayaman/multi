@@ -912,7 +912,7 @@ function multi.getCurrentTask()
 end
 
 local sandcount = 1
-function multi:newProcessor(name)
+function multi:newProcessor(name,nothread)
 	local c = {}
 	setmetatable(c,{__index = self})
 	local multi,thread = require("multi"):init() -- We need to capture the t in thread
@@ -920,12 +920,12 @@ function multi:newProcessor(name)
 	sandcount = sandcount + 1
 	c.Mainloop = {}
 	c.Type = "process"
-	c.Active = false
+	c.Active = false or nothread
 	c.Name = name or ""
 	c.process = self:newThread(c.Name,function()
 		while true do
 			thread.hold(function()
-				return c.Active
+				return c.Active and not(nothread)
 			end)
 			__CurrentProcess = c
 			c:uManager()
@@ -935,6 +935,11 @@ function multi:newProcessor(name)
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
+	function c.run()
+		__CurrentProcess = c
+		c:uManager()
+		__CurrentProcess = self
+	end
 	function c.Start()
 		c.Active = true
 		return self
@@ -1632,6 +1637,7 @@ function multi:lightloop(settings)
 		local Loop=self.Mainloop
 		local ctask
 		while true do
+			__CurrentProcess = self
 			for _D=#Loop,1,-1 do
 				__CurrentTask = Loop[_D]
 				ctask = __CurrentTask
@@ -1899,8 +1905,55 @@ function multi:uManager(settings)
 	end
 	multi.OnLoad:Fire()
 	self.uManager=self.uManagerRef
+	self.lManager=self.lManagerRef
 end
-function multi:uManagerRef(settings)
+function multi:lManager(settings)
+	__CurrentProcess = self
+	multi.OnPreLoad:Fire()
+	multi.defaultSettings = settings or multi.defaultSettings
+	self.t,self.tt = clock(),0
+	if settings then
+		priority = settings.priority
+		if settings.auto_priority then
+			priority = -1
+		end
+		if settings.preLoop then
+			settings.preLoop(self)
+		end
+		if settings.stopOnError then
+			stopOnError = settings.stopOnError
+		end
+		multi.defaultSettings.p_i = self.Priority_Idle
+		if settings.auto_stretch then
+			multi.defaultSettings.p_i = settings.auto_stretch*self.Priority_Idle
+		end
+		multi.defaultSettings.delay = settings.auto_delay or 3
+		multi.defaultSettings.auto_lowerbound = settings.auto_lowerbound or self.Priority_Idle
+		protect = settings.protect
+	end
+	multi.OnLoad:Fire()
+	self.uManager=self.uManagerRef
+	self.lManager=self.lManagerRef
+end
+function multi:lManagerRef()
+	if self.Active then
+		local Loop=self.Mainloop
+		local ctask
+		while true do
+			__CurrentProcess = self
+			for _D=#Loop,1,-1 do
+				__CurrentTask = Loop[_D]
+				ctask = __CurrentTask
+				if ctask.Active then
+					if not protect then
+						ctask:Act()
+					end
+				end
+			end
+		end
+	end
+end
+function multi:uManagerRef()
 	if self.Active then
 		local Loop=self.Mainloop
 		local PS=self
