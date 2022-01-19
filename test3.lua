@@ -33,6 +33,6 @@ multi:benchMark(1):OnBench(function(sec,steps)
 	print("Steps:",steps)
 	--os.exit()
 end)
---multi:mainloop()
+multi:mainloop()
 
-multi:lightloop()
+--multi:lightloop()
