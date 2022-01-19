@@ -1664,8 +1664,14 @@ function multi:mainloop(settings)
 		local delay = 3
 		if settings then
 			priority = settings.priority
-			if settings.auto_priority then
-				priority = -1
+			if priority == 1 then
+				self.uManager = self.uManagerRefP1
+			elseif self.priority == 2 then
+				self.uManager = self.uManagerRefP2
+			elseif self.priority == 3 then
+				self.uManager = self.uManagerRefP3
+			elseif auto_priority then
+				self.uManager = self.uManagerRefP0
 			end
 			if settings.preLoop then
 				settings.preLoop(self)
@@ -1879,15 +1885,22 @@ function multi:mainloop(settings)
 		return "Already Running!"
 	end
 end
+
 function multi:uManager(settings)
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.t,self.tt = clock(),0
 	if settings then
-		priority = settings.priority
-		if settings.auto_priority then
-			priority = -1
+		local priority = settings.priority
+		if priority == 1 then
+			self.uManager = self.uManagerRefP1
+		elseif self.priority == 2 then
+			self.uManager = self.uManagerRefP2
+		elseif self.priority == 3 then
+			self.uManager = self.uManagerRefP3
+		elseif auto_priority then
+			self.uManager = self.uManagerRefP0
 		end
 		if settings.preLoop then
 			settings.preLoop(self)
@@ -1905,8 +1918,8 @@ function multi:uManager(settings)
 	end
 	multi.OnLoad:Fire()
 	self.uManager=self.uManagerRef
-	self.lManager=self.lManagerRef
 end
+
 function multi:lManager(settings)
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
@@ -1935,6 +1948,7 @@ function multi:lManager(settings)
 	self.uManager=self.uManagerRef
 	self.lManager=self.lManagerRef
 end
+
 function multi:lManagerRef()
 	if self.Active then
 		local Loop=self.Mainloop
@@ -1953,168 +1967,34 @@ function multi:lManagerRef()
 		end
 	end
 end
-function multi:uManagerRef()
+
+local ctask
+local Loop
+
+function multi:uManagerRefP1()
 	if self.Active then
-		local Loop=self.Mainloop
-		local PS=self
-		if multi.defaultSettings.priority==1 then
-			for _D=#Loop,1,-1 do
-				for P=1,7 do
-					if Loop[_D] then
-						if (PS.PList[P])%Loop[_D].Priority==0 then
-							if Loop[_D].Active then
-								self.CID=_D
-								if not multi.defaultSettings.protect then
-									Loop[_D]:Act()
-									__CurrentProcess = self
-								else
-									local status, err=pcall(Loop[_D].Act,Loop[_D])
-									__CurrentProcess = self
-									if err then
-										Loop[_D].error=err
-										self.OnError:Fire(Loop[_D],err)
-										if multi.defaultSettings.stopOnError then
-											Loop[_D]:Destroy()
-										end
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		elseif multi.defaultSettings.priority==2 then
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if (PS.PStep)%Loop[_D].Priority==0 then
-						if Loop[_D].Active then
-							self.CID=_D
+		__CurrentProcess = self
+		Loop=self.Mainloop
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			for P=1,7 do
+				if ctask then
+					if (PS.PList[P])%ctask.Priority==0 then
+						if ctask.Active then
 							if not multi.defaultSettings.protect then
-								Loop[_D]:Act()
+								ctask:Act()
 								__CurrentProcess = self
 							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
+								local status, err=pcall(ctask.Act,ctask)
 								__CurrentProcess = self
 								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
+									ctask.error=err
+									self.OnError:Fire(ctask,err)
 									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
+										ctask:Destroy()
 									end
 								end
-							end
-						end
-					end
-				end
-			end
-			PS.PStep=PS.PStep+1
-			if PS.PStep>self.Priority_Idle then
-				PS.PStep=0
-			end
-		elseif priority == 3 then
-			self.tt = clock()-self.t
-			self.t = clock()
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if Loop[_D].Priority == self.Priority_Core or (Loop[_D].Priority == self.Priority_High and tt<.5) or (Loop[_D].Priority == self.Priority_Above_Normal and tt<.125) or (Loop[_D].Priority == self.Priority_Normal and tt<.063) or (Loop[_D].Priority == self.Priority_Below_Normal and tt<.016) or (Loop[_D].Priority == self.Priority_Low and tt<.003) or (Loop[_D].Priority == self.Priority_Idle and tt<.001) then
-						if Loop[_D].Active then
-							self.CID=_D
-							if not protect then
-								Loop[_D]:Act()
-								__CurrentProcess = self
-							else
-								local status, err=pcall(Loop[_D].Act,Loop[_D])
-								__CurrentProcess = self
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-		elseif priority == -1 then
-			for _D=#Loop,1,-1 do
-				local sRef = Loop[_D]
-				if Loop[_D] then
-					if (sRef.Priority == self.Priority_Core) or PStep==0 then
-						if sRef.Active then
-							self.CID=_D
-							if not protect then
-								if sRef.solid then
-									sRef:Act()
-									__CurrentProcess = self
-									solid = true
-								else
-									time = multi.timer(sRef.Act,sRef)
-									sRef.solid = true
-									solid = false
-								end
-								if Loop[_D] and not solid then
-									if time == 0 then
-										Loop[_D].Priority = self.Priority_Core
-									else
-										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
-									end
-								end
-							else
-								if Loop[_D].solid then
-									Loop[_D]:Act()
-									__CurrentProcess = self
-									solid = true
-								else
-									time, status, err=multi.timer(pcall,Loop[_D].Act,Loop[_D])
-									__CurrentProcess = self
-									Loop[_D].solid = true
-									solid = false
-								end
-								if Loop[_D] and not solid then
-									if time == 0 then
-										Loop[_D].Priority = self.Priority_Core
-									else
-										Loop[_D].Priority = multi.defaultSettings.auto_lowerbound
-									end
-								end
-								if err then
-									Loop[_D].error=err
-									self.OnError:Fire(Loop[_D],err)
-									if multi.defaultSettings.stopOnError then
-										Loop[_D]:Destroy()
-									end
-								end
-							end
-						end
-					end
-				end
-			end
-			self.PStep=self.PStep+1
-			if self.PStep>multi.defaultSettings.p_i then
-				self.PStep=0
-				if clock()-self.lastTime>multi.defaultSettings.delay then
-					self.lastTime = clock()
-					for i = 1,#Loop do
-						Loop[i]:ResetPriority()
-					end
-				end
-			end
-		else
-			for _D=#Loop,1,-1 do
-				if Loop[_D] then
-					if Loop[_D].Active then
-						self.CID=_D
-						if not multi.defaultSettings.protect then
-							Loop[_D]:Act()
-							__CurrentProcess = self
-						else
-							local status, err=pcall(Loop[_D].Act,Loop[_D])
-							__CurrentProcess = self
-							if err then
-								Loop[_D].error=err
-								self.OnError:Fire(Loop[_D],err)
 							end
 						end
 					end
@@ -2123,9 +2003,193 @@ function multi:uManagerRef()
 		end
 	end
 end
+
+function multi:uManagerRefP2()
+	if self.Active then
+		__CurrentProcess = self
+		Loop=self.Mainloop
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			if ctask then
+				if (PS.PStep)%ctask.Priority==0 then
+					if ctask.Active then
+						self.CID=_D
+						if not multi.defaultSettings.protect then
+							ctask:Act()
+							__CurrentProcess = self
+						else
+							local status, err=pcall(ctask.Act,ctask)
+							__CurrentProcess = self
+							if err then
+								ctask.error=err
+								self.OnError:Fire(ctask,err)
+								if multi.defaultSettings.stopOnError then
+									ctask:Destroy()
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		PS.PStep=PS.PStep+1
+		if PS.PStep>self.Priority_Idle then
+			PS.PStep=0
+		end
+	end
+end
+
+function multi:uManagerRefP3()
+	if self.Active then
+		self.tt = clock()-self.t
+		self.t = clock()
+		__CurrentProcess = self
+		Loop=self.Mainloop
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			if ctask then
+				if ctask.Priority == self.Priority_Core or (ctask.Priority == self.Priority_High and tt<.5) or (ctask.Priority == self.Priority_Above_Normal and tt<.125) or (ctask.Priority == self.Priority_Normal and tt<.063) or (ctask.Priority == self.Priority_Below_Normal and tt<.016) or (ctask.Priority == self.Priority_Low and tt<.003) or (ctask.Priority == self.Priority_Idle and tt<.001) then
+					if ctask.Active then
+						if not protect then
+							ctask:Act()
+							__CurrentProcess = self
+						else
+							local status, err=pcall(ctask.Act,ctask)
+							__CurrentProcess = self
+							if err then
+								ctask.error=err
+								self.OnError:Fire(ctask,err)
+								if multi.defaultSettings.stopOnError then
+									ctask:Destroy()
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+	end
+end
+
+function multi:uManagerRefP0()
+	if self.Active then
+		__CurrentProcess = self
+		Loop=self.Mainloop
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			if ctask then
+				if (ctask.Priority == self.Priority_Core) or PStep==0 then
+					if ctask.Active then
+						if not protect then
+							if ctask.solid then
+								ctask:Act()
+								__CurrentProcess = self
+								solid = true
+							else
+								time = multi.timer(ctask.Act,ctask)
+								ctask.solid = true
+								solid = false
+							end
+							if ctask and not solid then
+								if time == 0 then
+									ctask.Priority = self.Priority_Core
+								else
+									ctask.Priority = multi.defaultSettings.auto_lowerbound
+								end
+							end
+						else
+							if ctask.solid then
+								ctask:Act()
+								__CurrentProcess = self
+								solid = true
+							else
+								time, status, err=multi.timer(pcall,ctask.Act,ctask)
+								__CurrentProcess = self
+								ctask.solid = true
+								solid = false
+							end
+							if ctask and not solid then
+								if time == 0 then
+									ctask.Priority = self.Priority_Core
+								else
+									ctask.Priority = multi.defaultSettings.auto_lowerbound
+								end
+							end
+							if err then
+								ctask.error=err
+								self.OnError:Fire(ctask,err)
+								if multi.defaultSettings.stopOnError then
+									ctask:Destroy()
+								end
+							end
+						end
+					end
+				end
+			end
+		end
+		self.PStep=self.PStep+1
+		if self.PStep>multi.defaultSettings.p_i then
+			self.PStep=0
+			if clock()-self.lastTime>multi.defaultSettings.delay then
+				self.lastTime = clock()
+				for i = 1,#Loop do
+					Loop[i]:ResetPriority()
+				end
+			end
+		end
+	end
+end
+
+function multi:uManagerRefLight()
+	if self.Active then
+		local Loop=self.Mainloop
+		local ctask
+		__CurrentProcess = self
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			if ctask.Active then
+				if not protect then
+					ctask:Act()
+				end
+			end
+		end
+	end
+end
+
+function multi:uManagerRef()
+	if self.Active then
+		__CurrentProcess = self
+		Loop=self.Mainloop
+		for _D=#Loop,1,-1 do
+			__CurrentTask = Loop[_D]
+			ctask = __CurrentTask
+			if ctask then
+				if ctask.Active then
+					if multi.defaultSettings.protect then
+						__CurrentProcess = self
+						local status, err = pcall(ctask.Act,ctask)
+						if err then
+							ctask.error = err
+							self.OnError:Fire(ctask,err)
+						end
+					else
+						__CurrentProcess = self
+						ctask:Act()
+					end
+				end
+			end
+		end
+	end
+end
+
 --------
 -- UTILS
 --------
+
 function table.merge(t1, t2)
 	for k,v in pairs(t2) do
 		if type(v) == 'table' then
