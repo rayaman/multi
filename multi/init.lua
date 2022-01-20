@@ -75,7 +75,7 @@ multi.PriorityResolve = {
 }
 
 multi.PStep = 1
-multi.PList = {multi.Priority_Core,multi.Priority_Very_High,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Very_Low,multi.Priority_Idle}
+local PList = {multi.Priority_Core,multi.Priority_Very_High,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Very_Low,multi.Priority_Idle}
 multi.PriorityTick=1
 multi.Priority=multi.Priority_High
 multi.threshold=256
@@ -1630,8 +1630,10 @@ end
 function multi:threadloop()
 	multi.initThreads(true)
 end
+
 function multi:lightloop(settings)
 	multi.defaultSettings = settings or multi.defaultSettings
+	self.uManager=self.lManager
 	multi.OnPreLoad:Fire()
 	if not isRunning then
 		local Loop=self.Mainloop
@@ -1650,12 +1652,13 @@ function multi:lightloop(settings)
 		end
 	end
 end
+
 function multi:mainloop(settings)
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	multi.defaultSettings = settings or multi.defaultSettings
 	self.uManager=self.uManagerRef
-	local p_c,p_h,p_an,p_n,p_bn,p_l,p_i = self.Priority_Core,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Idle
+	local p_c,p_vh,p_h,p_an,p_n,p_bn,p_l,p_vl,p_i = self.Priority_Core,self.Priority_Very_High,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Very_Low,self.Priority_Idle
 	local P_LB = p_i
 	if not isRunning then
 		local protect = false
@@ -1708,9 +1711,9 @@ function multi:mainloop(settings)
 				for _D=#Loop,1,-1 do
 					__CurrentTask = Loop[_D]
 					ctask = __CurrentTask
-					for P=1,7 do
+					for P=1,9 do
 						if ctask then
-							if (PS.PList[P])%ctask.Priority == 0 then
+							if (PList[P])%ctask.Priority == 0 then
 								if ctask.Active then
 									self.CID = _D
 									if not protect then
@@ -1772,7 +1775,7 @@ function multi:mainloop(settings)
 					__CurrentTask = Loop[_D]
 					ctask = __CurrentTask
 					if ctask then
-						if ctask.Priority == p_c or (ctask.Priority == p_h and tt<.5) or (ctask.Priority == p_an and tt<.125) or (ctask.Priority == p_n and tt<.063) or (ctask.Priority == p_bn and tt<.016) or (ctask.Priority == p_l and tt<.003) or (ctask.Priority == p_i and tt<.001) then
+						if ctask.Priority == p_c or (ctask.Priority == p_vh and tt<.55) or (ctask.Priority == p_h and tt<.5) or (ctask.Priority == p_an and tt<.125) or (ctask.Priority == p_n and tt<.063) or (ctask.Priority == p_bn and tt<.016) or (ctask.Priority == p_l and tt<.003) or (ctask.Priority == p_vl and tt<.001) or (ctask.Priority == p_i and tt<.001) then
 							if ctask.Active then
 								if not protect then
 									ctask:Act()
@@ -1978,9 +1981,9 @@ function multi:uManagerRefP1()
 		for _D=#Loop,1,-1 do
 			__CurrentTask = Loop[_D]
 			ctask = __CurrentTask
-			for P=1,7 do
+			for P=1,9 do
 				if ctask then
-					if (PS.PList[P])%ctask.Priority==0 then
+					if (PList[P])%ctask.Priority==0 then
 						if ctask.Active then
 							if not multi.defaultSettings.protect then
 								ctask:Act()
@@ -2285,7 +2288,7 @@ function multi:getLoad()
 end
 
 function multi:setPriority(s)
-	if type(s)==number then
+	if type(s)=="number" then
 		self.Priority=s
 	elseif type(s)=='string' then
 		if s:lower()=='core' or s:lower()=='c' then
@@ -2516,7 +2519,7 @@ multi.OnError=multi:newConnection()
 multi.OnPreLoad = multi:newConnection()
 multi.OnExit = multi:newConnection(nil,nil,true)
 multi.m = {onexit = function() multi.OnExit:Fire() end}
-if _VERSION >= "Lua 5.2" then
+if _VERSION >= "Lua 5.2" or jit then
 	setmetatable(multi.m, {__gc = multi.m.onexit})
 else
 	multi.m.sentinel = newproxy(true)
