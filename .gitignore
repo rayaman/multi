@@ -3,3 +3,8 @@
 test.lua
 test2.lua
 test3.lua
+lua5.1*
+luajit*
+lua5.2*
+lua5.3*
+lua5.4*
