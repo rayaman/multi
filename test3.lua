@@ -52,5 +52,10 @@ multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 multi.OnExit(function()
 	print("Total: ".. a)
 end)
+<<<<<<< HEAD
 multi:mainloop{print=true,priority=3}
+=======
+multi:mainloop()
+
+>>>>>>> f1f6e30a9833625630b84f8e6bfff179807b0102
 --multi:lightloop()
