@@ -53,4 +53,4 @@ multi.OnExit(function()
 	print("Total: ".. a)
 end)
 
-multi:mainloop{print=true,priority=3}
+multi:mainloop{print=true,priority=1}
