@@ -6,7 +6,14 @@
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
-My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations and the love2d compat.
+My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations.
+
+</br>
+
+Progress is being made in [v15.2.0](https://github.com/rayaman/multi/tree/v15.2.0)
+---
+
+</br>
 
 INSTALLING
 ----------
