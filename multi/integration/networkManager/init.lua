@@ -23,7 +23,7 @@ SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
 local net = require("net")
-local bin = require("bin")
+--local bin = require("bin")
 local char = string.char
 local byte = string.byte
 bin.setBitsInterface(infinabits)
