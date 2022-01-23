@@ -13,9 +13,6 @@ Full Update Showcase
 
 Added:
 ---
-- multi:lManager() the uManager() to mainloop() equivalent to lightloop()
-	- A lightweight version of uManager() Priorities are not supported!
-
 - multi:newProcessor(name,nothread).run()
 	- new function run to the processor object to 
 
@@ -81,6 +78,9 @@ Changed:
 
 Removed:
 ---
+- `multi setting: protect` This added extra complexity to the mainloop and not much benefit. If you feel a function will error use pcall yourself. This saves a decent amount of cycles, about 6.25% increase in performance.
+- `multi:GetParentProcess()` use `multi.getCurrentProcess()` instead
+- priority scheme 2, 3 and auto-priority have been removed! Only priority scheme 1 actually performed in a reasonable fashion so that one remained.
 - `multi:newFunction(func)`
 	- `thread:newFunction(func)` Has many more features and replaces what multi:newFunction did
 - `multi.holdFor()` Now that multi.hold takes the option table that thread.hold has this feature can be emulated using that.

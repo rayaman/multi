@@ -1,6 +1,4 @@
-package.path = "./?.lua"
-require("jitpaths")
---require("luapaths")
+package.path = "./?.lua;?/init.lua;"..package.path
 local multi,thread = require("multi"):init()
 --local GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 
@@ -29,7 +27,7 @@ local multi,thread = require("multi"):init()
 -- 	os.exit()
 -- end)
 print("Running benchmarks! ",_VERSION)
-local sleep_for = 1
+local sleep_for = 3
 local a = 0
 local c = 1
 local function bench(t,step)
@@ -39,7 +37,7 @@ local function bench(t,step)
 		print("Total: "..a)
 		os.exit()
 	end
-end
+end--p_c,p_vh,p_h,p_an,p_n,p_bn,p_l,p_vl,p_i
 multi:benchMark(sleep_for,multi.Priority_Idle,"Idle:"):OnBench(bench)
 multi:benchMark(sleep_for,multi.Priority_Very_Low,"Very Low:"):OnBench(bench)
 multi:benchMark(sleep_for,multi.Priority_Low,"Low:"):OnBench()
