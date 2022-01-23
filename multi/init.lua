@@ -51,6 +51,7 @@ multi.LinkedPath = multi
 multi.lastTime = clock()
 multi.TIMEOUT = "TIMEOUT"
 multi.TID = 0
+multi.defaultSettings = {}
 
 multi.Priority_Core = 1
 multi.Priority_Very_High = 4
@@ -79,10 +80,6 @@ multi.PriorityTick=1
 multi.Priority=multi.Priority_High
 multi.threshold=256
 multi.threstimed=.001
-	
-function multi.init()
-	return _G["$multi"].multi,_G["$multi"].thread
-end
 
 -- System
 function multi.Stop()
@@ -152,16 +149,16 @@ function multi:getTasksDetails(t)
 			end
 			dat = multi.AlignTable(proc_tab).. "\n"
 			dat = dat .. "\n" .. multi.AlignTable(th_tab)
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat..dat2.."\n\n"..s
+			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.settings.priority or 0].."\n\n"..dat..dat2.."\n\n"..s
 		else
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat2.."\n\n"..s
+			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.settings.priority or 0].."\n\n"..dat2.."\n\n"..s
 		end
 	else
 		local load,steps = self:getLoad()
 		str = {
 			ProcessName = (self.Name or "Unnamed"),
 			MemoryUsage = math.ceil(collectgarbage("count")),
-			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
+			PriorityScheme = priorityTable[multi.settings.priority or 0],
 			SystemLoad = multi.Round(load,2),
 			CyclesPerSecondPerTask = steps,
 			SystemThreadCount = multi.SystemThreads and #multi.SystemThreads or 0
@@ -261,7 +258,7 @@ function multi:newConnection(protect,func,kill)
 			end
 		end)
 		repeat
-			self.Parent:uManager(multi.defaultSettings)
+			self.Parent:uManager(multi.settings)
 		until self.waiting==false
 		id:Destroy()
 		return self
@@ -1621,79 +1618,46 @@ function multi:newService(func) -- Priority managed threads
 	return c
 end
 -- Multi runners
-function multi:threadloop()
-	multi.initThreads(true)
-end
-
-function multi:lightloop(settings)
-	multi.defaultSettings = settings or multi.defaultSettings
-	multi.OnPreLoad:Fire()
-	if not isRunning then
-		local Loop=self.Mainloop
-		local ctask
-		while true do
-			__CurrentProcess = self
-			for _D=#Loop,1,-1 do
-				__CurrentTask = Loop[_D]
-				ctask = __CurrentTask
-				if ctask.Active then
-					ctask:Act()
-					__CurrentProcess = self
-				end
-			end
-		end
-	end
-end
-
-function multi:mainloop(settings)
+local function mainloop(self)
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
-	multi.defaultSettings = settings or multi.defaultSettings
-	self.uManager=self.uManagerRef
-	local p_c,p_vh,p_h,p_an,p_n,p_bn,p_l,p_vl,p_i = self.Priority_Core,self.Priority_Very_High,self.Priority_High,self.Priority_Above_Normal,self.Priority_Normal,self.Priority_Below_Normal,self.Priority_Low,self.Priority_Very_Low,self.Priority_Idle
-	local P_LB = p_i
+	self.uManager = self.uManagerRef
 	if not isRunning then
-		local priority = false
-		local stopOnError = true
-		self.uManager = self.uManagerRef
-		if settings then
-			priority = settings.priority
-			if priority then
-				self.uManager = self.uManagerRefP1
-			end
-			if type(settings.preLoop)=="function" then
-				settings.preLoop(self)
-			end
-			if settings.stopOnError then
-				stopOnError = settings.stopOnError
-			end
-		end
 		isRunning=true
-		local lastTime = clock()
-		rawset(self,'Start',clock())
 		mainloopActive = true
 		local Loop=self.Mainloop
 		local ctask
 		multi.OnLoad:Fire()
 		while mainloopActive do
-			if priority then
-				for task=#Loop,1,-1 do
-					__CurrentTask = Loop[task]
-					ctask = __CurrentTask
-					if ctask and ctask.Active then
-						for i=1,9 do
-							if PList[i]%ctask.Priority == 0 then
-								ctask:Act()
-								__CurrentProcess = self
-							end
-						end
-					end
-				end
-			else
-				for _D=#Loop,1,-1 do
-					__CurrentTask = Loop[_D]
-					ctask = __CurrentTask
-					if ctask and ctask.Active then
+			for _D=#Loop,1,-1 do
+				__CurrentTask = Loop[_D]
+				ctask = __CurrentTask
+				ctask:Act()
+				__CurrentProcess = self
+			end
+		end
+	else
+		return nil, "Already Running!"
+	end
+end
+multi.mainloop = mainloop
+
+local function p_mainloop(self)
+	__CurrentProcess = self
+	multi.OnPreLoad:Fire()
+	self.uManager = self.uManagerRefP1
+	if not isRunning then
+		isRunning=true
+		mainloopActive = true
+		local Loop = self.Mainloop
+		local ctask
+		multi.OnLoad:Fire()
+		while mainloopActive do
+			for task=#Loop,1,-1 do
+				__CurrentTask = Loop[task]
+				ctask = __CurrentTask
+				for i=1,9 do
+					if PList[i]%ctask.Priority == 0 then
 						ctask:Act()
 						__CurrentProcess = self
 					end
@@ -1704,51 +1668,41 @@ function multi:mainloop(settings)
 		return nil, "Already Running!"
 	end
 end
-
-function multi:uManager(settings)
-	__CurrentProcess = self
-	multi.OnPreLoad:Fire()
-	multi.defaultSettings = settings or multi.defaultSettings
-	self.uManager=self.uManagerRef
-	if settings then
-		local priority = settings.priority
-		if priority == 1 then
-			self.uManager = self.uManagerRefP1
-		elseif self.priority == 2 then
-			self.uManager = self.uManagerRefP2
-		elseif self.priority == 3 then
-			self.uManager = self.uManagerRefP3
-		elseif auto_priority then
-			self.uManager = self.uManagerRefP0
-		end
-		if settings.preLoop then
-			settings.preLoop(self)
-		end
-		if settings.stopOnError then
-			stopOnError = settings.stopOnError
+local init = false
+function multi.init(settings, realsettings)
+	if settings == multi then settings = realsettings end
+	if init then return _G["$multi"].multi,_G["$multi"].thread end
+	init = true
+	if type(settings)=="table" then
+		multi.defaultSettings = settings
+		if settings.priority then
+			multi.mainloop = p_mainloop
+		else
+			multi.mainloop = mainloop
 		end
 	end
-	multi.OnLoad:Fire()
+	return _G["$multi"].multi,_G["$multi"].thread
 end
 
-local ctask
-local Loop
+function multi:uManager(settings)
+	if self.Active then
+		__CurrentProcess = self
+		multi.OnPreLoad:Fire()
+		self.uManager=self.uManagerRef
+		multi.OnLoad:Fire()
+	end
+end
 
 function multi:uManagerRefP1()
 	if self.Active then
 		__CurrentProcess = self
-		Loop=self.Mainloop
+		local Loop=self.Mainloop
 		for _D=#Loop,1,-1 do
 			__CurrentTask = Loop[_D]
-			ctask = __CurrentTask
 			for P=1,9 do
-				if ctask then
-					if PList[P]%ctask.Priority==0 then
-						if ctask.Active then
-							ctask:Act()
-							__CurrentProcess = self
-						end
-					end
+				if PList[P]%__CurrentTask.Priority==0 then
+					__CurrentTask:Act()
+					__CurrentProcess = self
 				end
 			end
 		end
@@ -1758,16 +1712,11 @@ end
 function multi:uManagerRef()
 	if self.Active then
 		__CurrentProcess = self
-		Loop=self.Mainloop
+		local Loop=self.Mainloop
 		for _D=#Loop,1,-1 do
 			__CurrentTask = Loop[_D]
-			ctask = __CurrentTask
-			if ctask then
-				if ctask.Active then
-					__CurrentProcess = self
-					ctask:Act()
-				end
-			end
+			__CurrentTask:Act()
+			__CurrentProcess = self
 		end
 	end
 end
@@ -1820,15 +1769,11 @@ setmetatable(multi.DestroyedObj, {
 	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
 })
 math.randomseed(os.time())
-multi.defaultSettings = {
-	priority = 0
-}
 
 function multi:enableLoadDetection()
 	if multi.maxSpd then return end
 	-- here we are going to run a quick benchMark solo
 	local temp = self:newProcessor()
-	temp:Start()
 	local t = os.clock()
 	local stop = false
 	temp:benchMark(.01):OnBench(function(time,steps)

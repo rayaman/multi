@@ -78,6 +78,8 @@ Changed:
 
 Removed:
 ---
+- `multi:lightloop()` Cleaned up the mainloop/uManager method, actually faster than lightloop (Which should have been called liteloop)
+- `multi:threadloop()` See above for reasons
 - `multi setting: protect` This added extra complexity to the mainloop and not much benefit. If you feel a function will error use pcall yourself. This saves a decent amount of cycles, about 6.25% increase in performance.
 - `multi:GetParentProcess()` use `multi.getCurrentProcess()` instead
 - priority scheme 2, 3 and auto-priority have been removed! Only priority scheme 1 actually performed in a reasonable fashion so that one remained.
