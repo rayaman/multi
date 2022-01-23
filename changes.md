@@ -28,6 +28,11 @@ Added:
 
 Changed:
 ---
+- multi:mainloop(~~settings~~)/multi:uManager(~~settings~~) no longer takes a settings argument, that has been moved to multi:init(settings)
+	| Setting | Description |
+	---|---
+	print | When set to true parts of the library will print out updates otherwise no internal printing will be done
+	priority | When set to true, the library will prioritize different objects based on their priority
 - `multi:newProcessor(name,nothread)` The new argument allows you to tell the system you won't be using the Start() and Stop() functions, rather you will handle the process yourself. Using the proc.run() function. This function needs to be called to pump the events.
 	- Processors now also use lManager instead of uManager.
 - `multi.hold(n,opt)` now supports an option table like thread.hold does.
@@ -78,6 +83,10 @@ Changed:
 
 Removed:
 ---
+- `multi:getError()` Removed when setting protect was removed
+- `multi:FreeMainEvent()` The new changes with connections make's this function unnecessary 
+- `multi:OnMainConnect(func)` See above
+- `multi:connectFinal(func)` See above
 - `multi:lightloop()` Cleaned up the mainloop/uManager method, actually faster than lightloop (Which should have been called liteloop)
 - `multi:threadloop()` See above for reasons
 - `multi setting: protect` This added extra complexity to the mainloop and not much benefit. If you feel a function will error use pcall yourself. This saves a decent amount of cycles, about 6.25% increase in performance.

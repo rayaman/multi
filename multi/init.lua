@@ -149,16 +149,16 @@ function multi:getTasksDetails(t)
 			end
 			dat = multi.AlignTable(proc_tab).. "\n"
 			dat = dat .. "\n" .. multi.AlignTable(th_tab)
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.settings.priority or 0].."\n\n"..dat..dat2.."\n\n"..s
+			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat..dat2.."\n\n"..s
 		else
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.settings.priority or 0].."\n\n"..dat2.."\n\n"..s
+			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or 0].."\n\n"..dat2.."\n\n"..s
 		end
 	else
 		local load,steps = self:getLoad()
 		str = {
 			ProcessName = (self.Name or "Unnamed"),
 			MemoryUsage = math.ceil(collectgarbage("count")),
-			PriorityScheme = priorityTable[multi.settings.priority or 0],
+			PriorityScheme = priorityTable[multi.defaultSettings.priority or 0],
 			SystemLoad = multi.Round(load,2),
 			CyclesPerSecondPerTask = steps,
 			SystemThreadCount = multi.SystemThreads and #multi.SystemThreads or 0
@@ -258,7 +258,7 @@ function multi:newConnection(protect,func,kill)
 			end
 		end)
 		repeat
-			self.Parent:uManager(multi.settings)
+			self.Parent:uManager()
 		until self.waiting==false
 		id:Destroy()
 		return self
@@ -654,6 +654,7 @@ function multi:newEvent(task)
 	multi:create(c)
 	return c
 end
+
 function multi:newUpdater(skip)
 	local c=self:newBase()
 	c.Type='updater'
@@ -674,6 +675,7 @@ function multi:newUpdater(skip)
 	multi:create(c)
 	return c
 end
+
 function multi:newAlarm(set)
 	local c=self:newBase()
 	c.Type='alarm'
@@ -709,6 +711,7 @@ function multi:newAlarm(set)
 	multi:create(c)
 	return c
 end
+
 function multi:newLoop(func)
 	local c=self:newBase()
 	c.Type='loop'
@@ -786,6 +789,7 @@ function multi:newStep(start,reset,count,skip)
 	multi:create(c)
 	return c
 end
+
 function multi:newTLoop(func,set)
 	local c=self:newBase()
 	c.Type='tloop'
@@ -820,9 +824,11 @@ function multi:newTLoop(func,set)
 	multi:create(c)
 	return c
 end
+
 function multi:setTimeout(func,t)
 	multi:newThread(function() thread.sleep(t) func() end)
 end
+
 function multi:newTStep(start,reset,count,set)
 	local c=self:newStep(start,reset,count)
 	c.Type='tstep'
@@ -903,6 +909,7 @@ local __CurrentTask
 function multi.getCurrentProcess()
 	return __CurrentProcess
 end
+
 function multi.getCurrentTask()
 	return __CurrentTask
 end
@@ -963,9 +970,11 @@ multi.GlobalVariables={}
 local dFunc = function() return true end
 local dRef = {nil,nil,nil,nil,nil}
 thread.requests = {}
+
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}
 end
+
 function thread.getRunningThread()
 	local threads = globalThreads
 	local t = coroutine.running()
@@ -977,6 +986,7 @@ function thread.getRunningThread()
 		end
 	end
 end
+
 function thread._Requests()
 	local t = thread.requests[coroutine.running()]
 	if t then
@@ -985,6 +995,7 @@ function thread._Requests()
 		thread[cmd](unpack(args))
 	end
 end
+
 function thread.sleep(n)
 	thread._Requests()
 	thread.getRunningThread().lastSleep = clock()
@@ -1026,6 +1037,7 @@ function thread.hold(n,opt)
 		return coroutine.yield(dRef)
 	end
 end
+
 function thread.holdFor(sec,n)
 	thread._Requests()
 	dRef[1] = "_holdF_"
@@ -1033,6 +1045,7 @@ function thread.holdFor(sec,n)
 	dRef[3] = n or dFunc
 	return coroutine.yield(dRef)
 end
+
 function thread.holdWithin(skip,n)
 	thread._Requests()
 	dRef[1] = "_holdW_"
@@ -1040,21 +1053,25 @@ function thread.holdWithin(skip,n)
 	dRef[3] = n or dFunc
 	return coroutine.yield(dRef)
 end
+
 function thread.skip(n)
 	thread._Requests()
 	dRef[1] = "_skip_"
 	dRef[2] = n or 1
 	return coroutine.yield(dRef)
 end
+
 function thread.kill()
 	dRef[1] = "_kill_"
 	dRef[2] = "T_T"
 	return coroutine.yield(dRef)
 end
+
 function thread.yield()
 	thread._Requests()
 	return thread.sleep(0)
 end
+
 function thread.isThread()
 	if _VERSION~="Lua 5.1" then
 		local a,b = coroutine.running()
@@ -1063,20 +1080,25 @@ function thread.isThread()
 		return coroutine.running()~=nil
 	end
 end
+
 function thread.getCores()
 	return thread.__CORES
 end
+
 function thread.set(name,val)
 	multi.GlobalVariables[name]=val
 	return true
 end
+
 function thread.get(name)
 	return multi.GlobalVariables[name]
 end
+
 function thread.waitFor(name)
 	thread.hold(function() return thread.get(name)~=nil end)
 	return thread.get(name)
 end
+
 function multi.hold(func,opt)
 	if thread.isThread() then
 		if type(func) == "function" or type(func) == "table" then
@@ -1209,6 +1231,7 @@ function thread:newFunctionBase(generator,holdme)
 		return tfunc
 	end
 end
+
 function thread:newFunction(func,holdme)
 	return thread:newFunctionBase(function(...)
 		return multi.getCurrentProcess():newThread("TempThread",func,...)
@@ -1225,6 +1248,7 @@ end
 function multi:attachScheduler()
 	local threads = {}
 	self.threadsRef = threads
+
 	function self:newThread(name,func,...)
 		self.OnLoad:Fire()
 		local func = func or name
@@ -1248,9 +1272,11 @@ function multi:attachScheduler()
 		c.isError = false 
 		c.OnError = self:newConnection(true,nil,true)
 		c.OnDeath = self:newConnection(true,nil,true)
+
 		function c:isPaused()
 			return self._isPaused
 		end
+
 		local resumed = false
 		function c:Pause()
 			if not self._isPaused then
@@ -1265,22 +1291,27 @@ function multi:attachScheduler()
 			end
 			return self
 		end
+
 		function c:Resume()
 			resumed = true
 			return self
 		end
+
 		function c:Kill()
 			thread.request(self,"kill")
 			return self
 		end
 		c.Destroy = c.Kill
 		c.kill = c.Kill
+
 		function c.ref:send(name,val)
 			ret=coroutine.yield({Name=name,Value=val})
 		end
+
 		function c.ref:get(name)
 			return self.Globals[name]
 		end
+
 		function c.ref:kill()
 			dRef[1] = "_kill_"
 			dRef[2] = "I Was killed by You!"
@@ -1289,6 +1320,7 @@ function multi:attachScheduler()
 				error("Failed to kill a thread! Exiting...")
 			end
 		end
+
 		function c.ref:sleep(n)
 			if type(n)=="function" then
 				ret=thread.hold(n)
@@ -1298,9 +1330,11 @@ function multi:attachScheduler()
 				error("Invalid Type for sleep!")
 			end
 		end
+
 		function c.ref:syncGlobals(v)
 			self.Globals=v
 		end
+
 		table.insert(threads,c)
 		globalThreads[c] = self
 		if initT==false then
@@ -1311,6 +1345,7 @@ function multi:attachScheduler()
 		multi:create(c)
 		return c
 	end
+
 	function self:newISOThread(name,func,_env,...)
 		self.OnLoad:Fire()
 		local func = func or name
@@ -1327,6 +1362,7 @@ function multi:attachScheduler()
 		local func = isolateFunction(func,env)
 		return self:newThread(name,func)
 	end
+
 	function self.initThreads(justThreads)
 		initT = true
 		self.scheduler=self:newLoop():setName("multi.thread")
@@ -1524,6 +1560,7 @@ function multi:attachScheduler()
 		end
 	end
 end
+
 function multi:newService(func) -- Priority managed threads
 	local c = {}
 	c.Type = "service"
@@ -1617,6 +1654,7 @@ function multi:newService(func) -- Priority managed threads
 	multi.create(multi,c)
 	return c
 end
+
 -- Multi runners
 local function mainloop(self)
 	__CurrentProcess = self
@@ -1640,6 +1678,7 @@ local function mainloop(self)
 		return nil, "Already Running!"
 	end
 end
+
 multi.mainloop = mainloop
 
 local function p_mainloop(self)
@@ -1668,6 +1707,7 @@ local function p_mainloop(self)
 		return nil, "Already Running!"
 	end
 end
+
 local init = false
 function multi.init(settings, realsettings)
 	if settings == multi then settings = realsettings end
@@ -1684,7 +1724,7 @@ function multi.init(settings, realsettings)
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 
-function multi:uManager(settings)
+function multi:uManager()
 	if self.Active then
 		__CurrentProcess = self
 		multi.OnPreLoad:Fire()
@@ -1739,9 +1779,11 @@ function table.merge(t1, t2)
 	end
 	return t1
 end
+
 if table.unpack and not unpack then
 	unpack=table.unpack
 end
+
 multi.DestroyedObj = {
 	Type = "destroyed",
 }
@@ -1899,12 +1941,6 @@ function multi:canSystemThread()
 	return false
 end
 
-function multi:getError()
-	if self.error then
-		return self.error
-	end
-end
-
 function multi:benchMark(sec,p,pt)
 	local c = 0
 	local temp=self:newLoop(function(self,t)
@@ -1958,7 +1994,12 @@ function multi.AlignTable(tab)
 end
 
 function multi:endTask(TID)
-	self.Mainloop[TID]:Destroy()
+	for i=#self.Mainloop,1,-1 do
+		if self.Mainloop[i].TID == TID then
+			self.Mainloop[TID]:Destroy()
+			return self
+		end
+	end
 	return self
 end
 
@@ -1983,30 +2024,6 @@ function multi.timer(func,...)
 	local t = timer:Get()
 	timer = nil
 	return t,unpack(args)
-end
-
-function multi:OnMainConnect(func)
-	table.insert(self.func,func)
-	return self
-end
-
-function multi:FreeMainEvent()
-	self.func={}
-	return self
-end
-
-function multi:connectFinal(func)
-	if self.Type=='event' then
-		self:OnEvent(func)
-	elseif self.Type=='alarm' then
-		self:OnRing(func)
-	elseif self.Type=='step' or self.Type=='tstep' then
-		self:OnEnd(func)
-	else
-		multi.print("Warning!!! "..self.Type.." doesn't contain a Final Connection State! Use "..self.Type..":Break(func) to trigger it's final event!")
-		self:OnBreak(func)
-	end
-	return self
 end
 
 if os.getOS()=="windows" then

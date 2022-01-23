@@ -1,5 +1,5 @@
 package.path = "./?.lua;?/init.lua;"..package.path
-local multi,thread = require("multi"):init{print=true,priority=true}
+local multi,thread = require("multi"):init{print=true}
 --local GLOBAL,THREAD = require("multi.integration.lanesManager"):init()
 
 -- func = THREAD:newFunction(function(a,b,c)
@@ -33,18 +33,15 @@ local c = 1
 local function bench(t,step)
 	a = a + step
 	c = c + 1
-	if c == 5 then
-		--print("Total: "..a)
-		os.exit()
-	end
-end--p_c,p_vh,p_h,p_an,p_n,p_bn,p_l,p_vl,p_i
-multi:benchMark(sleep_for,multi.Priority_Idle,"Idle:"):OnBench(bench)
+	os.exit()
+end
+--multi:benchMark(sleep_for,multi.Priority_Idle,"Idle:"):OnBench(bench)
 --multi:benchMark(sleep_for,multi.Priority_Very_Low,"Very Low:"):OnBench(bench)
-multi:benchMark(sleep_for,multi.Priority_Low,"Low:"):OnBench()
+--multi:benchMark(sleep_for,multi.Priority_Low,"Low:"):OnBench()
 --multi:benchMark(sleep_for,multi.Priority_Below_Normal,"Below Normal:"):OnBench(bench)
-multi:benchMark(sleep_for,multi.Priority_Normal,"Normal:"):OnBench(bench)
+--multi:benchMark(sleep_for,multi.Priority_Normal,"Normal:"):OnBench(bench)
 --multi:benchMark(sleep_for,multi.Priority_Above_Normal,"Above Normal:"):OnBench(bench)
-multi:benchMark(sleep_for,multi.Priority_High,"High:"):OnBench(bench)
+--multi:benchMark(sleep_for,multi.Priority_High,"High:"):OnBench(bench)
 --multi:benchMark(sleep_for,multi.Priority_Very_High,"Very High:"):OnBench(bench)
 multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 multi.OnExit(function()
