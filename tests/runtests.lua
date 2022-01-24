@@ -15,7 +15,7 @@ package.path="./?.lua;../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
-local multi, thread = require("multi"):init()
+local multi, thread = require("multi"):init{priority=true}
 local good = false
 runTest = thread:newFunction(function()
     local objects = multi:newProcessor("Basic Object Tests")
@@ -29,5 +29,7 @@ runTest = thread:newFunction(function()
     print(multi:getTasksDetails())
     os.exit()
 end)
-runTest().OnError(print)
+runTest().OnError(function(...)
+	print("Error:",...)
+end)
 multi:mainloop()

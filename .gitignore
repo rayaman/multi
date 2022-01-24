@@ -3,8 +3,5 @@
 *lua5.3
 *lua5.4
 *luajit
-test2.lua
-test.lua
-test3.lua
 *.code-workspace
 *.dat
