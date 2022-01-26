@@ -4,7 +4,7 @@ local multi,thread = require("multi"):init()
 Before AVG: 522386
 Test 1 AVG: 
 ]]
-local sleep_for = 100000
+local sleep_for = 5
 local conn = multi:newConnection()
 local function bench(_,steps)
 	print("Steps/5s: "..steps)
@@ -13,24 +13,20 @@ end
 local ready = false
 multi:newAlarm(3):OnRing(function()
 	conn:Fire()
+	ready = true
 end)
 multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 multi:newThread("Thread 1",function()
-	while true do
-		thread.hold(conn) -- We just need to run things
-	end
+	error("Testing 1")
 end)
 
 multi:newThread("Thread 2",function()
-	thread.sleep(1)
-	error("Hi")
+	thread.sleep(2)
+	error("Testing 2")
 end)
-
 multi:newThread("Thread 3",function()
-	while true do
-		thread.sleep(1) -- We just need to run things
-		print("3 ...")
-	end
+	thread.sleep(1)
+	return "Complete 3"
 end)
 
 -- multi.OnExit(function()
