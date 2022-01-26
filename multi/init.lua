@@ -1033,8 +1033,8 @@ end
 
 function thread.hold(n,opt)
 	thread._Requests()
+	interval = opt.interval
 	if type(opt)=="table" then
-		interval = opt.interval
 		if opt.cycles then
 			return coroutine.yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
 		elseif opt.sleep then
@@ -1045,9 +1045,9 @@ function thread.hold(n,opt)
 	end
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
-		return coroutine.yield(CMD, t_sleep, n or 0)
+		return coroutine.yield(CMD, t_sleep, n or 0, nil, interval)
 	else
-		return coroutine.yield(CMD, t_hold, n or dFunc)
+		return coroutine.yield(CMD, t_hold, n or dFunc, nil, interval)
 	end
 end
 
@@ -1226,7 +1226,7 @@ function multi:attachScheduler()
 		if type(name) == "function" then
 			name = "Thread#"..threadCount
 		end
-		local c={}
+		local c={nil,nil,nil,nil,nil,nil,nil}
 		local env = {self=c}
 		c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 		c.startArgs = {...}
@@ -1332,34 +1332,6 @@ function multi:attachScheduler()
 		local t0,t1,t2,t3,t4,t5,t6,t7,t8,t9,t10,t11,t12,t13,t14,t15
 		local r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16
 		local ret,_
-		local function CheckRets(i)
-			if threads[i] and not(threads[i].isError) then
-				if not _ then
-					threads[i].isError = true
-					threads[i].TempRets[1] = ret
-					return
-				end
-				if ret or r1 or r2 or r3 or r4 or r5 or r6 or r7 or r8 or r9 or r10 or r11 or r12 or r13 or r14 or r15 or r16 then
-					threads[i].TempRets[1] = ret
-					threads[i].TempRets[2] = r1
-					threads[i].TempRets[3] = r2
-					threads[i].TempRets[4] = r3
-					threads[i].TempRets[5] = r4
-					threads[i].TempRets[6] = r5
-					threads[i].TempRets[7] = r6
-					threads[i].TempRets[8] = r7
-					threads[i].TempRets[9] = r8
-					threads[i].TempRets[10] = r9
-					threads[i].TempRets[11] = r10
-					threads[i].TempRets[12] = r11
-					threads[i].TempRets[13] = r12
-					threads[i].TempRets[14] = r13
-					threads[i].TempRets[15] = r14
-					threads[i].TempRets[16] = r15
-					threads[i].TempRets[17] = r16
-				end
-			end
-		end
 		local function holdconn(n)
 			if type(ret[n])=="table" and ret[n].Type=='connector' then
 				local letsgo
@@ -1370,58 +1342,6 @@ function multi:attachScheduler()
 					end
 				end
 			end
-		end
-		local function helper(CMD,arg1,arg2,arg3,arg4)
-			if type(ret)=="table" then
-				if ret[1]=="_kill_" then
-					threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
-					self.setType(threads[i],self.DestroyedObj)
-					table.remove(threads,i)
-					ret = nil
-				elseif ret[1]=="_sleep_" then
-					threads[i].sec = ret[2]
-					threads[i].time = clock()
-					threads[i].task = "sleep"
-					threads[i].__ready = false
-					ret = nil
-				elseif ret[1]=="_skip_" then
-					threads[i].count = ret[2]
-					threads[i].pos = 0
-					threads[i].task = "skip"
-					threads[i].__ready = false
-					ret = nil
-				elseif ret[1]=="_hold_" then
-					holdconn(2)
-					threads[i].func = ret[2]
-					threads[i].task = "hold"
-					threads[i].__ready = false
-					threads[i].interval = ret[4] or 0
-					threads[i].intervalR = clock()
-					ret = nil
-				elseif ret[1]=="_holdF_" then
-					holdconn(3)
-					threads[i].sec = ret[2]
-					threads[i].func = ret[3]
-					threads[i].task = "holdF"
-					threads[i].time = clock()
-					threads[i].__ready = false
-					threads[i].interval = ret[4] or 0
-					threads[i].intervalR = clock()
-					ret = nil
-				elseif ret[1]=="_holdW_" then
-					holdconn(3)
-					threads[i].count = ret[2]
-					threads[i].pos = 0
-					threads[i].func = ret[3]
-					threads[i].task = "holdW"
-					threads[i].time = clock()
-					threads[i].__ready = false
-					threads[i].interval = ret[4] or 0
-					threads[i].intervalR = clock()
-					ret = nil
-				end
-			end
-			CheckRets(i)
 		end
 		local task, thd, ref, ready
 		--[[
@@ -1502,74 +1422,67 @@ function multi:attachScheduler()
 		}
 		setmetatable(switch,{__index=function() return function() end end})
 		local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none <-- Order
+			-- function(th,arg1,arg2,arg3,arg4)
+			-- 	threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+			-- 	self.setType(threads[i],self.DestroyedObj)
+			-- 	table.remove(threads,i)
+			-- 	ret = nil
+			-- end,
 			function(th,arg1,arg2,arg3,arg4)
-				threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
-				self.setType(threads[i],self.DestroyedObj)
-				table.remove(threads,i)
-				ret = nil
+				th.func = arg1
+				th.task = t_hold
+				th.interval = arg4 or 0
+				th.intervalR = clock()
 			end,
 			function(th,arg1,arg2,arg3,arg4)
-				print("SLEEP:",th,arg1,arg2,arg3,arg4)
 				th.sec = arg1
 				th.time = clock()
 				th.task = t_sleep
-				ret = nil
 			end,
 			function(th,arg1,arg2,arg3,arg4)
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].task = t_skip
-				threads[i].__ready = false
-				ret = nil 
+				th.sec = arg1
+				th.func = arg2
+				th.task = t_holdF
+				th.time = clock()
+				th.interval = arg4 or 0
+				th.intervalR = clock()
 			end,
 			function(th,arg1,arg2,arg3,arg4)
-				holdconn(2)
-				threads[i].func = ret[2]
-				threads[i].task = t_hold
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
+				th.count = arg1
+				th.pos = 0
+				th.task = t_skip
 			end,
 			function(th,arg1,arg2,arg3,arg4)
-				holdconn(3)
-				threads[i].sec = ret[2]
-				threads[i].func = ret[3]
-				threads[i].task = t_holdF
-				threads[i].time = clock()
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
-			end,
-			function(th,arg1,arg2,arg3,arg4)
-				holdconn(3)
-				threads[i].count = ret[2]
-				threads[i].pos = 0
-				threads[i].func = ret[3]
-				threads[i].task = t_holdW
-				threads[i].time = clock()
-				threads[i].__ready = false
-				threads[i].interval = ret[4] or 0
-				threads[i].intervalR = clock()
-				ret = nil
+				th.count = arg1
+				th.pos = 0
+				th.func = arg2
+				th.task = t_holdW
+				th.time = clock()
+				th.interval = arg4 or 0
+				th.intervalR = clock()
 			end,
 			function() end
 		}
 		setmetatable(cmds,{__index=function() return function() end end})
 		local co_status = {
 			["suspended"] = function(thd,ref,task)
-				print(ref,r2,r3,r4,r5)
 				switch[task](ref,thd)
-				--cmds[r1](ref,r2,r3,r4,r5)
+				cmds[r1](ref,r2,r3,r4,r5)
+				if not _ then
+					print(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+					io.read() -- This is an error spot too
+				end
+				r1=nil r2=nil r3=nil r4=nil r5=nil
 			end,
 			["normal"] = function(thd,ref) end, -- Not sure if I will handle this
 			["running"] = function(thd,ref) end,
-			["dead"] = function(thd,ref)
+			["dead"] = function(thd,ref,task,i)
 				local t = ref.TempRets or {}
+				print(_,ref.Name,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+				print("ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
 				ref.OnDeath:Fire(ref,"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
-				self.setType(ref,self.DestroyedObj)
 				table.remove(threads,i)
+				self.setType(ref,self.DestroyedObj)
 			end,
 		}
 		self.scheduler:OnLoop(function(self)
@@ -1581,10 +1494,10 @@ function multi:attachScheduler()
 
 				for start = 1, startme_len do
 					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=resume(startme[start].thread,unpack(startme[start].startArgs))
-					cmds[r1](ref,r2,r3,r4,r5)
+					-- An error can happen here
+					cmds[r1](startme[start],r2,r3,r4,r5)
 					startme_len = startme_len - 1
 				end
-
 				-- if threads[i].isError then
 				-- 	if status(threads[i].thread)=="dead" then
 				-- 		threads[i].OnError:Fire(threads[i],unpack(threads[i].TempRets))
@@ -1592,22 +1505,9 @@ function multi:attachScheduler()
 				-- 		table.remove(threads,i)
 				-- 	end
 				-- end
-				co_status[status(thd)](thd,ref,task)
-				if threads[i] and threads[i].__ready then
-					threads[i].__ready = false
-					if coroutine.running() ~= threads[i].thread then
-						
-						CheckRets(i)
-					end
-				end
-				helper(i)
+				co_status[status(thd)](thd,ref,task,i)
 			end
 		end)
-		if justThreads then
-			while true do
-				self.scheduler:Act()
-			end
-		end
 	end
 end
 
