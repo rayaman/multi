@@ -17,17 +17,26 @@ multi:newAlarm(3):OnRing(function()
 end)
 multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 multi:newThread("Thread 1",function()
-	error("Testing 1")
-end)
+	while true do
+		thread.sleep(1)
+		error("hi")
+		print("Test 1")
+		thread.hold(conn)
+		print("Conn sleep test")
+	end
+end).OnError(print)
 
 multi:newThread("Thread 2",function()
-	thread.sleep(2)
-	error("Testing 2")
-end)
+	print("Thread 2")
+	return "it worked"
+end):OnDeath(print):OnError(error)
 multi:newThread("Thread 3",function()
-	thread.sleep(1)
-	return "Complete 3"
-end)
+	thread.hold(function()
+		return ready
+	end)
+	print("Function test")
+	return "Yay we did it"
+end).OnDeath(print)
 
 -- multi.OnExit(function()
 -- 	print("Total: ".. a)

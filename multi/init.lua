@@ -1420,27 +1420,21 @@ function multi:attachScheduler()
 		}
 		setmetatable(switch,{__index=function() return function() end end})
 		local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none <-- Order
-			-- function(th,arg1,arg2,arg3)
-			-- 	threads[i].OnDeath:Fire(threads[i],"killed",ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
-			-- 	self.setType(threads[i],self.DestroyedObj)
-			-- 	table.remove(threads,i)
-			-- 	ret = nil
-			-- end,
 			function(th,arg1,arg2,arg3)
-				print("hold",arg1,arg2,arg3)
+				--print("hold",arg1,arg2,arg3)
 				th.func = arg1
 				th.task = t_hold
 				th.interval = arg3 or 0
 				th.intervalR = clock()
 			end,
 			function(th,arg1,arg2,arg3)
-				print("sleep",arg1,arg2,arg3)
+				--print("sleep",arg1,arg2,arg3)
 				th.sec = arg1
 				th.time = clock()
 				th.task = t_sleep
 			end,
 			function(th,arg1,arg2,arg3)
-				print("holdf",arg1,arg2,arg3)
+				--print("holdf",arg1,arg2,arg3)
 				th.sec = arg1
 				th.func = arg2
 				th.task = t_holdF
@@ -1449,13 +1443,13 @@ function multi:attachScheduler()
 				th.intervalR = clock()
 			end,
 			function(th,arg1,arg2,arg3)
-				print("skip",arg1,arg2,arg3)
+				--print("skip",arg1,arg2,arg3)
 				th.count = arg1
 				th.pos = 0
 				th.task = t_skip
 			end,
 			function(th,arg1,arg2,arg3)
-				print("holdw",arg1,arg2,arg3)
+				--print("holdw",arg1,arg2,arg3)
 				th.count = arg1
 				th.pos = 0
 				th.func = arg2
@@ -1476,13 +1470,23 @@ function multi:attachScheduler()
 			["normal"] = function(thd,ref) end, -- Not sure if I will handle this
 			["running"] = function(thd,ref) end,
 			["dead"] = function(thd,ref,task,i)
-				print("Ended:",ref.Name,_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
-				local t = ref.TempRets or {}
-				print("ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
-				ref.OnDeath:Fire(ref,"ended",t[1],t[2],t[3],t[4],t[5],t[6],t[7],t[8],t[9],t[10],t[11],t[12],t[13],t[14],t[15],t[16])
-				table.remove(threads,i)
+				if _ then
+					ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+				else
+					ref.OnError:Fire(ref,ret,r1)
+				end
+				if i then
+					table.remove(threads,i)
+				else
+					for i,v in pairs(threads) do
+						if v.thread==thd then
+							table.remove(threads,i)
+							break
+						end
+					end
+				end
 				_=nil r1=nil r2=nil r3=nil r4=nil r5=nil
-				--self.setType(ref,self.DestroyedObj)
+				self.setType(ref,self.DestroyedObj)
 			end,
 		}
 		self.scheduler:OnLoop(function(self)
@@ -1491,18 +1495,12 @@ function multi:attachScheduler()
 				task = ref.task
 				thd = ref.thread
 				ready = ref.__ready
-
+				-- First time setup for threads
 				for start = startme_len,1,-1 do
-					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16=resume(startme[start].thread,unpack(startme[start].startArgs))
-					-- An error can happen here
-					cmds[r1](startme[start],r2,r3,r4,r5)
+					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
+					co_status[status(startme[startme_len].thread)](startme[startme_len].thread,startme[startme_len],t_none)	--cmds[r1](startme[start],r2,r3,r4,r5)
+					startme[startme_len] = nil
 					startme_len = startme_len - 1
-					if not _ then
-						co_status["dead"](startme[start].thread,startme[start],task,i)
-						table.remove(startme,startme_len)
-						break
-					end
-					table.remove(startme,startme_len)
 				end
 				co_status[status(thd)](thd,ref,task,i)				
 			end
