@@ -24,7 +24,7 @@ multi:newThread("Thread 1",function()
 		print("Conn sleep test")
 		error("hi")
 	end
-end).OnError(print)
+end).OnError(print) 
 
 multi:newThread("Thread 2",function()
 	print("Thread 2")
