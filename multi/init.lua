@@ -1313,6 +1313,7 @@ function multi:attachScheduler()
 		table.insert(threads,c)
 		table.insert(startme,c)
 		startme_len = #startme
+		print("startme:",startme_len)
 		globalThreads[c] = self
 		if initT==false then
 			self.initThreads()
@@ -1509,7 +1510,7 @@ function multi:attachScheduler()
 					_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
 					co_status[status(startme[startme_len].thread)](startme[startme_len].thread,startme[startme_len],t_none)	--cmds[r1](startme[start],r2,r3,r4,r5)
 					startme[startme_len] = nil
-					startme_len = startme_len - 1
+					startme_len = #startme
 				end
 				if threads[i] then
 					ref = threads[i]

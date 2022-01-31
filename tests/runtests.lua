@@ -1,6 +1,9 @@
-package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
-require("lldebugger").start()
-
+if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
+    package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
+    require("lldebugger").start()
+else
+    package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+end
 --[[
     This file runs all tests.
     Format:
@@ -17,8 +20,6 @@ require("lldebugger").start()
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
-os.execute("cd multi")
-os.execute("pwd")
 local multi, thread = require("multi"):init{priority=true}
 local good = false
 runTest = thread:newFunction(function()
@@ -38,7 +39,6 @@ runTest = thread:newFunction(function()
     require("tests/connectionTest")(conn_thread,thread)
     conn_thread.Stop()
     --print(multi:getTasksDetails())
-    os.exit()
 end)
 runTest().OnError(function(...)
 	print("Error:",...)
