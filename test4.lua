@@ -22,12 +22,12 @@ multi:newThread("Thread 1",function()
 		print("Test 1")
 		thread.hold(conn)
 		print("Conn sleep test")
-		error("hi") 
+		error("hi")
 	end
 end).OnError(print)
 
 multi:newThread("Thread 2",function()
-	print("Thread 2") 
+	print("Thread 2")
 	return "it worked"
 end):OnDeath(print):OnError(error)
 multi:newThread("Thread 3",function()
