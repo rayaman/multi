@@ -1,9 +1,7 @@
 function connectionThreadTests(multi,thread)
 	print("Starting Connection and Thread tests!")
-	print("Current Thread:",thread.getRunningThread())
 	func = thread:newFunction(function(count)
 		print("Starting Status test: ",count)
-		print("Current Thread:",thread.getRunningThread().thread)
 		local a = 0
 		while true do
 			a = a + 1
@@ -33,12 +31,7 @@ function connectionThreadTests(multi,thread)
 	ret.OnReturn(function()
 		print("Done")
 	end)
-	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn,{sleep=3})
-	print(err,timeout)
-	for i,v in pairs(err) do
-		print(i,v)
-	end
-	os.exit()
+	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn)
 	if s1 == 100 and s2 == 100 and s3 == 100 then
 		print("Threads: Ok")
 	else

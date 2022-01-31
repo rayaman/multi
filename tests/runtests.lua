@@ -1,4 +1,6 @@
-package.path="./?.lua;../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
+require("lldebugger").start()
+
 --[[
     This file runs all tests.
     Format:
@@ -15,6 +17,8 @@ package.path="./?.lua;../?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
+os.execute("cd multi")
+os.execute("pwd")
 local multi, thread = require("multi"):init{priority=true}
 local good = false
 runTest = thread:newFunction(function()

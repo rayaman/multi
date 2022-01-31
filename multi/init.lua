@@ -1137,7 +1137,6 @@ end
 
 function thread.pushStatus(...)
 	local t = thread.getRunningThread()
-	print("Pushing",t)
 	t.statusconnector:Fire(...)
 end
 
@@ -1433,6 +1432,7 @@ function multi:attachScheduler()
 		local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none <-- Order
 			function(th,arg1,arg2,arg3)
 				--print("hold",arg1,arg2,arg3)
+				--print(_,ret,r1,r2,r3,r4,r5)
 				th.func = arg1
 				th.task = t_hold
 				th.interval = arg3 or 0
@@ -1478,8 +1478,8 @@ function multi:attachScheduler()
 				cmds[r1](ref,r2,r3,r4,r5)
 				r1=nil r2=nil r3=nil r4=nil r5=nil
 			end,
-			["normal"] = function(thd,ref) end, -- Not sure if I will handle this
-			["running"] = function(thd,ref) end,
+			["normal"] = function(thd,ref) print("Normal Status") io.read() end, -- Not sure if I will handle this
+			["running"] = function(thd,ref) print("Running Status") io.read() end,
 			["dead"] = function(thd,ref,task,i)
 				if _ then
 					print("Death")
