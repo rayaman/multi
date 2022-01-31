@@ -22,7 +22,7 @@ multi:newThread("Thread 1",function()
 		print("Test 1")
 		thread.hold(conn)
 		print("Conn sleep test")
-		error("hi")
+		error("hi") 
 	end
 end).OnError(print)
 
