@@ -1,6 +1,9 @@
 function connectionThreadTests(multi,thread)
 	print("Starting Connection and Thread tests!")
+	print("Current Thread:",thread.getRunningThread())
 	func = thread:newFunction(function(count)
+		print("Starting Status test: ",count)
+		print("Current Thread:",thread.getRunningThread().thread)
 		local a = 0
 		while true do
 			a = a + 1
@@ -14,8 +17,12 @@ function connectionThreadTests(multi,thread)
     local ret2 = func(15)
     local ret3 = func(20)
 	local s1,s2,s3 = 0,0,0
+	ret.OnError(function(...)
+		print("Error:",...)
+	end)
     ret.OnStatus(function(part,whole)
 		s1 = math.ceil((part/whole)*1000)/10
+		print(s1)
     end)
     ret2.OnStatus(function(part,whole)
         s2 = math.ceil((part/whole)*1000)/10
@@ -23,14 +30,22 @@ function connectionThreadTests(multi,thread)
     ret3.OnStatus(function(part,whole)
         s3 = math.ceil((part/whole)*1000)/10
     end)
-	local err, timeout = thread.hold(ret2.OnReturn + ret.OnReturn + ret3.OnReturn,{sleep=3})
+	ret.OnReturn(function()
+		print("Done")
+	end)
+	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn,{sleep=3})
+	print(err,timeout)
+	for i,v in pairs(err) do
+		print(i,v)
+	end
+	os.exit()
 	if s1 == 100 and s2 == 100 and s3 == 100 then
 		print("Threads: Ok")
 	else
-		print("Threads on status error")
+		print("Threads OnStatus or thread.hold(conn) Error!")
 	end
 	if timeout then
-		print("Threads or Connection error!")
+		print("Threads or Connection Error!")
 	else
 		print("Connection Test 1: Ok")
 	end

@@ -19,10 +19,10 @@ multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 multi:newThread("Thread 1",function()
 	while true do
 		thread.sleep(1)
-		error("hi")
 		print("Test 1")
 		thread.hold(conn)
 		print("Conn sleep test")
+		error("hi")
 	end
 end).OnError(print)
 

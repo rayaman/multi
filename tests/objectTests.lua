@@ -7,12 +7,12 @@ function objectTests(multi,thread)
     end)
     multi:newTStep(1,10,1,.1):OnStep(function(t)
         tsteps = tsteps + 1
-    end):OnEnd(function(step)
+    end).OnEnd(function(step)
         step:Destroy()
     end)
     multi:newStep(1,10):OnStep(function(s)
         steps = steps + 1
-    end):OnEnd(function(step)
+    end).OnEnd(function(step)
         step:Destroy()
     end)
     local loop = multi:newLoop(function(l)
@@ -28,6 +28,7 @@ function objectTests(multi,thread)
         return alarms
     end)
     event.OnEvent(function(evnt)
+		evnt:Destroy()
         events = true
         print("Alarms: Ok")
         print("Events: Ok")
@@ -37,6 +38,6 @@ function objectTests(multi,thread)
         if tloops > 10 then print("TLoops: Ok") else print("TLoops: Bad!") end
         if updaters > 100 then print("Updaters: Ok") else print("Updaters: Bad!") end
     end)
-    thread.hold(event.OnEvent)
+	thread.hold(event.OnEvent)
 end
 return objectTests
