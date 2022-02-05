@@ -70,7 +70,7 @@ function multi:newSystemThread(name,func,...)
 		env[tab[i]] = _G[tab[i]]
 	end
 	--setmetatable(env,{__index=env})
-	multi:newISOThread(name,func,env,...).OnError(function(self,msg)
+	thread:newISOThread(name,func,env,...).OnError(function(self,msg)
 		print("ERROR:",msg)
 	end)
 	id = id + 1

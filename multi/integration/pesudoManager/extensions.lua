@@ -125,7 +125,7 @@ function multi:newSystemThreadedJobQueue(n)
         end,holup),name
     end
     for i=1,c.cores do
-        multi:newThread("PesudoThreadedJobQueue_"..i,function()
+        thread:newthread("PesudoThreadedJobQueue_"..i,function()
             while true do
                 thread.yield()
                 if #jobs>0 then

@@ -72,7 +72,7 @@ function master:newNetworkThread(nodeName,func,...)
     local ret
     local nID = netID
     local conn = multi:newConnection()
-    multi:newThread(function()
+    thread:newthread(function()
         dat:addBlock{
             args = args,
             func = func,
@@ -143,7 +143,7 @@ function multi:newMasterNode(cd)
     else
         c:getNodesFromBroadcast()
     end
-    multi:newThread("CMDQueueProcessor",function()
+    thread:newthread("CMDQueueProcessor",function()
         while true do
             thread.skip(128)
             local data = table.remove(c._queue,1)

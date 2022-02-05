@@ -122,7 +122,7 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID+1
-    multi:newThread(function()
+    thread:newthread(function()
         while true do
             thread.yield()
             if c.stab["returns"] then
