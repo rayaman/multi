@@ -22,36 +22,38 @@ end
 ]]
 local multi, thread = require("multi"):init{priority=true}
 local good = false
-multi:newAlarm(3):OnRing(function()
+local proc = multi:newProcessor("Test")
+proc:newAlarm(3):OnRing(function()
 	good = true
 end)
+
 runTest = thread:newFunction(function()
     local alarms,tsteps,steps,loops,tloops,updaters,events=false,0,0,0,0,0,false
     print("Testing Basic Features. If this fails most other features will probably not work!")
-    multi:newAlarm(2):OnRing(function(a)
+    proc:newAlarm(2):OnRing(function(a)
         alarms = true
         a:Destroy()
     end)
-    multi:newTStep(1,10,1,.1):OnStep(function(t)
+    proc:newTStep(1,10,1,.1):OnStep(function(t)
         tsteps = tsteps + 1
     end).OnEnd(function(step)
         step:Destroy()
     end)
-    multi:newStep(1,10):OnStep(function(s)
+    proc:newStep(1,10):OnStep(function(s)
         steps = steps + 1
     end).OnEnd(function(step)
         step:Destroy()
     end)
-    local loop = multi:newLoop(function(l)
+    local loop = proc:newLoop(function(l)
         loops = loops + 1
     end)
-    multi:newTLoop(function(t)
+    proc:newTLoop(function(t)
         tloops = tloops + 1
     end,.1)
-    local updater = multi:newUpdater(1):OnUpdate(function()
+    local updater = proc:newUpdater(1):OnUpdate(function()
         updaters = updaters + 1
     end)
-    local event = multi:newEvent(function()
+    local event = proc:newEvent(function()
         return alarms
     end)
     event.OnEvent(function(evnt)
@@ -108,9 +110,9 @@ runTest = thread:newFunction(function()
 	else
 		print("Connection Test 1: Ok")
 	end
-	conn1 = multi:newConnection()
-	conn2 = multi:newConnection()
-	conn3 = multi:newConnection()
+	conn1 = proc:newConnection()
+	conn2 = proc:newConnection()
+	conn3 = proc:newConnection()
 	local c1,c2,c3,c4 = false,false,false,false
 	local a = conn1(function()
 		c1 = true
@@ -146,4 +148,6 @@ end)
 runTest().OnError(function(...)
 	print("Error:",...)
 end)
-multi:mainloop()
+while true do
+	proc.run()
+end

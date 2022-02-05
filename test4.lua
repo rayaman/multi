@@ -11,13 +11,16 @@ local function bench(_,steps)
 	print("Steps/1s: "..steps)
 	os.exit()
 end
+proc = multi:newProcessor("Test")
 for i = 1,400 do
-	thread:newThread(function()
+	thread:newThread("Thread: "..i,function()
 		while true do
 			thread.sleep(.1)
 		end
 	end)
 end
-multi:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
+proc:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 
-multi:mainloop()
+while true do
+	proc.run()
+end

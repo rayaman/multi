@@ -919,8 +919,7 @@ end
 local sandcount = 1
 function multi:newProcessor(name,nothread)
 	local c = {}
-	setmetatable(c,{__index = self})
-	local multi,thread = require("multi"):init() -- We need to capture the t in thread
+	setmetatable(c,{__index = multi})
 	local name = name or "Processor_"..sandcount
 	sandcount = sandcount + 1
 	c.Mainloop = {}
@@ -930,18 +929,17 @@ function multi:newProcessor(name,nothread)
 	c.process = thread:newThread(function()
 		while true do
 			thread.hold(function() return c.Active end)
-			__CurrentProcess = c
 			c:uManager()
-			__CurrentProcess = self
 		end
 	end)
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
 	function c.run()
-		__CurrentProcess = c
 		c:uManager()
-		__CurrentProcess = self
+	end
+	function c:AttachThread(t)
+		--
 	end
 	function c.Start()
 		c.Active = true
