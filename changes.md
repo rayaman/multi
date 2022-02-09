@@ -28,6 +28,7 @@ Added:
 
 Changed:
 ---
+- Moved `multi:newThread(...)` into the thread interface (`thread:newThread(...)`), code using `multi:newThread(...)` will still work. Also using `process:newThread(...)` binds the thread to the process, meaning if the process the thread is bound to is paused so is the thread.
 - multi:mainloop(~~settings~~)/multi:uManager(~~settings~~) no longer takes a settings argument, that has been moved to multi:init(settings)
 	| Setting | Description |
 	---|---
@@ -105,9 +106,10 @@ Fixed:
 - Issue where gettasksdetails() would try to process a destroyed object causing it to crash
 - Issue with multi.hold() not pumping the mainloop and only the scheduler
 
-
 ToDo:
 ---
+
+- Work on network parallelism 
 
 
 # Update 15.1.0 - Hold the thread!

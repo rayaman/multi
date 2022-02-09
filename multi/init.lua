@@ -27,6 +27,7 @@ local mainloopActive = false
 local isRunning = false
 local clock = os.clock
 local thread = {}
+local in_proc = false
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
@@ -926,31 +927,46 @@ function multi:newProcessor(name,nothread)
 	c.Type = "process"
 	c.Active = false or nothread
 	c.Name = name or ""
-	c.process = thread:newThread(function()
-		while true do
-			thread.hold(function() return c.Active end)
+	c.pump = false
+	c.threads = {}
+	c.startme = {}
+	local handler = c:createHandler(c.threads,c.startme)
+	c.process = multi:newLoop(function()
+		if c.Active then
+			c.pump = true
 			c:uManager()
+			handler()
+			c.pump = false
 		end
 	end)
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
-	function c.run()
-		c:uManager()
+	function c:newThread(name,func,...)
+		in_proc = c
+		local t = thread.newThread(c,name,func,...)
+		in_proc = false
+		return t
 	end
-	function c:AttachThread(t)
-		--
+	function c.run()
+		c.pump = true
+		c:uManager()
+		handler()
+		c.pump = false
 	end
 	function c.Start()
+		if nothread then return self end
 		c.Active = true
 		return self
 	end
 	function c.Stop()
+		if nothread then return self end
 		c.Active = false
 		return self
 	end
 	function c:Destroy()
-		self.OnObjectDestroyed:Fire(c)
+		c.Active = false
+		c.process:Destroy()
 	end
 	return c
 end
@@ -1237,6 +1253,7 @@ function thread:newThread(name,func,...)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
+
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	local env = {self=c}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
@@ -1300,9 +1317,13 @@ function thread:newThread(name,func,...)
 	end
 
 	c.Destroy = c.Kill
-
-	table.insert(threads,c)
-	table.insert(startme,c)
+	if self.Type=="process" then
+		table.insert(self.threads,c)
+		table.insert(self.startme,c)
+	else
+		table.insert(threads,c)
+		table.insert(startme,c)
+	end
 	startme_len = #startme
 	globalThreads[c] = multi
 	threadid = threadid + 1
@@ -1469,7 +1490,6 @@ local co_status = {
 		--self.setType(ref,self.DestroyedObj)
 	end,
 }
-local count = 0
 local handler = coroutine.wrap(function(self)
 	while true do
 		for start = startme_len,1,-1 do
@@ -1480,8 +1500,8 @@ local handler = coroutine.wrap(function(self)
 			yield()
 		end
 		for i=#threads,1,-1 do
-			if threads[i] then
-				ref = threads[i]
+			ref = threads[i]
+			if ref then
 				task = ref.task
 				thd = ref.thread
 				ready = ref.__ready
@@ -1492,6 +1512,28 @@ local handler = coroutine.wrap(function(self)
 	end
 end)
 
+function multi:createHandler(threads,startme)
+	return coroutine.wrap(function(self)
+		while true do
+			for start = #startme,1,-1 do
+				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
+				co_status[status(startme[start].thread)](startme[start].thread,startme[start],t_none) -- Make sure there was no error
+				table.remove(startme)
+				yield()
+			end
+			for i=#threads,1,-1 do
+				ref = threads[i]
+				if ref then
+					task = ref.task
+					thd = ref.thread
+					ready = ref.__ready
+					co_status[status(thd)](thd,ref,task,i)
+				end
+				yield()
+			end
+		end
+	end)
+end
 
 function multi:newService(func) -- Priority managed threads
 	local c = {}

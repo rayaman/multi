@@ -9,18 +9,31 @@ local conn = multi:newConnection()
 local test = {}
 local function bench(_,steps)
 	print("Steps/1s: "..steps)
-	os.exit()
+	--os.exit()
 end
 proc = multi:newProcessor("Test")
-for i = 1,400 do
-	thread:newThread("Thread: "..i,function()
-		while true do
-			thread.sleep(.1)
-		end
-	end)
-end
-proc:benchMark(sleep_for,multi.Priority_Core,"Core:"):OnBench(bench)
 
-while true do
-	proc.run()
-end
+proc.Start()
+
+thread:newThread(function()
+	thread.sleep(5)
+	proc.Stop()
+	thread.sleep(5)
+	proc.Start()
+end)
+
+thread:newThread(function()
+	while true do
+		thread.sleep(1)
+		print("...")
+	end
+end)
+
+proc:newThread(function()
+	while true do
+		thread.sleep(1)
+		print("Testing...")
+	end
+end)
+
+multi:mainloop()
