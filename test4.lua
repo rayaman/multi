@@ -15,6 +15,17 @@ proc = multi:newProcessor("Test")
 
 proc.Start()
 
+multi:newTLoop(function()
+	
+end,1)
+
+-- thread:newThread(function()
+-- 	while true do
+-- 		thread.sleep(1)
+-- 		print("Proc: ".. tostring(proc.isActive()))
+-- 	end
+-- end)
+
 local func = proc:newFunction(function(a,b,c)
 	print("Testing proc functions!",a,b,c)
 	for i=1,10 do
@@ -31,6 +42,8 @@ thread:newThread(function()
 	proc.Start()
 end)
 
-func("Some","tests","needed")
+
+
+func("Some","tests","needed").connect(print)
 
 multi:mainloop()

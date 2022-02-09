@@ -925,18 +925,16 @@ function multi:newProcessor(name,nothread)
 	sandcount = sandcount + 1
 	c.Mainloop = {}
 	c.Type = "process"
-	c.Active = false or nothread
+	local Active =  nothread or false
 	c.Name = name or ""
 	c.pump = false
 	c.threads = {}
 	c.startme = {}
 	local handler = c:createHandler(c.threads,c.startme)
 	c.process = multi:newLoop(function()
-		if c.Active then
-			c.pump = true
+		if Active then
 			c:uManager()
 			handler()
-			c.pump = false
 		end
 	end)
 	c.process.isProcessThread = true
@@ -954,23 +952,28 @@ function multi:newProcessor(name,nothread)
 		end,holdme)()
 	end
 	function c.run()
+		if not Active then return end
 		c.pump = true
 		c:uManager()
 		handler()
 		c.pump = false
+		return c
+	end
+	function c.isActive()
+		return Active
 	end
 	function c.Start()
-		if nothread then return self end
-		c.Active = true
-		return self
+		print("Proc Start",mainloopActive)
+		Active = true
+		return c
 	end
 	function c.Stop()
-		if nothread then return self end
-		c.Active = false
-		return self
+		print("Proc Stop")
+		Active = false
+		return c
 	end
 	function c:Destroy()
-		c.Active = false
+		Active = false
 		c.process:Destroy()
 	end
 	return c
@@ -1514,6 +1517,7 @@ local handler = coroutine.wrap(function(self)
 			end
 			yield()
 		end
+		yield()
 	end
 end)
 
@@ -1536,6 +1540,7 @@ function multi:createHandler(threads,startme)
 				end
 				yield()
 			end
+			yield()
 		end
 	end)
 end
