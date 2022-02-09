@@ -17,5 +17,5 @@ jobs:
       - run: echo "🍏 This job's status is ${{ job.status }}."
       - name: Lua Action
         uses: MilesChou/lua-action@v0.0.1
-        run: echo "lua -v"
-        run: lua tests/runtests.lua
+      - run: echo "lua -v"
+      - run: lua tests/runtests.lua
