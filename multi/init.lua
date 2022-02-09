@@ -948,6 +948,11 @@ function multi:newProcessor(name,nothread)
 		in_proc = false
 		return t
 	end
+	function c:newFunction(func,holdme)
+		return thread:newFunctionBase(function(...)
+			return c:newThread("TempThread",func,...)
+		end,holdme)()
+	end
 	function c.run()
 		c.pump = true
 		c:uManager()

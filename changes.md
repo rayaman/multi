@@ -16,6 +16,9 @@ Added:
 - multi:newProcessor(name,nothread).run()
 	- new function run to the processor object to 
 
+- multi:newProcessor(name,nothread):newFunction(func,holdme)
+	- Acts like thread:newFunction(), but binds the execution of that threaded function to the processor
+
 - multi:newTLoop() member functions
 	- `TLoop:Set(set)` - Sets the time to wait for the TLoop
 
@@ -28,7 +31,9 @@ Added:
 
 Changed:
 ---
+- Modified how threads are handled internally. This changes makes it so threads "regardless of amount" should not impact performance. What you do in the threads might. This change was made by internally only processing one thread per step per processor. If you have 10 processors that are all active expect one step to process 10 threads. However if one processor has 10 threads each step will only process one thread. Simply put each addition of a thread shouldn't impact performance as it did before.
 - Moved `multi:newThread(...)` into the thread interface (`thread:newThread(...)`), code using `multi:newThread(...)` will still work. Also using `process:newThread(...)` binds the thread to the process, meaning if the process the thread is bound to is paused so is the thread.
+	
 - multi:mainloop(~~settings~~)/multi:uManager(~~settings~~) no longer takes a settings argument, that has been moved to multi:init(settings)
 	| Setting | Description |
 	---|---
