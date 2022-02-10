@@ -27,23 +27,13 @@ end,1)
 -- end)
 
 local func = proc:newFunction(function(a,b,c)
-	print("Testing proc functions!",a,b,c)
-	for i=1,10 do
-		thread.sleep(1)
-		print("h1")
-	end
-	return true,"Smile"
+	print("Testing proc functions!")
+	error("Testing")
+	return "Please", "Smile", 123
 end)
 
-thread:newThread(function()
-	thread.sleep(3.1)
-	proc.Stop()
-	thread.sleep(3)
-	proc.Start()
+func("Some","tests","needed").connect(function(a,b,c)
+	print("Return",a,b,c)
 end)
-
-
-
-func("Some","tests","needed").connect(print)
 
 multi:mainloop()

@@ -1207,7 +1207,7 @@ function thread:newFunctionBase(generator,holdme)
 				}
 			end 
 			local t = generator(...)
-			t.OnDeath(function(self,status,...) rets = {...}  end)
+			t.OnDeath(function(...) rets = {...}  end)
 			t.OnError(function(self,e) err = e end)
 			if holdme then
 				return wait()
@@ -1223,7 +1223,7 @@ function thread:newFunctionBase(generator,holdme)
 				end,
 				connect = function(f)
 					local tempConn = multi:newConnection(true)
-					t.OnDeath(function(self,status,...) if f then f(...) else tempConn:Fire(...) end end) 
+					t.OnDeath(function(...) if f then f(...) else tempConn:Fire(...) end end) 
 					t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
 					return tempConn
 				end
@@ -1325,6 +1325,7 @@ function thread:newThread(name,func,...)
 	end
 
 	c.Destroy = c.Kill
+
 	if self.Type=="process" then
 		table.insert(self.threads,c)
 		table.insert(self.startme,c)
@@ -1332,6 +1333,7 @@ function thread:newThread(name,func,...)
 		table.insert(threads,c)
 		table.insert(startme,c)
 	end
+
 	startme_len = #startme
 	globalThreads[c] = multi
 	threadid = threadid + 1
@@ -1476,33 +1478,32 @@ local co_status = {
 		cmds[r1](ref,r2,r3,r4,r5)
 		r1=nil r2=nil r3=nil r4=nil r5=nil
 	end,
-	["normal"] = function(thd,ref) print("Normal Status") io.read() end, -- Not sure if I will handle this
-	["running"] = function(thd,ref) print("Running Status") io.read() end,
-	["dead"] = function(thd,ref,task,i)
+	["normal"] = function(thd,ref)  end,
+	["running"] = function(thd,ref)  end,
+	["dead"] = function(thd,ref,task,i,th)
 		if _ then
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
 			ref.OnError:Fire(ref,ret)
 		end
 		if i then
-			table.remove(threads,i)
+			table.remove(th,i)
 		else
-			for i,v in pairs(threads) do
+			for i,v in pairs(th) do
 				if v.thread==thd then
-					table.remove(threads,i)
+					table.remove(th,i)
 					break
 				end
 			end
 		end
 		_=nil r1=nil r2=nil r3=nil r4=nil r5=nil
-		--self.setType(ref,self.DestroyedObj)
 	end,
 }
 local handler = coroutine.wrap(function(self)
 	while true do
 		for start = startme_len,1,-1 do
 			_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
-			co_status[status(startme[startme_len].thread)](startme[startme_len].thread,startme[startme_len],t_none) -- Make sure there was no error
+			co_status[status(startme[startme_len].thread)](startme[startme_len].thread,startme[startme_len],t_none,nil,threads) -- Make sure there was no error
 			startme[startme_len] = nil
 			startme_len = #startme
 			yield()
@@ -1513,7 +1514,7 @@ local handler = coroutine.wrap(function(self)
 				task = ref.task
 				thd = ref.thread
 				ready = ref.__ready
-				co_status[status(thd)](thd,ref,task,i)
+				co_status[status(thd)](thd,ref,task,i,threads)
 			end
 			yield()
 		end
@@ -1526,7 +1527,7 @@ function multi:createHandler(threads,startme)
 		while true do
 			for start = #startme,1,-1 do
 				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
-				co_status[status(startme[start].thread)](startme[start].thread,startme[start],t_none) -- Make sure there was no error
+				co_status[status(startme[start].thread)](startme[start].thread,startme[start],t_none,nil,threads) -- Make sure there was no error
 				table.remove(startme)
 				yield()
 			end
@@ -1536,7 +1537,7 @@ function multi:createHandler(threads,startme)
 					task = ref.task
 					thd = ref.thread
 					ready = ref.__ready
-					co_status[status(thd)](thd,ref,task,i)
+					co_status[status(thd)](thd,ref,task,i,threads)
 				end
 				yield()
 			end
