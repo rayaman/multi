@@ -131,7 +131,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
         end,holup),name
     end
-	thread:newthread("jobManager",function()
+	thread:newThread("jobManager",function()
 		while true do
 			thread.yield()
 			local dat = c.queueReturn:pop()
@@ -155,7 +155,7 @@ function multi:newSystemThreadedJobQueue(n)
 			local queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
 			setmetatable(_G,{__index = funcs})
-			thread:newthread("startUp",function()
+			thread:newThread("startUp",function()
 				while true do
 					thread.yield()
 					local all = queueAll:peek()
@@ -165,7 +165,7 @@ function multi:newSystemThreadedJobQueue(n)
 					end
 				end
 			end)
-			thread:newthread("runner",function()
+			thread:newThread("runner",function()
 				thread.sleep(.1)
 				while true do
 					thread.yield()
@@ -187,7 +187,7 @@ function multi:newSystemThreadedJobQueue(n)
 			end):OnError(function(...)
 				error(...)
 			end)
-			thread:newthread("Idler",function()
+			thread:newThread("Idler",function()
 				while true do
 					thread.yield()
 					if clock()-lastProc> 2 then

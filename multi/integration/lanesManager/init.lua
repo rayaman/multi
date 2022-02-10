@@ -105,7 +105,7 @@ function multi.InitSystemThreadErrorHandler()
 		return
 	end
 	started = true
-	thread:newthread("SystemThreadScheduler",function()
+	thread:newThread("SystemThreadScheduler",function()
 		local threads = multi.SystemThreads
 		while true do
 			thread.sleep(.005) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.

@@ -113,7 +113,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
         end,holup),name
     end
-    thread:newthread("JobQueueManager",function()
+    thread:newThread("JobQueueManager",function()
         while true do
             local job = thread.hold(function()
                 return queueReturn:pop()
@@ -129,7 +129,7 @@ function multi:newSystemThreadedJobQueue(n)
             local clock = os.clock
             local ref = 0
             setmetatable(_G,{__index = funcs})
-            thread:newthread("JobHandler",function()
+            thread:newThread("JobHandler",function()
                 while true do
                     local dat = thread.hold(function()
                         return queueJob:pop()
@@ -141,7 +141,7 @@ function multi:newSystemThreadedJobQueue(n)
                     queueReturn:push{jid, funcs[name](unpack(args)),queue}
                 end
             end)
-            thread:newthread("DoAllHandler",function()
+            thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()
                         return doAll:peek()
@@ -156,7 +156,7 @@ function multi:newSystemThreadedJobQueue(n)
                     end
                 end
             end)
-            thread:newthread("IdleHandler",function()
+            thread:newThread("IdleHandler",function()
                 while true do
                     thread.hold(function()
                         return clock()-idle>3

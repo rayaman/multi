@@ -167,7 +167,7 @@ if not ISTHREAD then
     local clock = os.clock
     local lastproc = clock()
     local queue = love.thread.getChannel("__CONSOLE__")
-    thread:newthread("consoleManager",function()
+    thread:newThread("consoleManager",function()
         while true do
             thread.yield()
             dat = queue:pop()

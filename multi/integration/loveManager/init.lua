@@ -37,7 +37,7 @@ GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
-local multi, thread = require("multi.compat.love2d"):init()
+local multi, thread = require("multi"):init()
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
@@ -122,7 +122,7 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID+1
-    thread:newthread(function()
+    thread:newThread(function()
         while true do
             thread.yield()
             if c.stab["returns"] then
