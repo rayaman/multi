@@ -1469,6 +1469,9 @@ local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_no
 		th.interval = arg3 or 0
 		th.intervalR = clock()
 	end,
+	function(th,arg1,arg2,arg3)
+		th.task = t_yield
+	end,
 	function() end
 }
 setmetatable(cmds,{__index=function() return function() end end})
