@@ -242,6 +242,9 @@ function multi:newConnection(protect,func,kill)
 	local protect=protect or false
 	local connections={}
 	c.FC=0
+	function c:hasConnections()
+		return #call_funcs~=0
+	end
 	function c:holdUT(n)
 		local n=n or 0
 		self.waiting=true
