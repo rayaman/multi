@@ -966,12 +966,10 @@ function multi:newProcessor(name,nothread)
 		return Active
 	end
 	function c.Start()
-		print("Proc Start",mainloopActive)
 		Active = true
 		return c
 	end
 	function c.Stop()
-		print("Proc Stop")
 		Active = false
 		return c
 	end
@@ -1026,6 +1024,7 @@ thread.requests = {}
 local CMD = {} -- We will compare this special local
 local interval
 local resume, status, create, yield, running = coroutine.resume, coroutine.status, coroutine.create, coroutine.yield, coroutine.running
+
 local t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none = 1, 2, 3, 4, 5, 6, 7
 
 function thread.request(t,cmd,...)
@@ -1077,13 +1076,20 @@ function thread.hold(n,opt)
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
 	elseif type(n) == "table" and n.Type == "connector" then
-		local ready = false
-		n(function()
-			ready = true
+		local rdy = function()
+			return false
+		end
+		n(function(a1,a2,a3,a4,a5,a6)
+			rdy = function()
+				if a1==nil then
+					return NIL,a2,a3,a4,a5,a6
+				end
+				return a1,a2,a3,a4,a5,a6
+			end
 		end)
 		return yield(CMD, t_hold, function()
-			return ready
-		end)
+			return rdy()
+		end, nil, interval)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
@@ -1231,7 +1237,7 @@ function thread:newFunctionBase(generator,holdme)
 					return tempConn
 				end
 			}
-			t.OnDeath(function(self,status,...) temp.OnReturn:Fire(...) end) 
+			t.OnDeath(function(...) temp.OnReturn:Fire(...) end) 
 			t.OnError(function(self,err) temp.OnError:Fire(err) end)
 			t.linkedFunction = temp
 			t.statusconnector = temp.OnStatus
@@ -1261,10 +1267,10 @@ local startme_len = 0
 function thread:newThread(name,func,...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
 	local func = func or name
+
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	local env = {self=c}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
@@ -1330,10 +1336,8 @@ function thread:newThread(name,func,...)
 	c.Destroy = c.Kill
 
 	if self.Type=="process" then
-		table.insert(self.threads,c)
 		table.insert(self.startme,c)
 	else
-		table.insert(threads,c)
 		table.insert(startme,c)
 	end
 
@@ -1478,10 +1482,14 @@ local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_no
 	function() end
 }
 setmetatable(cmds,{__index=function() return function() end end})
-local co_status = {
-	["suspended"] = function(thd,ref,task)
+local co_status
+co_status = {
+	["suspended"] = function(thd,ref,task,i,th)
 		switch[task](ref,thd)
 		cmds[r1](ref,r2,r3,r4,r5)
+		if ret~=CMD then -- The rework makes this necessary
+			co_status["dead"](thd,ref,task,i,th)
+		end
 		r1=nil r2=nil r3=nil r4=nil r5=nil
 	end,
 	["normal"] = function(thd,ref)  end,
@@ -1506,12 +1514,14 @@ local co_status = {
 	end,
 }
 local handler = coroutine.wrap(function(self)
+	local temp_start
 	while true do
-		for start = startme_len,1,-1 do
-			_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
-			co_status[status(startme[startme_len].thread)](startme[startme_len].thread,startme[startme_len],t_none,nil,threads) -- Make sure there was no error
-			startme[startme_len] = nil
-			startme_len = #startme
+		for start = 1, #startme do
+			temp_start = startme[start]
+			table.remove(startme)
+			_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(temp_start.thread,unpack(temp_start.startArgs))
+			co_status[status(temp_start.thread)](temp_start.thread,temp_start,t_none,nil,threads) -- Make sure there was no error
+			table.insert(threads,temp_start)
 			yield()
 		end
 		for i=#threads,1,-1 do
@@ -1531,10 +1541,12 @@ end)
 function multi:createHandler(threads,startme)
 	return coroutine.wrap(function(self)
 		while true do
-			for start = #startme,1,-1 do
-				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(startme[start].thread,unpack(startme[start].startArgs))
-				co_status[status(startme[start].thread)](startme[start].thread,startme[start],t_none,nil,threads) -- Make sure there was no error
-				table.remove(startme)
+			for start = #startme, 1, -1 do
+				temp_start = startme[start]
+				table.remove(startme[start])
+				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(temp_start.thread,unpack(temp_start.startArgs))
+				co_status[status(temp_start.thread)](temp_start.thread,temp_start,t_none,nil,threads) -- Make sure there was no error
+				table.insert(threads,temp_start)
 				yield()
 			end
 			for i=#threads,1,-1 do

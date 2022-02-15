@@ -31,6 +31,50 @@ Added:
 
 Changed:
 ---
+- `thread.hold(connectionObj)` now passes the returns of that connection to `thread.hold()`! See Exampe below: 
+	```lua
+	multi, thread = require("multi"):init()
+
+	func = thread:newFunction(function(count)
+		local a = 0
+		while true do
+			a = a + 1
+			thread.sleep(.1)
+			thread.pushStatus(a,count)
+			if a == count then break end
+		end
+		return "Done", 1, 2, 3
+	end)
+
+	thread:newThread("test",function()
+		local ret = func(10)
+		ret.OnStatus(function(part,whole)
+			print("Ret1: ",math.ceil((part/whole)*1000)/10 .."%")
+		end)
+		print("Status:",thread.hold(ret.OnReturn))
+		print("Function Done!")
+		os.exit()
+	end).OnError(function(...)
+		print("Error:",...)
+	end)
+
+	multi:mainloop()
+	```
+	Output:
+	```
+	Ret1:   10%
+	Ret1:   20%
+	Ret1:   30%
+	Ret1:   40%
+	Ret1:   50%
+	Ret1:   60%
+	Ret1:   70%
+	Ret1:   80%
+	Ret1:   90%
+	Ret1:   100%
+	Status: Done    1       2       3       nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
+	Function Done!
+	```
 - Modified how threads are handled internally. This changes makes it so threads "regardless of amount" should not impact performance. What you do in the threads might. This change was made by internally only processing one thread per step per processor. If you have 10 processors that are all active expect one step to process 10 threads. However if one processor has 10 threads each step will only process one thread. Simply put each addition of a thread shouldn't impact performance as it did before.
 - Moved `multi:newThread(...)` into the thread interface (`thread:newThread(...)`), code using `multi:newThread(...)` will still work. Also using `process:newThread(...)` binds the thread to the process, meaning if the process the thread is bound to is paused so is the thread.
 	
