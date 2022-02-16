@@ -1516,7 +1516,7 @@ co_status = {
 local handler = coroutine.wrap(function(self)
 	local temp_start
 	while true do
-		for start = 1, #startme do
+		for start = #startme, 1, -1 do
 			temp_start = startme[start]
 			table.remove(startme)
 			_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(temp_start.thread,unpack(temp_start.startArgs))
@@ -1540,10 +1540,11 @@ end)
 
 function multi:createHandler(threads,startme)
 	return coroutine.wrap(function(self)
+		local temp_start
 		while true do
 			for start = #startme, 1, -1 do
 				temp_start = startme[start]
-				table.remove(startme[start])
+				table.remove(startme)
 				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(temp_start.thread,unpack(temp_start.startArgs))
 				co_status[status(temp_start.thread)](temp_start.thread,temp_start,t_none,nil,threads) -- Make sure there was no error
 				table.insert(threads,temp_start)
