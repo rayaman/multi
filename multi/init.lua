@@ -943,6 +943,9 @@ function multi:newProcessor(name,nothread)
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
+	function c:getThreads()
+		return self.threads
+	end
 	function c:newThread(name,func,...)
 		in_proc = c
 		local t = thread.newThread(c,name,func,...)
@@ -1026,6 +1029,10 @@ local interval
 local resume, status, create, yield, running = coroutine.resume, coroutine.status, coroutine.create, coroutine.yield, coroutine.running
 
 local t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none = 1, 2, 3, 4, 5, 6, 7
+
+function multi:getThreads()
+	return threads
+end
 
 function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd,{...}}

@@ -13,6 +13,8 @@ Full Update Showcase
 
 Added:
 ---
+- multi:getThreads()
+	- Returns a list of all threads on a process
 - multi:newProcessor(name,nothread).run()
 	- new function run to the processor object to 
 
