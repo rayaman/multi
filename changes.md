@@ -13,21 +13,42 @@ Full Update Showcase
 
 Added:
 ---
-- multi:getThreads()
-	- Returns a list of all threads on a process
-- multi:newProcessor(name,nothread).run()
-	- new function run to the processor object to 
+- `multi:lock()`
+	- Locks a multi object which prevents, Destroy(), Pause(), and Resume() being processed.
 
-- multi:newProcessor(name,nothread):newFunction(func,holdme)
+- `multi:unlock()`
+	- Undoes the lock
+
+- `multi:getProcessors()`
+	- Returns a list of all processors
+
+- `multi:getName()`
+	- Returns the name of a processor
+
+- `multi:getFullName()`
+	- Returns the fullname/entire process tree of a process
+
+- Processors can be attached to processors
+
+- `multi:getTasks()`
+	- Returns a list of all non thread based objects (loops, alarms, steps, etc)
+
+- `multi:getThreads()`
+	- Returns a list of all threads on a process
+
+- `multi:newProcessor(name,nothread).run()`
+	- New function run to the processor object to 
+
+- `multi:newProcessor(name,nothread):newFunction(func,holdme)`
 	- Acts like thread:newFunction(), but binds the execution of that threaded function to the processor
 
-- multi:newTLoop() member functions
+- `multi:newTLoop()` member functions
 	- `TLoop:Set(set)` - Sets the time to wait for the TLoop
 
-- multi:newStep() member functions
+- `multi:newStep()` member functions
 	- `Step:Count(count)` - Sets the amount a step should count by
 
-- multi:newTStep() member functions
+- `multi:newTStep()` member functions
 	- `TStep:Set(set)` - Sets the time to wait for the TStep
 
 
@@ -77,6 +98,7 @@ Changed:
 	Status: Done    1       2       3       nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
 	Function Done!
 	```
+
 - Modified how threads are handled internally. This changes makes it so threads "regardless of amount" should not impact performance. What you do in the threads might. This change was made by internally only processing one thread per step per processor. If you have 10 processors that are all active expect one step to process 10 threads. However if one processor has 10 threads each step will only process one thread. Simply put each addition of a thread shouldn't impact performance as it did before.
 - Moved `multi:newThread(...)` into the thread interface (`thread:newThread(...)`), code using `multi:newThread(...)` will still work. Also using `process:newThread(...)` binds the thread to the process, meaning if the process the thread is bound to is paused so is the thread.
 	
@@ -152,9 +174,13 @@ Removed:
 
 Fixed:
 ---
-- [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Issue seems to be related to my filesystem
+
+- [Issue](https://github.com/rayaman/multi/issues/30) with Lanes crashing the lua state. Issue seemed to be related to my filesystem, since remounting the drive caused the issue to stop. (Windows)
+
 - [Issue](https://github.com/rayaman/multi/issues/29) where System threaded functions not being up to date with threaded functions
+
 - Issue where gettasksdetails() would try to process a destroyed object causing it to crash
+
 - Issue with multi.hold() not pumping the mainloop and only the scheduler
 
 ToDo:

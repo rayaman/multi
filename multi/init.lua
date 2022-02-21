@@ -28,13 +28,14 @@ local isRunning = false
 local clock = os.clock
 local thread = {}
 local in_proc = false
+local processes = {}
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
 multi.Version = "15.2.0"
-multi.Name = "multi.root"
+multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
 multi.Mainloop = {}
@@ -84,6 +85,10 @@ end
 local priorityTable = {[false]="Disabled",[true]="Enabled"}
 local ProcessName = {"SubProcessor","MainProcessor"}
 local globalThreads = {}
+
+function multi:getProcessors()
+	return processes
+end
 
 function multi:getTasksDetails(t)
 	if not(t) then
@@ -441,6 +446,14 @@ function multi:getType()
 	return self.Type
 end
 
+function multi:lock()
+	self.__locked = true
+end
+
+function multi:unlock()
+	self.__locked = false
+end
+
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
@@ -473,6 +486,7 @@ end
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
+	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='rootprocess' then
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
@@ -490,6 +504,7 @@ function multi:Pause()
 end
 
 function multi:Resume()
+	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='process' or self.Type=='rootprocess' then
 		self.Active=true
 		local c=self:getChildren()
@@ -507,6 +522,7 @@ function multi:Resume()
 end
 
 function multi:Destroy()
+	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='process' or self.Type=='rootprocess' then
 		local c=self:getChildren()
 		for i=1,#c do
@@ -576,6 +592,7 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.creationTime = os.clock()
+	c.__locked = false
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -690,6 +707,7 @@ function multi:newAlarm(set)
 		end
 	end
 	function c:Resume()
+		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.Parent.Resume(self)
 		t = count + t
 		return self
@@ -702,6 +720,7 @@ function multi:newAlarm(set)
 	end
 	c.OnRing = self:newConnection()
 	function c:Pause()
+		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		count = clock()
 		self.Parent.Pause(self)
 		return self
@@ -812,11 +831,13 @@ function multi:newTLoop(func,set)
 		self.set = set
 	end
 	function c:Resume()
+		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.Parent.Resume(self)
 		self.timer:Resume()
 		return self
 	end
 	function c:Pause()
+		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.timer:Pause()
 		self.Parent.Pause(self)
 		return self
@@ -920,7 +941,16 @@ function multi.getCurrentTask()
 	return __CurrentTask
 end
 
+function multi:getName()
+	return self.Name
+end
+
+function multi:getFullName()
+	return self.Name
+end
+
 local sandcount = 1
+
 function multi:newProcessor(name,nothread)
 	local c = {}
 	setmetatable(c,{__index = multi})
@@ -933,30 +963,45 @@ function multi:newProcessor(name,nothread)
 	c.pump = false
 	c.threads = {}
 	c.startme = {}
+	c.parent = self
 	local handler = c:createHandler(c.threads,c.startme)
-	c.process = multi:newLoop(function()
+
+	c.process = self:newLoop(function()
 		if Active then
 			c:uManager()
 			handler()
 		end
 	end)
+
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
+
 	function c:getThreads()
 		return self.threads
 	end
+
+	function c:getFullName()
+		return self.parent:getFullName() .. "." .. self.Name
+	end
+
+	function c:getName()
+		return self.Name
+	end
+
 	function c:newThread(name,func,...)
 		in_proc = c
 		local t = thread.newThread(c,name,func,...)
 		in_proc = false
 		return t
 	end
+
 	function c:newFunction(func,holdme)
 		return thread:newFunctionBase(function(...)
 			return c:newThread("TempThread",func,...)
 		end,holdme)()
 	end
+
 	function c.run()
 		if not Active then return end
 		c.pump = true
@@ -965,21 +1010,27 @@ function multi:newProcessor(name,nothread)
 		c.pump = false
 		return c
 	end
+
 	function c.isActive()
 		return Active
 	end
+
 	function c.Start()
 		Active = true
 		return c
 	end
+
 	function c.Stop()
 		Active = false
 		return c
 	end
+
 	function c:Destroy()
 		Active = false
 		c.process:Destroy()
 	end
+	
+	table.insert(processes,c)
 	return c
 end
 
@@ -1032,6 +1083,10 @@ local t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none = 1, 2, 3, 4, 5
 
 function multi:getThreads()
 	return threads
+end
+
+function multi:getTasks()
+	return self.Mainloop
 end
 
 function thread.request(t,cmd,...)
