@@ -446,14 +446,6 @@ function multi:getType()
 	return self.Type
 end
 
-function multi:lock()
-	self.__locked = true
-end
-
-function multi:unlock()
-	self.__locked = false
-end
-
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
@@ -486,7 +478,6 @@ end
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
-	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='rootprocess' then
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
@@ -504,7 +495,6 @@ function multi:Pause()
 end
 
 function multi:Resume()
-	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='process' or self.Type=='rootprocess' then
 		self.Active=true
 		local c=self:getChildren()
@@ -522,7 +512,6 @@ function multi:Resume()
 end
 
 function multi:Destroy()
-	if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 	if self.Type=='process' or self.Type=='rootprocess' then
 		local c=self:getChildren()
 		for i=1,#c do
@@ -592,7 +581,6 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.creationTime = os.clock()
-	c.__locked = false
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -707,7 +695,6 @@ function multi:newAlarm(set)
 		end
 	end
 	function c:Resume()
-		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.Parent.Resume(self)
 		t = count + t
 		return self
@@ -720,7 +707,6 @@ function multi:newAlarm(set)
 	end
 	c.OnRing = self:newConnection()
 	function c:Pause()
-		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		count = clock()
 		self.Parent.Pause(self)
 		return self
@@ -831,13 +817,11 @@ function multi:newTLoop(func,set)
 		self.set = set
 	end
 	function c:Resume()
-		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.Parent.Resume(self)
 		self.timer:Resume()
 		return self
 	end
 	function c:Pause()
-		if self.__locked then multi.print("Cannot perform action on a locked object!") return end
 		self.timer:Pause()
 		self.Parent.Pause(self)
 		return self

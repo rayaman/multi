@@ -13,12 +13,6 @@ Full Update Showcase
 
 Added:
 ---
-- `multi:lock()`
-	- Locks a multi object which prevents, Destroy(), Pause(), and Resume() being processed.
-
-- `multi:unlock()`
-	- Undoes the lock
-
 - `multi:getProcessors()`
 	- Returns a list of all processors
 
