@@ -13,6 +13,9 @@ Full Update Showcase
 
 Added:
 ---
+- `multi:newProcessor(name, nothread)`
+	- If no thread is true auto sets the processor as Active, so proc.run() will start without the need for proc.Start()
+
 - `multi:getProcessors()`
 	- Returns a list of all processors
 
@@ -30,10 +33,10 @@ Added:
 - `multi:getThreads()`
 	- Returns a list of all threads on a process
 
-- `multi:newProcessor(name,nothread).run()`
+- `multi:newProcessor(name, nothread).run()`
 	- New function run to the processor object to 
 
-- `multi:newProcessor(name,nothread):newFunction(func,holdme)`
+- `multi:newProcessor(name, nothread):newFunction(func, holdme)`
 	- Acts like thread:newFunction(), but binds the execution of that threaded function to the processor
 
 - `multi:newTLoop()` member functions

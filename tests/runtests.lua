@@ -2,7 +2,7 @@ if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
     package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
     require("lldebugger").start()
 else
-    package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+    --package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
 end
 --[[
     This file runs all tests.
@@ -20,9 +20,9 @@ end
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
-local multi, thread = require("multi"):init{priority=true}
+local multi, thread = require("multi"):init()--{priority=true}
 local good = false
-local proc = multi:newProcessor("Test")
+local proc = multi:newProcessor("Test",true)
 proc:newAlarm(3):OnRing(function()
 	good = true
 end)
@@ -148,6 +148,7 @@ end)
 runTest().OnError(function(...)
 	print("Error:",...)
 end)
+print("Pumping proc")
 while true do
 	proc.run()
 end
