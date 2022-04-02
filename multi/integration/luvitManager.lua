@@ -116,6 +116,7 @@ local function _INIT(luvitThread, timer)
 		luvitThread.start(entry, package.path, name, c.func, ...)
 		return c
 	end
+	THREAD.newSystemThread = multi.newSystemThread
 	multi.print("Integrated Luvit!")
 	multi.integration = {} -- for module creators
 	multi.integration.GLOBAL = GLOBAL

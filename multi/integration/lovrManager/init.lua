@@ -76,6 +76,7 @@ function multi:newSystemThread(name,func,...)
     THREAD_ID=THREAD_ID+1
     return c
 end
+THREAD.newSystemThread = multi.newSystemThread
 function lovr.threaderror(thread, errorstr)
   print("Thread error!\n"..errorstr)
 end

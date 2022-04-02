@@ -144,6 +144,7 @@ function multi:newSystemThread(name,func,...)
     end)
     return c
 end
+THREAD.newSystemThread = multi.newSystemThread
 function love.threaderror(thread, errorstr)
   print("Thread error!\n"..errorstr)
 end

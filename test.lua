@@ -1,32 +1,45 @@
 package.path = "./?/init.lua;"..package.path
 multi, thread = require("multi"):init()
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 
-local proc = multi:newProcessor("Test")
-local proc2 = multi:newProcessor("Test2")
-local proc3 = proc2:newProcessor("Test3")
-
-function multi:getTaskStats()
-	local stats = {
-		[multi.Name] = {
-			threads = multi:getThreads(),
-			tasks = multi:getTasks()
-		}
-	}
-	local procs = multi:getProcessors()
-	for i = 1, #procs do
-		local proc = procs[i]
-		stats[proc:getFullName()] = {
-			threads = proc:getThreads(),
-			tasks = proc:getTasks()
-		}
+THREAD:newSystemThread("Test",function()
+	print("In a thread...")
+	while true do
+		THREAD.sleep(1)
+		print("In thread")
 	end
-	return stats
-end
+end)
 
-local tasks = multi:getTaskStats()
+multi:newTLoop(function()
+	print("...")
+end,1)
 
-for i,v in pairs(tasks) do
-	print("Process: "..i)
-end
+-- local proc = multi:newProcessor("Test")
+-- local proc2 = multi:newProcessor("Test2")
+-- local proc3 = proc2:newProcessor("Test3")
 
---multi:mainloop()
+-- function multi:getTaskStats()
+-- 	local stats = {
+-- 		[multi.Name] = {
+-- 			threads = multi:getThreads(),
+-- 			tasks = multi:getTasks()
+-- 		}
+-- 	}
+-- 	local procs = multi:getProcessors()
+-- 	for i = 1, #procs do
+-- 		local proc = procs[i]
+-- 		stats[proc:getFullName()] = {
+-- 			threads = proc:getThreads(),
+-- 			tasks = proc:getTasks()
+-- 		}
+-- 	end
+-- 	return stats
+-- end
+
+-- local tasks = multi:getTaskStats()
+
+-- for i,v in pairs(tasks) do
+-- 	print("Process: "..i)
+-- end
+
+multi:mainloop()

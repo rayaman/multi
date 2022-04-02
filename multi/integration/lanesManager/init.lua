@@ -100,6 +100,9 @@ function multi:newSystemThread(name, func, ...)
 	GLOBAL["__THREADS__"] = livingThreads
 	return c
 end
+
+THREAD.newSystemThread = multi.newSystemThread
+
 function multi.InitSystemThreadErrorHandler()
 	if started == true then
 		return
