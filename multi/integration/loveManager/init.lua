@@ -48,70 +48,7 @@ local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
 local OBJECT_ID = 0
 local stf = 0
-function THREAD:newFunction(func,holup)
-    local tfunc = {}
-	tfunc.Active = true
-	function tfunc:Pause()
-		self.Active = false
-	end
-	function tfunc:Resume()
-		self.Active = true
-	end
-	function tfunc:holdMe(b)
-		holdme = b
-	end
-	local function noWait()
-		return nil, "Function is paused"
-	end
-    local rets, err
-	local function wait(no) 
-		if thread.isThread() and not (no) then
-			-- In a thread
-		else
-			-- Not in a thread
-		end
-	end
-    tfunc.__call = function(t,...)
-		if not t.Active then 
-			if holdme then
-				return nil, "Function is paused"
-			end
-			return {
-				isTFunc = true,
-				wait = noWait,
-				connect = function(f)
-					f(nil,"Function is paused")
-				end
-			}
-		end 
-        local t = multi:newSystemThread("SystemThreadedFunction",func,...)
-		t.OnDeath(function(self,...) rets = {...}  end)
-		t.OnError(function(self,e) err = e end)
-		if holdme then
-			return wait()
-		end
-		local temp = {
-			OnStatus = multi:newConnection(),
-			OnError = multi:newConnection(),
-			OnReturn = multi:newConnection(),
-			isTFunc = true,
-			wait = wait,
-			connect = function(f)
-				local tempConn = multi:newConnection()
-				t.OnDeath(function(self,...) if f then f(...) else tempConn:Fire(...) end end) 
-				t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
-				return tempConn
-			end
-		}
-		t.OnDeath(function(self,...) temp.OnReturn:Fire(...) end) 
-		t.OnError(function(self,err) temp.OnError:Fire(err) end)
-		t.linkedFunction = temp
-		t.statusconnector = temp.OnStatus
-		return temp
-	end
-	setmetatable(tfunc,tfunc)
-    return tfunc
-end
+
 function multi:newSystemThread(name,func,...)
     local c = {}
     c.name = name
@@ -119,9 +56,11 @@ function multi:newSystemThread(name,func,...)
     c.thread=love.thread.newThread(ThreadFileData)
     c.thread:start(THREAD.dump(func),c.ID,c.name,...)
     c.stab = THREAD.createStaticTable(name)
-    GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
+	c.OnDeath = multi:newConnection()
+	c.OnError = multi:newConnection()
+    GLOBAL["__THREAD_"..c.ID] = {ID=c.ID, Name=c.name, Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
-    THREAD_ID=THREAD_ID+1
+    THREAD_ID=THREAD_ID + 1
     thread:newThread(function()
         while true do
             thread.yield()
@@ -133,10 +72,10 @@ function multi:newSystemThread(name,func,...)
             local error = c.thread:getError()
             if error then
                 if error:find("Thread Killed!\1") then
-                    c.OnDeath:Fire(c,"Thread Killed!")
+                    c.OnDeath:Fire(c, "Thread Killed!")
                     thread.kill()
                 else
-                    c.OnError:Fire(c,error)
+                    c.OnError:Fire(c, error)
                     thread.kill()
                 end
             end
@@ -144,6 +83,13 @@ function multi:newSystemThread(name,func,...)
     end)
     return c
 end
+
+function THREAD:newFunction(func)
+	return thread:newFunctionBase(function(...)
+		return multi:newSystemThread("TempSystemThread",func,...)
+	end)()
+end
+
 THREAD.newSystemThread = multi.newSystemThread
 function love.threaderror(thread, errorstr)
   print("Thread error!\n"..errorstr)
