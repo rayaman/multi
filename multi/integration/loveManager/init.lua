@@ -62,23 +62,22 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID + 1
     thread:newThread(function()
-        while true do
-            thread.yield()
-            if c.stab["returns"] then
-                c.OnDeath:Fire(c,unpack(t.stab.returns))
-                t.stab.returns = nil
-                thread.kill()
-            end
-            local error = c.thread:getError()
-            if error then
-                if error:find("Thread Killed!\1") then
-                    c.OnDeath:Fire(c, "Thread Killed!")
-                    thread.kill()
-                else
-                    c.OnError:Fire(c, error)
-                    thread.kill()
-                end
-            end
+        thread.hold(function()
+            return not c.thread:isRunning()
+        end)
+        print("Thread: "..name.." finished executing...")
+        -- If the thread is not running let's handle that.
+        local thread_err = c.thread:getError()
+        if thread_err == "Thread Killed!\1" then
+            print("Killed...")
+            c.OnDeath:Fire(c,"Thread Killed!")
+        elseif thread_err then
+            print("Error...",thread_err)
+            c.OnError:Fire(c,thread_err)
+        elseif c.stab.returns then
+            print("Returns",unpack(c.stab.returns))
+            c.OnDeath:Fire(c,unpack(c.stab.returns))
+            c.stab.returns = nil
         end
     end)
     return c
