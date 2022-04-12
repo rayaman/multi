@@ -2,17 +2,46 @@ package.path = "./?/init.lua;"..package.path
 multi, thread = require("multi"):init()
 GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 
-THREAD:newSystemThread("Test",function()
-	print("In a thread...")
-	while true do
-		THREAD.sleep(1)
-		print("In thread")
-	end
+thread:newThread(function()
+    func = THREAD:newFunction(function(count)
+        print("Starting Status test: ",count)
+        local a = 0
+        while true do
+            a = a + 1
+            THREAD.sleep(.1)
+            THREAD.pushStatus(a,count)
+            if a == count then break end
+        end
+        return "Done"
+    end)
+    local ret = func(10)
+    local ret2 = func(15)
+    local ret3 = func(20)
+    local s1,s2,s3 = 0,0,0
+    ret.OnError(function(...)
+        print("Error:",...)
+    end)
+	ret2.OnError(function(...)
+		print("Error:",...)
+	end)
+	ret3.OnError(function(...)
+		print("Error:",...)
+	end)
+    ret.OnStatus(function(part,whole)
+        s1 = math.ceil((part/whole)*1000)/10
+        print(s1)
+    end)
+    ret2.OnStatus(function(part,whole)
+        s2 = math.ceil((part/whole)*1000)/10
+        print(s2)
+    end)
+    ret3.OnStatus(function(part,whole)
+        s3 = math.ceil((part/whole)*1000)/10
+        print(s3)
+    end)
+    local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn)
+    print("Done")
 end)
-
-multi:newTLoop(function()
-	print("...")
-end,1)
 
 -- local proc = multi:newProcessor("Test")
 -- local proc2 = multi:newProcessor("Test2")

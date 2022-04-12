@@ -48,7 +48,9 @@ end
 local __GlobalLinda = lanes.linda() -- handles global stuff
 local __SleepingLinda = lanes.linda() -- handles sleeping stuff
 local __ConsoleLinda = lanes.linda() -- handles console stuff
-local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda,__SleepingLinda)
+local __StatusLinda = lanes.linda() -- handles pushstatus for stfunctions
+
+local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda, __SleepingLinda, __StatusLinda)
 local count = 1
 local started = false
 local livingThreads = {}
@@ -110,12 +112,17 @@ function multi.InitSystemThreadErrorHandler()
 	started = true
 	thread:newThread("SystemThreadScheduler",function()
 		local threads = multi.SystemThreads
+		local _,data,status,push,temp
 		while true do
-			thread.sleep(.005) -- switching states often takes a huge hit on performance. half a second to tell me there is an error is good enough.
-			local _,data = __ConsoleLinda:receive(0, "Q")
+			thread.yield()
+			_,data = __ConsoleLinda:receive(0, "Q")
 			for i = #threads, 1, -1 do
-				local status = threads[i].thread.status
-				local temp = threads[i]
+				temp = threads[i]
+				status = temp.thread.status
+				push = __StatusLinda:get(temp.Id)
+				if push then
+					temp.statusconnector:Fire(unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
+				end
 				if status == "done" or temp.returns:get("returns") then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false

@@ -28,7 +28,7 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT(__GlobalLinda,__SleepingLinda)
+local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda)
     local THREAD = {}
     THREAD.Priority_Core = 3
     THREAD.Priority_High = 2
@@ -90,6 +90,10 @@ local function INIT(__GlobalLinda,__SleepingLinda)
     function THREAD.getID()
         return THREAD_ID
     end
+    function THREAD.pushStatus(...)
+        local args = {...}
+        __StatusLinda:send(nil,THREAD_ID, args)
+    end
     _G.THREAD_ID = 0
     function THREAD.sleep(n)
         math.randomseed(os.time())
@@ -115,6 +119,6 @@ local function INIT(__GlobalLinda,__SleepingLinda)
 	})
     return GLOBAL, THREAD
 end
-return {init = function(g,s)
-    return INIT(g,s)
+return {init = function(g,s,st)
+    return INIT(g,s,st)
 end}
