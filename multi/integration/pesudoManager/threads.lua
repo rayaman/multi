@@ -28,7 +28,7 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT(env)
+local function INIT(env,thread)
     local THREAD = {}
     local GLOBAL = {}
     THREAD.Priority_Core = 3
@@ -45,7 +45,6 @@ local function INIT(env)
         return GLOBAL[name]
     end
     function THREAD.waitFor(name)
-        print("Waiting",thread)
         return thread.hold(function() return GLOBAL[name] end)
     end
     if getOS() == "windows" then
@@ -69,6 +68,7 @@ local function INIT(env)
     function THREAD.getThreads()
         return {}--GLOBAL.__THREADS__
     end
+    THREAD.pushstatus = thread.pushstatus
     if os.getOS() == "windows" then
         THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
     else
@@ -83,6 +83,7 @@ local function INIT(env)
     function THREAD.getID()
         return GLOBAL["$THREAD_ID"]
     end
+    THREAD.pushstatus
     function THREAD.sleep(n)
         thread.sleep(n)
     end
@@ -91,6 +92,6 @@ local function INIT(env)
     end
     return GLOBAL, THREAD
 end
-return {init = function()
-    return INIT()
+return {init = function(thread)
+    return INIT(nil,thread)
 end}

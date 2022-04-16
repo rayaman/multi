@@ -948,6 +948,7 @@ function multi:newProcessor(name,nothread)
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
+
 	local handler = c:createHandler(c.threads,c.startme)
 
 	c.process = self:newLoop(function()
@@ -1533,7 +1534,7 @@ co_status = {
 	["suspended"] = function(thd,ref,task,i,th)
 		switch[task](ref,thd)
 		cmds[r1](ref,r2,r3,r4,r5)
-		if ret~=CMD then -- The rework makes this necessary
+		if ret ~= CMD and _ ~= nil then -- The rework makes this necessary
 			co_status["dead"](thd,ref,task,i,th)
 		end
 		r1=nil r2=nil r3=nil r4=nil r5=nil

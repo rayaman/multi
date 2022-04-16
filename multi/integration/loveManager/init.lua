@@ -62,20 +62,28 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID + 1
     thread:newThread(function()
-        thread.hold(function()
-            return not c.thread:isRunning()
-        end)
-        print("Thread: "..name.." finished executing...")
+        if name:find("TempSystemThread") then
+            local status_channel = love.thread.getChannel("__"..c.ID.."__MULTI__STATUS_CHANNEL__")
+            thread.hold(function()
+                -- While the thread is running we might as well do something in the loop
+                local status = status_channel
+                if status:peek()~=nil then
+                    c.statusconnector:Fire(unpack(status:pop()))
+                end
+                return not c.thread:isRunning()
+            end)
+        else
+            thread.hold(function()
+                return not c.thread:isRunning()
+            end)
+        end
         -- If the thread is not running let's handle that.
         local thread_err = c.thread:getError()
         if thread_err == "Thread Killed!\1" then
-            print("Killed...")
             c.OnDeath:Fire(c,"Thread Killed!")
         elseif thread_err then
-            print("Error...",thread_err)
             c.OnError:Fire(c,thread_err)
         elseif c.stab.returns then
-            print("Returns",unpack(c.stab.returns))
             c.OnDeath:Fire(c,unpack(c.stab.returns))
             c.stab.returns = nil
         end
@@ -85,18 +93,20 @@ end
 
 function THREAD:newFunction(func)
 	return thread:newFunctionBase(function(...)
-		return multi:newSystemThread("TempSystemThread",func,...)
+		return multi:newSystemThread("TempSystemThread"..THREAD_ID,func,...)
 	end)()
 end
 
 THREAD.newSystemThread = multi.newSystemThread
+
 function love.threaderror(thread, errorstr)
-  print("Thread error!\n"..errorstr)
+    mulit.print("Thread error!\n"..errorstr)
 end
+
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.loveManager.extensions")
-print("Integrated Love Threading!")
+mulit.print("Integrated Love Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

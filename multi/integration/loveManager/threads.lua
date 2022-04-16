@@ -24,6 +24,7 @@ SOFTWARE.
 require("love.timer")
 require("love.system")
 require("love.data")
+require("love.thread")
 local socket = require("socket")
 local multi, thread = require("multi").init()
 local threads = {}
@@ -93,6 +94,11 @@ function threads.getCores()
 end
 function threads.kill()
     error("Thread Killed!\1")
+end
+function THREAD.pushStatus(...)
+    local status_channel = love.thread.getChannel("__"..__THREADID__.."__MULTI__STATUS_CHANNEL__")
+    local args = {...}
+    status_channel:push(__THREADID__, args)
 end
 function threads.getThreads()
     local t = {}

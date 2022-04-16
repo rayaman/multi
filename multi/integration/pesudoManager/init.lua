@@ -32,7 +32,7 @@ if multi.integration then
 	}
 end
 
-local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads"):init()
+local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads"):init(thread)
 
 function multi:canSystemThread() -- We are emulating system threading
 	return true
@@ -75,6 +75,7 @@ function multi:newSystemThread(name,func,...)
 	end)
 	id = id + 1
 end
+THREAD.newSystemThread = multi.newSystemThread
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works
 
