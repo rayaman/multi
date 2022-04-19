@@ -50,7 +50,8 @@ local function split(str)
 	return tab
 end
 
-THREAD.newFunction=thread.newFunction
+local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
+tab = split(tab)
 
 local id = 0
 function multi:newSystemThread(name,func,...)
@@ -67,23 +68,28 @@ function multi:newSystemThread(name,func,...)
 		thread = thread
 	}
 	
-	local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
-	tab = split(tab)
 	for i = 1,#tab do
 		env[tab[i]] = _G[tab[i]]
 	end
-	--setmetatable(env,{__index=env})
-	thread:newISOThread(name,func,env,...).OnError(function(self,msg)
-		print("ERROR:",msg)
-	end)
+
+	local th = thread:newISOThread(name,func,env,...)
+	
 	id = id + 1
+
+	return th
 end
 
 THREAD.newSystemThread = multi.newSystemThread
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works
 
-print("Integrated Pesudo Threading!")
+function THREAD:newFunction(func,holdme)
+	return thread:newFunctionBase(function(...)
+		return multi:newSystemThread("TempSystemThread",func,...)
+	end,holdme)()
+end
+
+multi.print("Integrated Pesudo Threading!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD

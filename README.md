@@ -18,8 +18,9 @@ Progress is being made in [v15.3.0](https://github.com/rayaman/multi/tree/v15.3.
 
 INSTALLING
 ----------
-Link to dependencies:
+Link to optional dependencies:
 [lanes](https://github.com/LuaLanes/lanes)
+[love2d](https://love2d.org/)
 
 To install copy the multi folder into your environment and you are good to go</br>
 If you want to use the system threads, then you'll need to install lanes or love2d game engine!
@@ -32,7 +33,7 @@ https://discord.gg/U8UspuA
 
 Planned features/TODO
 ---------------------
-- [ ] Create test suite
+- [ ] Create test suite (In progress, mostly done)
 - [ ] Network Parallelism rework
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)
@@ -40,7 +41,8 @@ Usage: [Check out the documentation for more info](https://github.com/rayaman/mu
 
 ```lua
 local multi, thread = require("multi"):init()
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+GLOBAL, THREAD = require("multi.integration.threading"):init()
+
 multi:newSystemThread("System Thread",function()
 	while true do
 		THREAD.sleep(.1)
@@ -48,6 +50,7 @@ multi:newSystemThread("System Thread",function()
 		THREAD.kill()
 	end
 end)
+
 multi:newThread("Coroutine Based Thread",function()
 	while true do
 		io.write("Hello")
@@ -55,12 +58,15 @@ multi:newThread("Coroutine Based Thread",function()
 		thread.kill()
 	end
 end)
+
 multi:newTLoop(function(loop)
 	print("!")
 	loop:Destroy()
 	os.exit()
 end,.3)
+
 multi:mainloop()
+
 --[[
 while true do
 	multi:uManager()

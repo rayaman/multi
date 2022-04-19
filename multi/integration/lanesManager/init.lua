@@ -92,6 +92,9 @@ function multi:newSystemThread(name, func, ...)
 		has_error = false
 	end)(...)
 	count = count + 1
+	function c:getName()
+		return c.Name
+	end
 	function c:kill()
 		self.thread:cancel()
 		self.alive = false

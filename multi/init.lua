@@ -1164,7 +1164,6 @@ function thread:newFunctionBase(generator,holdme)
 			if thread.isThread() then
 				return thread.hold(function()
 					if err then
-						print("ERROR",err)
 						return multi.NIL, err
 					elseif rets then
 						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
@@ -1344,7 +1343,7 @@ function thread:newISOThread(name,func,_env,...)
 		name = "Thread#"..threadCount
 	end
 	local func = isolateFunction(func,env)
-	return thread:newThread(name,func)
+	return thread:newThread(name,func,...)
 end
 
 multi.newThread = thread.newThread

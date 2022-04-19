@@ -61,6 +61,9 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID, Name=c.name, Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID + 1
+	function c:getName()
+		return c.name
+	end
     thread:newThread(function()
         if name:find("TempSystemThread") then
             local status_channel = love.thread.getChannel("__"..c.ID.."__MULTI__STATUS_CHANNEL__")
