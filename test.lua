@@ -1,6 +1,6 @@
 package.path = "./?/init.lua;"..package.path
 multi, thread = require("multi"):init()
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+GLOBAL, THREAD = require("multi.integration.pesudoManager"):init()
 
 func = THREAD:newFunction(function(count)
 	print("Starting Status test: ",count)
@@ -13,6 +13,7 @@ func = THREAD:newFunction(function(count)
 	end
 	return "Done"
 end)
+
 local ret = func(10)
 local ret2 = func(15)
 local ret3 = func(20)

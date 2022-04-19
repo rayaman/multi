@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
-local multi, thread = require("multi").init()
+local multi, thread = require("multi"):init()
 
 if multi.integration then
 	return {
@@ -32,7 +32,7 @@ if multi.integration then
 	}
 end
 
-local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads"):init(thread)
+local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads").init(thread)
 
 function multi:canSystemThread() -- We are emulating system threading
 	return true
@@ -41,6 +41,7 @@ end
 function multi:getPlatform()
 	return "pesudo"
 end
+
 local function split(str)
 	local tab = {}
 	for word in string.gmatch(str, '([^,]+)') do
@@ -48,13 +49,15 @@ local function split(str)
 	end
 	return tab
 end
+
 THREAD.newFunction=thread.newFunction
+
 local id = 0
 function multi:newSystemThread(name,func,...)
 	GLOBAL["$THREAD_NAME"] = name
 	GLOBAL["$__THREADNAME__"] = name
 	GLOBAL["$THREAD_ID"] = id
-	--GLOBAL["$thread"] = thread
+	GLOBAL["$thread"] = thread
 	local env = {
 		GLOBAL = GLOBAL,
 		THREAD = THREAD,
@@ -75,6 +78,7 @@ function multi:newSystemThread(name,func,...)
 	end)
 	id = id + 1
 end
+
 THREAD.newSystemThread = multi.newSystemThread
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works

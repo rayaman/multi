@@ -28,12 +28,15 @@ require("love.thread")
 local socket = require("socket")
 local multi, thread = require("multi").init()
 local threads = {}
+
 function threads.loadDump(d)
     return loadstring(d:getString())
 end
+
 function threads.dump(func)
     return love.data.newByteData(string.dump(func))
 end
+
 local fRef = {"func",nil}
 local function manage(channel, value)
     channel:clear()
@@ -45,6 +48,7 @@ local function manage(channel, value)
         channel:push(value)
     end
 end
+
 local function RandomVariable(length)
     local res = {}
     math.randomseed(socket.gettime()*10000)
@@ -53,12 +57,14 @@ local function RandomVariable(length)
 	end
 	return table.concat(res)
 end
+
 local GNAME = "__GLOBAL_"
 local proxy = {}
 function threads.set(name,val)
     if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
     proxy[name]:performAtomic(manage, val) 
 end
+
 function threads.get(name)
     if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
     local dat = proxy[name]:peek()
@@ -68,6 +74,7 @@ function threads.get(name)
         return dat
     end
 end
+
 function threads.waitFor(name)
     if thread.isThread() then
         return thread.hold(function()
@@ -83,23 +90,28 @@ function threads.waitFor(name)
     end
     return dat
 end
+
 function threads.package(name,val)
     local init = val.init
     val.init=threads.dump(val.init)
     GLOBAL[name]=val
     val.init=init
 end
+
 function threads.getCores()
     return love.system.getProcessorCount()
 end
+
 function threads.kill()
     error("Thread Killed!\1")
 end
+
 function THREAD.pushStatus(...)
     local status_channel = love.thread.getChannel("__"..__THREADID__.."__MULTI__STATUS_CHANNEL__")
     local args = {...}
     status_channel:push(__THREADID__, args)
 end
+
 function threads.getThreads()
     local t = {}
     for i=1,GLOBAL["__THREAD_COUNT"] do
@@ -107,18 +119,23 @@ function threads.getThreads()
     end
     return t
 end
+
 function threads.getThread(n)
     return GLOBAL["__THREAD_"..n]
 end
+
 function threads.getName()
     return __THREADNAME__
 end
+
 function threads.getID()
     return __THREADID__
 end
+
 function threads.sleep(n)
     love.timer.sleep(n)
 end
+
 function threads.getGlobal()
     return setmetatable({},
         {
@@ -131,6 +148,7 @@ function threads.getGlobal()
         }
     )
 end
+
 function threads.createTable(n)
     local _proxy = {}
     local function set(name,val)
@@ -157,6 +175,7 @@ function threads.createTable(n)
         }
     )
 end
+
 function threads.getConsole()
     local c = {}
     c.queue = love.thread.getChannel("__CONSOLE__")
@@ -169,6 +188,7 @@ function threads.getConsole()
     end
     return c
 end
+
 if not ISTHREAD then
     local clock = os.clock
     local lastproc = clock()
@@ -187,6 +207,7 @@ if not ISTHREAD then
         end
     end)
 end
+
 function threads.createStaticTable(n)
     local __proxy = {}
     local function set(name,val)
@@ -218,10 +239,12 @@ function threads.createStaticTable(n)
         }
     )
 end
+
 function threads.hold(n)
     local dat
     while not(dat) do
         dat = n()
     end
 end
+
 return threads
