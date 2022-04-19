@@ -1,6 +1,6 @@
 package.path = "./?/init.lua;"..package.path
-multi, thread = require("multi"):init()
-GLOBAL, THREAD = require("multi.integration.pesudoManager"):init()
+multi, thread = require("multi"):init{print=true}
+GLOBAL, THREAD = require("multi.integration.threading"):init()
 
 func = THREAD:newFunction(function(count)
 	print("Starting Status test: ",count)
