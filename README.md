@@ -3,6 +3,7 @@
 - All objects now use connections internally
 - Connections now about 23x faster! 
 - Updated getTasksDetails() to handle the new method of managing threads and processors
+- Made lanes optional, install separately if needed
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
@@ -21,7 +22,7 @@ Link to dependencies:
 [lanes](https://github.com/LuaLanes/lanes)
 
 To install copy the multi folder into your environment and you are good to go</br>
-If you want to use the system threads, then you'll need to install lanes!
+If you want to use the system threads, then you'll need to install lanes or love2d game engine!
 **or** use luarocks `luarocks install multi`
 
 Discord
