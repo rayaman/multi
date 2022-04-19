@@ -2,7 +2,7 @@ if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
     package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
     require("lldebugger").start()
 else
-    --package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+    package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
 end
 --[[
     This file runs all tests.
@@ -20,7 +20,7 @@ end
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
-local multi, thread = require("multi"):init()--{priority=true}
+local multi, thread = require("multi"):init{print=true}--{priority=true}
 local good = false
 local proc = multi:newProcessor("Test",true)
 proc:newAlarm(3):OnRing(function()
@@ -85,7 +85,13 @@ runTest = thread:newFunction(function()
     local ret3 = func(20)
 	local s1,s2,s3 = 0,0,0
 	ret.OnError(function(...)
-		print("Error:",...)
+		print("Func 1:",...)
+	end)
+	ret2.OnError(function(...)
+		print("Func 2:",...)
+	end)
+	ret3.OnError(function(...)
+		print("Func 3:",...)
 	end)
     ret.OnStatus(function(part,whole)
 		s1 = math.ceil((part/whole)*1000)/10
@@ -97,7 +103,13 @@ runTest = thread:newFunction(function()
         s3 = math.ceil((part/whole)*1000)/10
     end)
 	ret.OnReturn(function()
-		print("Done")
+		print("Done 1")
+	end)
+	ret2.OnReturn(function()
+		print("Done 2")
+	end)
+	ret3.OnReturn(function()
+		print("Done 3")
 	end)
 	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn)
 	if s1 == 100 and s2 == 100 and s3 == 100 then
@@ -114,21 +126,27 @@ runTest = thread:newFunction(function()
 	conn2 = proc:newConnection()
 	conn3 = proc:newConnection()
 	local c1,c2,c3,c4 = false,false,false,false
+
 	local a = conn1(function()
 		c1 = true
 	end)
+
 	local b = conn2(function()
 		c2 = true
 	end)
+
 	local c = conn3(function()
 		c3 = true
 	end)
+
 	local d = conn3(function()
 		c4 = true
 	end)
+
 	conn1:Fire()
 	conn2:Fire()
 	conn3:Fire()
+
 	if c1 and c2 and c3 and c4 then
 		print("Connection Test 2: Ok")
 	else
@@ -145,9 +163,13 @@ runTest = thread:newFunction(function()
 	end
 	os.exit() -- End of tests
 end)
+
 runTest().OnError(function(...)
-	print("Error:",...)
+	print("Error: Something went wrong with the test!")
+	print(...)
+	os.exit(1)
 end)
+
 print("Pumping proc")
 while true do
 	proc.run()
