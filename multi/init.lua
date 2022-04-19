@@ -1422,7 +1422,9 @@ local switch = {
 	end,
 	function() end--none
 }
+
 setmetatable(switch,{__index=function() return function() end end})
+
 local cmds = {-- ipart: t_hold, t_sleep, t_holdF, t_skip, t_holdW, t_yield, t_none <-- Order
 	function(th,arg1,arg2,arg3)
 		th.func = arg1
@@ -1558,6 +1560,7 @@ function multi:newService(func) -- Priority managed threads
 	local ap
 	local task = thread.sleep
 	local scheme = 1
+
 	function c.Start()
 		if not active then
 			time = self:newTimer()
@@ -1566,7 +1569,8 @@ function multi:newService(func) -- Priority managed threads
 			c:OnStarted(c,Service_Data)
 		end
 		return c
-	end 
+	end
+
 	local function process()
 		thread.hold(function()
 			return active
@@ -1575,18 +1579,22 @@ function multi:newService(func) -- Priority managed threads
 		task(ap)
 		return c
 	end
+
 	local th = thread:newThread(function()
 		while true do
 			process()
 		end
 	end)
+
 	th.OnError = c.OnError -- use the threads onerror as our own
+	
 	function c.Destroy()
 		th:kill()
 		c.Stop()
 		multi.setType(c,multi.DestroyedObj)
 		return c
 	end
+
 	function c:SetScheme(n)
 		if type(self)=="number" then n = self end
 		scheme = n
@@ -1602,6 +1610,7 @@ function multi:newService(func) -- Priority managed threads
 		end
 		return c
 	end
+
 	function c.Stop()
 		if active then
 			c:OnStopped(c)
@@ -1613,6 +1622,7 @@ function multi:newService(func) -- Priority managed threads
 		end
 		return c
 	end
+
 	function c.Pause()
 		if active then
 			time:Pause()
@@ -1620,6 +1630,7 @@ function multi:newService(func) -- Priority managed threads
 		end
 		return c
 	end
+
 	function c.Resume()
 		if not active then
 			time:Resume()
@@ -1627,16 +1638,20 @@ function multi:newService(func) -- Priority managed threads
 		end
 		return c
 	end
+
 	function c.GetUpTime()
 		return time:Get()
 	end
+
 	function c:SetPriority(pri)
 		if type(self)=="number" then pri = self end
 		p = pri
 		c.SetScheme(scheme)
 		return c
 	end
+
 	multi.create(multi,c)
+
 	return c
 end
 
@@ -2039,18 +2054,22 @@ multi.SetName = multi.setName
 
 -- Special Events
 local _os = os.exit
+
 function os.exit(n)
 	multi.OnExit:Fire(n or 0)
 	_os(n)
 end
+
 multi.OnError=multi:newConnection()
 multi.OnPreLoad = multi:newConnection()
 multi.OnExit = multi:newConnection(nil,nil,true)
 multi.m = {onexit = function() multi.OnExit:Fire() end}
+
 if _VERSION >= "Lua 5.2" or jit then
 	setmetatable(multi.m, {__gc = multi.m.onexit})
 else
 	multi.m.sentinel = newproxy(true)
 	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
 end
+
 return multi
