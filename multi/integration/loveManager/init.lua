@@ -80,11 +80,11 @@ function multi:newSystemThread(name,func,...)
         -- If the thread is not running let's handle that.
         local thread_err = c.thread:getError()
         if thread_err == "Thread Killed!\1" then
-            c.OnDeath:Fire(c,"Thread Killed!")
+            c.OnDeath:Fire("Thread Killed!")
         elseif thread_err then
             c.OnError:Fire(c,thread_err)
         elseif c.stab.returns then
-            c.OnDeath:Fire(c,unpack(c.stab.returns))
+            c.OnDeath:Fire(unpack(c.stab.returns))
             c.stab.returns = nil
         end
     end)

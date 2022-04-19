@@ -90,109 +90,22 @@ function multi:getProcessors()
 	return processes
 end
 
-function multi:getTasksDetails(t)
-	if not(t) then
-		str = {
-			{"Type <Identifier>","Uptime","Priority","TID"}
+function multi:getStats()
+	local stats = {
+		[multi.Name] = {
+			threads = multi:getThreads(),
+			tasks = multi:getTasks()
 		}
-		local count = 0
-		for i,v in pairs(self.Mainloop) do
-			local name = v.Name or ""
-			if name~="" then
-				name = " <"..name..">"
-			end
-			count = count + 1
-			table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
-		end
-		for v,i in pairs(self.PausedObjects) do
-			local name = v.Name or ""
-			if name~="" then
-				name = " <"..name..">"
-			end
-			count = count + 1
-			if not v.Type == "destroyed" then
-				table.insert(str,{v.Type:sub(1,1):upper()..v.Type:sub(2,-1)..name,multi.Round(os.clock()-v.creationTime,3),self.PriorityResolve[v.Priority],v.TID})
-			end
-		end
-		if count == 0 then
-			table.insert(str,{"Currently no processes running!","","",""})
-		end
-		local s = multi.AlignTable(str)
-		dat = ""
-		dat2 = ""
-		if multi.SystemThreads then
-			for i = 1,#multi.SystemThreads do
-				dat2 = dat2.."<SystemThread: "..multi.SystemThreads[i].Name.." | "..os.clock()-multi.SystemThreads[i].creationTime..">\n"
-			end
-		end
-		local load, steps = self:getLoad()
-		local thread_count = 0
-		local process_count = 0
-		if globalThreads then
-			local th_tab = {
-				{"Thread Name","Uptime","TID","Attached To"}
-			}
-			local proc_tab = {
-				{"Process Name", "Uptime", "PID", "Load", "CpS"}
-			}
-			for th,process in pairs(globalThreads) do
-				if tostring(th.isProcessThread) == "destroyed" then
-					globalThreads[th] = nil
-				elseif th.isProcessThread then
-					load, steps = process:getLoad()
-					process_count = process_count + 1
-					table.insert(proc_tab,{th.Name,os.clock()-th.creationTime,(th.PID or "-1"),load,steps})
-				else
-					thread_count = thread_count + 1
-					table.insert(th_tab,{th.Name,os.clock()-th.creationTime,(th.TID or "-1"),process.Name})
-				end
-			end
-			dat = multi.AlignTable(proc_tab).. "\n"
-			dat = dat .. "\n" .. multi.AlignTable(th_tab)
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: "..thread_count.."\nSystemThreads Running: "..#(multi.SystemThreads or {}).."\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or false].."\n\n"..dat..dat2.."\n\n"..s
-		else
-			return "Load on "..ProcessName[(self.Type=="process" and 1 or 2)].."<"..(self.Name or "Unnamed")..">"..": "..multi.Round(load,2).."%\nCycles Per Second Per Task: "..steps.."\n\nMemory Usage: "..math.ceil(collectgarbage("count")).." KB\nProcesses Running: "..process_count.."\nThreads Running: 0\nPriority Scheme: "..priorityTable[multi.defaultSettings.priority or false].."\n\n"..dat2.."\n\n"..s
-		end
-	else
-		local load,steps = self:getLoad()
-		str = {
-			ProcessName = (self.Name or "Unnamed"),
-			MemoryUsage = math.ceil(collectgarbage("count")),
-			PriorityScheme = priorityTable[multi.defaultSettings.priority or false],
-			SystemLoad = multi.Round(load,2),
-			CyclesPerSecondPerTask = steps,
-			SystemThreadCount = multi.SystemThreads and #multi.SystemThreads or 0
+	}
+	local procs = multi:getProcessors()
+	for i = 1, #procs do
+		local proc = procs[i]
+		stats[proc:getFullName()] = {
+			threads = proc:getThreads(),
+			tasks = proc:getTasks()
 		}
-		str.Tasks = {}
-		str.PausedTasks = {}
-		str.Threads = {}
-		str.Processes = {}
-		str.Systemthreads = {}
-		for i,v in pairs(self.Mainloop) do
-			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
-		end
-		for v,i in pairs(multi.PausedObjects) do
-			table.insert(str.Tasks,{Link = v, Type=v.Type,Name=v.Name,Uptime=os.clock()-v.creationTime,Priority=self.PriorityResolve[v.Priority],TID = v.TID})
-		end
-		for th,process in pairs(globalThreads) do
-			if tostring(th.isProcessThread) == "destroyed" then
-				globalThreads[th] = nil
-			elseif th.isProcessThread then
-				local load, steps = process:getLoad()
-				table.insert(str.Processes,{Uptime = os.clock()-th.creationTime, Name = th.Name, Link = th, TID = th.TID,Load = load,Steps = steps})
-			else
-				table.insert(str.Threads,{Uptime = os.clock()-th.creationTime,Name = th.Name,Link = th,TID = th.TID,Attached_to = process})
-			end
-		end
-		str.ThreadCount = #str.Threads
-		str.ProcessCount = #str.Processes
-		if multi.SystemThreads then
-			for i=1,#multi.SystemThreads do
-				table.insert(str.Systemthreads,{Uptime = os.clock()-multi.SystemThreads[i].creationTime,Name = multi.SystemThreads[i].Name,Link = multi.SystemThreads[i],TID = multi.SystemThreads[i].count})
-			end
-		end
-		return str
 	end
+	return stats
 end
 
 --Helpers
@@ -654,6 +567,7 @@ function multi:newEvent(task)
 	end
 	c.OnEvent = self:newConnection()
 	self:setPriority("core")
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -675,6 +589,7 @@ function multi:newUpdater(skip)
 		return self
 	end
 	c.OnUpdate = self:newConnection()
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -711,6 +626,7 @@ function multi:newAlarm(set)
 		self.Parent.Pause(self)
 		return self
 	end
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -738,6 +654,7 @@ function multi:newLoop(func,notime)
 	end
 
 	multi:create(c)
+	c:SetName(c.Type)
 	return c
 end
 
@@ -795,6 +712,7 @@ function multi:newStep(start,reset,count,skip)
 		self:Resume()
 		return self
 	end
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -830,6 +748,7 @@ function multi:newTLoop(func,set)
 	if func then
 		c.OnLoop(func)
 	end
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -879,6 +798,7 @@ function multi:newTStep(start,reset,count,set)
 		self:Resume()
 		return self
 	end
+	c:SetName(c.Type)
 	multi:create(c)
 	return c
 end
@@ -957,17 +877,19 @@ function multi:newProcessor(name,nothread)
 			handler()
 		end
 	end)
+	
+	c.process.__ignore = true
 
 	c.process.isProcessThread = true
 	c.process.PID = sandcount
 	c.OnError = c.process.OnError
 
 	function c:getThreads()
-		return self.threads
+		return c.threads
 	end
 
 	function c:getFullName()
-		return self.parent:getFullName() .. "." .. self.Name
+		return c.parent:getFullName() .. "." .. c.Name
 	end
 
 	function c:getName()
@@ -1071,7 +993,13 @@ function multi:getThreads()
 end
 
 function multi:getTasks()
-	return self.Mainloop
+	local tasks = {}
+	for i,v in pairs(self.Mainloop) do
+		if not v.__ignore then
+			tasks[#tasks+1] = v
+		end
+	end
+	return tasks
 end
 
 function thread.request(t,cmd,...)
@@ -1213,6 +1141,8 @@ function thread.pushStatus(...)
 	t.statusconnector:Fire(...)
 end
 
+local handler
+
 function thread:newFunctionBase(generator,holdme)
 	return function()
 		local tfunc = {}
@@ -1230,10 +1160,11 @@ function thread:newFunctionBase(generator,holdme)
 			return nil, "Function is paused"
 		end
 		local rets, err
-		local function wait(no) 
-			if thread.isThread() and not (no) then
-				return multi.hold(function()
+		local function wait()
+			if thread.isThread() then
+				return thread.hold(function()
 					if err then
+						print("ERROR",err)
 						return multi.NIL, err
 					elseif rets then
 						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
@@ -1241,7 +1172,7 @@ function thread:newFunctionBase(generator,holdme)
 				end)
 			else
 				while not rets and not err do
-					multi.scheduler:Act()
+					handler()
 				end
 				if err then
 					return nil,err
@@ -1334,6 +1265,10 @@ function thread:newThread(name,func,...)
 	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
+
+	function c:getName()
+		return c.Name
+	end
 
 	function c:isPaused()
 		return self._isPaused
@@ -1560,7 +1495,7 @@ co_status = {
 		_=nil r1=nil r2=nil r3=nil r4=nil r5=nil
 	end,
 }
-local handler = coroutine.wrap(function(self)
+handler = coroutine.wrap(function(self)
 	local temp_start
 	while true do
 		for start = #startme, 1, -1 do

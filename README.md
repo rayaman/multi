@@ -10,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 </br>
 
-Progress is being made in [v15.2.0](https://github.com/rayaman/multi/tree/v15.2.0)
+Progress is being made in [v15.3.0](https://github.com/rayaman/multi/tree/v15.3.0)
 ---
 
 </br>

@@ -126,7 +126,7 @@ function multi.InitSystemThreadErrorHandler()
 				if status == "done" or temp.returns:get("returns") then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnDeath:Fire(temp,nil,unpack(({temp.returns:receive(0, "returns")})[2]))
+					temp.OnDeath:Fire(unpack(({temp.returns:receive(0, "returns")})[2]))
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "running" then
