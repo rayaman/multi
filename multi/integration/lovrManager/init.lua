@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -76,6 +76,7 @@ function multi:newSystemThread(name,func,...)
     THREAD_ID=THREAD_ID+1
     return c
 end
+THREAD.newSystemThread = multi.newSystemThread
 function lovr.threaderror(thread, errorstr)
   print("Thread error!\n"..errorstr)
 end

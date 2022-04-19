@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -129,7 +129,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
         end,holup),name
     end
-	multi:newThread("jobManager",function()
+	thread:newThread("jobManager",function()
 		while true do
 			thread.yield()
 			local dat = c.queueReturn:pop()
@@ -153,7 +153,7 @@ function multi:newSystemThreadedJobQueue(n)
 			local queueAll = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
 			setmetatable(_G,{__index = funcs})
-			multi:newThread("startUp",function()
+			thread:newThread("startUp",function()
 				while true do
 					thread.yield()
 					local all = queueAll:peek()
@@ -163,7 +163,7 @@ function multi:newSystemThreadedJobQueue(n)
 					end
 				end
 			end)
-			multi:newThread("runner",function()
+			thread:newThread("runner",function()
 				thread.sleep(.1)
 				while true do
 					thread.yield()
@@ -185,7 +185,7 @@ function multi:newSystemThreadedJobQueue(n)
 			end):OnError(function(...)
 				error(...)
 			end)
-			multi:newThread("Idler",function()
+			thread:newThread("Idler",function()
 				while true do
 					thread.yield()
 					if clock()-lastProc> 2 then

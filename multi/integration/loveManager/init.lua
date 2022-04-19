@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -37,7 +37,7 @@ GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
-local multi, thread = require("multi.compat.love2d"):init()
+local multi, thread = require("multi"):init()
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
@@ -48,70 +48,7 @@ local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
 local OBJECT_ID = 0
 local stf = 0
-function THREAD:newFunction(func,holup)
-    local tfunc = {}
-	tfunc.Active = true
-	function tfunc:Pause()
-		self.Active = false
-	end
-	function tfunc:Resume()
-		self.Active = true
-	end
-	function tfunc:holdMe(b)
-		holdme = b
-	end
-	local function noWait()
-		return nil, "Function is paused"
-	end
-    local rets, err
-	local function wait(no) 
-		if thread.isThread() and not (no) then
-			-- In a thread
-		else
-			-- Not in a thread
-		end
-	end
-    tfunc.__call = function(t,...)
-		if not t.Active then 
-			if holdme then
-				return nil, "Function is paused"
-			end
-			return {
-				isTFunc = true,
-				wait = noWait,
-				connect = function(f)
-					f(nil,"Function is paused")
-				end
-			}
-		end 
-        local t = multi:newSystemThread("SystemThreadedFunction",func,...)
-		t.OnDeath(function(self,...) rets = {...}  end)
-		t.OnError(function(self,e) err = e end)
-		if holdme then
-			return wait()
-		end
-		local temp = {
-			OnStatus = multi:newConnection(),
-			OnError = multi:newConnection(),
-			OnReturn = multi:newConnection(),
-			isTFunc = true,
-			wait = wait,
-			connect = function(f)
-				local tempConn = multi:newConnection()
-				t.OnDeath(function(self,...) if f then f(...) else tempConn:Fire(...) end end) 
-				t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
-				return tempConn
-			end
-		}
-		t.OnDeath(function(self,...) temp.OnReturn:Fire(...) end) 
-		t.OnError(function(self,err) temp.OnError:Fire(err) end)
-		t.linkedFunction = temp
-		t.statusconnector = temp.OnStatus
-		return temp
-	end
-	setmetatable(tfunc,tfunc)
-    return tfunc
-end
+
 function multi:newSystemThread(name,func,...)
     local c = {}
     c.name = name
@@ -119,38 +56,60 @@ function multi:newSystemThread(name,func,...)
     c.thread=love.thread.newThread(ThreadFileData)
     c.thread:start(THREAD.dump(func),c.ID,c.name,...)
     c.stab = THREAD.createStaticTable(name)
-    GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
+	c.OnDeath = multi:newConnection()
+	c.OnError = multi:newConnection()
+    GLOBAL["__THREAD_"..c.ID] = {ID=c.ID, Name=c.name, Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
-    THREAD_ID=THREAD_ID+1
-    multi:newThread(function()
-        while true do
-            thread.yield()
-            if c.stab["returns"] then
-                c.OnDeath:Fire(c,unpack(t.stab.returns))
-                t.stab.returns = nil
-                thread.kill()
-            end
-            local error = c.thread:getError()
-            if error then
-                if error:find("Thread Killed!\1") then
-                    c.OnDeath:Fire(c,"Thread Killed!")
-                    thread.kill()
-                else
-                    c.OnError:Fire(c,error)
-                    thread.kill()
+    THREAD_ID=THREAD_ID + 1
+	function c:getName()
+		return c.name
+	end
+    thread:newThread(function()
+        if name:find("TempSystemThread") then
+            local status_channel = love.thread.getChannel("__"..c.ID.."__MULTI__STATUS_CHANNEL__")
+            thread.hold(function()
+                -- While the thread is running we might as well do something in the loop
+                local status = status_channel
+                if status:peek()~=nil then
+                    c.statusconnector:Fire(unpack(status:pop()))
                 end
-            end
+                return not c.thread:isRunning()
+            end)
+        else
+            thread.hold(function()
+                return not c.thread:isRunning()
+            end)
+        end
+        -- If the thread is not running let's handle that.
+        local thread_err = c.thread:getError()
+        if thread_err == "Thread Killed!\1" then
+            c.OnDeath:Fire("Thread Killed!")
+        elseif thread_err then
+            c.OnError:Fire(c,thread_err)
+        elseif c.stab.returns then
+            c.OnDeath:Fire(unpack(c.stab.returns))
+            c.stab.returns = nil
         end
     end)
     return c
 end
-function love.threaderror(thread, errorstr)
-  print("Thread error!\n"..errorstr)
+
+function THREAD:newFunction(func)
+	return thread:newFunctionBase(function(...)
+		return multi:newSystemThread("TempSystemThread"..THREAD_ID,func,...)
+	end)()
 end
+
+THREAD.newSystemThread = multi.newSystemThread
+
+function love.threaderror(thread, errorstr)
+    mulit.print("Thread error!\n"..errorstr)
+end
+
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.loveManager.extensions")
-print("Integrated Love Threading!")
+mulit.print("Integrated Love Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

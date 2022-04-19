@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -72,7 +72,7 @@ function master:newNetworkThread(nodeName,func,...)
     local ret
     local nID = netID
     local conn = multi:newConnection()
-    multi:newThread(function()
+    thread:newthread(function()
         dat:addBlock{
             args = args,
             func = func,
@@ -143,7 +143,7 @@ function multi:newMasterNode(cd)
     else
         c:getNodesFromBroadcast()
     end
-    multi:newThread("CMDQueueProcessor",function()
+    thread:newthread("CMDQueueProcessor",function()
         while true do
             thread.skip(128)
             local data = table.remove(c._queue,1)

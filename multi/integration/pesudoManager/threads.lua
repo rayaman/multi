@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -21,6 +21,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
+
 local function getOS()
 	if package.config:sub(1, 1) == "\\" then
 		return "windows"
@@ -28,7 +29,8 @@ local function getOS()
 		return "unix"
 	end
 end
-local function INIT(env)
+
+local function INIT(thread)
     local THREAD = {}
     local GLOBAL = {}
     THREAD.Priority_Core = 3
@@ -38,24 +40,29 @@ local function INIT(env)
     THREAD.Priority_Below_Normal = -1
     THREAD.Priority_Low = -2
     THREAD.Priority_Idle = -3
+
     function THREAD.set(name, val)
         GLOBAL[name] = val
     end
+
     function THREAD.get(name)
         return GLOBAL[name]
     end
+
     function THREAD.waitFor(name)
-        print("Waiting",thread)
         return thread.hold(function() return GLOBAL[name] end)
     end
+
     if getOS() == "windows" then
         THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
     else
         THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
     end
+
     function THREAD.getCores()
         return THREAD.__CORES
     end
+
     function THREAD.getConsole()
         local c = {}
         function c.print(...)
@@ -66,31 +73,38 @@ local function INIT(env)
         end
         return c
     end
+
     function THREAD.getThreads()
         return {}--GLOBAL.__THREADS__
     end
+
+    THREAD.pushStatus = thread.pushStatus
+
     if os.getOS() == "windows" then
         THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
     else
         THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
     end
+
     function THREAD.kill()
         error("Thread was killed!")
     end
+
     function THREAD.getName()
         return GLOBAL["$THREAD_NAME"]
     end
+
     function THREAD.getID()
         return GLOBAL["$THREAD_ID"]
     end
-    function THREAD.sleep(n)
-        thread.sleep(n)
-    end
-    function THREAD.hold(n)
-        return thread.hold(n)
-    end
+
+    THREAD.sleep = thread.sleep
+
+    THREAD.hold = thread.hold
+
     return GLOBAL, THREAD
 end
-return {init = function()
-    return INIT()
+
+return {init = function(thread)
+    return INIT(thread)
 end}
