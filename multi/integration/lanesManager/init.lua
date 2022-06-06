@@ -139,19 +139,19 @@ function multi.InitSystemThreadErrorHandler()
 				elseif status == "error" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnError:Fire(temp,nil,unpack(temp.returns:receive(0,"returns") or {"Thread Killed!"}))
+					temp.OnError:Fire(temp,unpack(temp.returns:receive(0,"returns") or {"Thread Killed!"}))
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "cancelled" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnError:Fire(temp,nil,"thread_cancelled")
+					temp.OnError:Fire(temp,"thread_cancelled")
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "killed" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnError:Fire(temp,nil,"thread_killed")
+					temp.OnError:Fire(temp,"thread_killed")
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				end
