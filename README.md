@@ -1,6 +1,6 @@
-# Multi Version: 15.3.0 
+# Multi Version: 15.2.1 
 **Key Changes**
-- 
+- Bug fix
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
