@@ -1,4 +1,3 @@
-print("Dev")
 --[[
 MIT License
 
@@ -35,7 +34,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "15.2.0"
+multi.Version = "15.2.1"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
