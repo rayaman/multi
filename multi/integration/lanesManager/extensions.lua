@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -113,7 +113,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
         end,holup),name
     end
-    multi:newThread("JobQueueManager",function()
+    thread:newThread("JobQueueManager",function()
         while true do
             local job = thread.hold(function()
                 return queueReturn:pop()
@@ -129,7 +129,7 @@ function multi:newSystemThreadedJobQueue(n)
             local clock = os.clock
             local ref = 0
             setmetatable(_G,{__index = funcs})
-            multi:newThread("JobHandler",function()
+            thread:newThread("JobHandler",function()
                 while true do
                     local dat = thread.hold(function()
                         return queueJob:pop()
@@ -141,7 +141,7 @@ function multi:newSystemThreadedJobQueue(n)
                     queueReturn:push{jid, funcs[name](unpack(args)),queue}
                 end
             end)
-            multi:newThread("DoAllHandler",function()
+            thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()
                         return doAll:peek()
@@ -156,7 +156,7 @@ function multi:newSystemThreadedJobQueue(n)
                     end
                 end
             end)
-            multi:newThread("IdleHandler",function()
+            thread:newThread("IdleHandler",function()
                 while true do
                     thread.hold(function()
                         return clock()-idle>3

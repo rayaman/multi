@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
-local multi, thread = require("multi").init()
+local multi, thread = require("multi"):init()
 
 if multi.integration then
 	return {
@@ -32,7 +32,7 @@ if multi.integration then
 	}
 end
 
-local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads"):init()
+local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads").init(thread)
 
 function multi:canSystemThread() -- We are emulating system threading
 	return true
@@ -41,6 +41,7 @@ end
 function multi:getPlatform()
 	return "pesudo"
 end
+
 local function split(str)
 	local tab = {}
 	for word in string.gmatch(str, '([^,]+)') do
@@ -48,13 +49,16 @@ local function split(str)
 	end
 	return tab
 end
-THREAD.newFunction=thread.newFunction
+
+local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
+tab = split(tab)
+
 local id = 0
 function multi:newSystemThread(name,func,...)
 	GLOBAL["$THREAD_NAME"] = name
 	GLOBAL["$__THREADNAME__"] = name
 	GLOBAL["$THREAD_ID"] = id
-	--GLOBAL["$thread"] = thread
+	GLOBAL["$thread"] = thread
 	local env = {
 		GLOBAL = GLOBAL,
 		THREAD = THREAD,
@@ -64,21 +68,28 @@ function multi:newSystemThread(name,func,...)
 		thread = thread
 	}
 	
-	local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
-	tab = split(tab)
 	for i = 1,#tab do
 		env[tab[i]] = _G[tab[i]]
 	end
-	--setmetatable(env,{__index=env})
-	multi:newISOThread(name,func,env,...).OnError(function(self,msg)
-		print("ERROR:",msg)
-	end)
+
+	local th = thread:newISOThread(name,func,env,...)
+	
 	id = id + 1
+
+	return th
 end
+
+THREAD.newSystemThread = multi.newSystemThread
 -- System threads as implemented here cannot share memory, but use a message passing system.
 -- An isolated thread allows us to mimic that behavior so if access data from the "main" thread happens things will not work. This behavior is in line with how the system threading works
 
-print("Integrated Pesudo Threading!")
+function THREAD:newFunction(func,holdme)
+	return thread:newFunctionBase(function(...)
+		return multi:newSystemThread("TempSystemThread",func,...)
+	end,holdme)()
+end
+
+multi.print("Integrated Pesudo Threading!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD

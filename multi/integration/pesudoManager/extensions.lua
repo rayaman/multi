@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -125,7 +125,7 @@ function multi:newSystemThreadedJobQueue(n)
         end,holup),name
     end
     for i=1,c.cores do
-        multi:newThread("PesudoThreadedJobQueue_"..i,function()
+        thread:newthread("PesudoThreadedJobQueue_"..i,function()
             while true do
                 thread.yield()
                 if #jobs>0 then

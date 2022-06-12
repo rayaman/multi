@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2020 Ryan Ward
+Copyright (c) 2022 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -168,7 +168,7 @@ if not ISTHREAD then
     local clock = os.clock
     local lastproc = clock()
     local queue = lovr.thread.getChannel("__CONSOLE__")
-    multi:newThread("consoleManager",function()
+    thread:newThread("consoleManager",function()
         while true do
             thread.yield()
             dat = queue:pop()
