@@ -21,7 +21,10 @@ Link to optional dependencies:
 
 To install copy the multi folder into your environment and you are good to go</br>
 If you want to use the system threads, then you'll need to install lanes or love2d game engine!
-**or** use luarocks `luarocks install multi`
+
+```
+luarocks install multi
+```
 
 Discord
 -------
