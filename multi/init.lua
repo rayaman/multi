@@ -34,7 +34,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "15.2.0"
+multi.Version = "15.3.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -1487,6 +1487,7 @@ co_status = {
 	["normal"] = function(thd,ref)  end,
 	["running"] = function(thd,ref)  end,
 	["dead"] = function(thd,ref,task,i,th)
+		if ref.__processed then return end
 		if _ then
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
@@ -1503,6 +1504,7 @@ co_status = {
 			end
 		end
 		_=nil r1=nil r2=nil r3=nil r4=nil r5=nil
+		ref.__processed = true
 	end,
 }
 handler = coroutine.wrap(function(self)
