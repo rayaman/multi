@@ -41,6 +41,7 @@ function multi:newSystemThreadedQueue(name)
 	GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
     local c = {}
     c.link = lanes.linda()
@@ -58,6 +59,7 @@ function multi:newSystemThreadedTable(name)
     GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2

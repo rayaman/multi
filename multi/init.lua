@@ -58,15 +58,15 @@ multi.Priority_Very_Low = 16384
 multi.Priority_Idle = 65536
 
 multi.PriorityResolve = {
-	[1]="Core",
-	[4]="Very High",
-	[16]="High",
-	[64]="Above Normal",
-	[256]="Normal",
-	[1024]="Below Normal",
-	[4096]="Low",
-	[16384]="Very Low",
-	[65536]="Idle",
+	[1]		=	"Core",
+	[4]		=	"Very High",
+	[16]	=	"High",
+	[64]	=	"Above Normal",
+	[256]	=	"Normal",
+	[1024]	=	"Below Normal",
+	[4096]	=	"Low",
+	[16384]	=	"Very Low",
+	[65536]	=	"Idle",
 }
 
 local PList = {multi.Priority_Core,multi.Priority_Very_High,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Very_Low,multi.Priority_Idle}
@@ -116,19 +116,20 @@ function multi:newConnection(protect,func,kill)
 	local lock = false
 	c.callback = func
 	c.Parent=self
+
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
 				if v==self then
-					local ref = self:connect(select(2,...))
+					local ref = self:Connect(select(2,...))
 					ref.root_link = select(1,...)
 					return ref
 				end
 			end
-			return self:connect(...)
+			return self:Connect(...)
 		else
-			return self:connect(...)
+			return self:Connect(...)
 		end
 	end,
 	__add = function(c1,c2)
@@ -154,32 +155,18 @@ function multi:newConnection(protect,func,kill)
 		end)
 		return cn
 	end})
+
 	c.Type='connector'
 	c.func={}
 	c.ID=0
 	local protect=protect or false
 	local connections={}
 	c.FC=0
+
 	function c:hasConnections()
 		return #call_funcs~=0
 	end
-	function c:holdUT(n)
-		local n=n or 0
-		self.waiting=true
-		local count=0
-		local id=self:connect(function()
-			count = count + 1
-			if n<=count then
-				self.waiting=false
-			end
-		end)
-		repeat
-			self.Parent:uManager()
-		until self.waiting==false
-		id:Destroy()
-		return self
-	end
-	c.HoldUT=c.holdUT
+
 	function c:getConnection(name,ignore)
 		if ignore then
 			return connections[name] or CRef
@@ -187,14 +174,17 @@ function multi:newConnection(protect,func,kill)
 			return connections[name] or self
 		end
 	end
+
 	function c:Lock()
 		lock = true
 		return self
 	end
+
 	function c:Unlock()
 		lock = false
 		return self
 	end
+
 	if protect then
 		function c:Fire(...)
 			if lock then return end
@@ -216,48 +206,56 @@ function multi:newConnection(protect,func,kill)
 			end
 		end
 	end
+
 	local fast = {}
 	function c:getConnections()
 		return call_funcs
 	end
+
 	function c:fastMode()
 		function self:Fire(...)
 			for i=1,#fast do
 				fast[i](...)
 			end
 		end
-		function self:connect(func)
+		function self:Connect(func)
 			table.insert(fast,func)
 		end
 	end
+
 	function c:Bind(t)
 		local temp = call_funcs
 		call_funcs=t
 		return temp
 	end
+
 	function c:Remove()
 		local temp = call_funcs
 		call_funcs={}
 		return temp
 	end
+
 	local function conn_helper(self,func,name,num)
 		self.ID=self.ID+1
+
 		if num then
 			table.insert(call_funcs,num,func)
 		else
 			table.insert(call_funcs,1,func)
 		end
+
 		local temp = {
 			func=func,
 			Type="connector_link",
 			Parent=self,
 			connect = function(s,...)
-				return self:connect(...)
+				return self:Connect(...)
 			end
 		}
+
 		setmetatable(temp,{
 			__call=function(s,...)
-				return self:connect(...)
+				return self:Connect(...)
 			end,
 			__index = function(t,k)
 				if rawget(t,"root_link") then
@@ -272,6 +270,7 @@ function multi:newConnection(protect,func,kill)
 				rawset(t,k,v)
 			end,
 		})
+
 		function temp:Fire(...)
 			if lock then return end
 			if protect then
@@ -283,6 +282,7 @@ function multi:newConnection(protect,func,kill)
 				return call_funcs(...)
 			end
 		end
+
 		function temp:Destroy()
 			for i=#call_funcs,1,-1 do
 				if call_funcs[i]~=nil then
@@ -294,6 +294,7 @@ function multi:newConnection(protect,func,kill)
 				end
 			end
 		end
+
 		if name then
 			connections[name]=temp
 		end
@@ -302,7 +303,8 @@ function multi:newConnection(protect,func,kill)
 		end
 		return temp
 	end
-	function c:connect(...)--func,name,num
+
+	function c:Connect(...)--func,name,num
 		local tab = {...}
 		local funcs={}
 		for i=1,#tab do
@@ -320,8 +322,15 @@ function multi:newConnection(protect,func,kill)
 			return conn_helper(self,tab[1],tab[2],tab[3])
 		end
 	end
+
+	function c:SetHelper(func)
+		conn_helper = func
+	end
+
 	c.Connect=c.connect
 	c.GetConnection=c.getConnection
+	c.HasConnections = c.hasConnections
+	c.GetConnection = c.getConnection
 	if not(ignoreconn) then
 		multi:create(c)
 	end
@@ -2043,14 +2052,14 @@ function multi.print(...)
 	end
 end
 
-multi.GetType=multi.getType
-multi.IsPaused=multi.isPaused
-multi.IsActive=multi.isActive
-multi.Reallocate=multi.Reallocate
-multi.ConnectFinal=multi.connectFinal
-multi.ResetTime=multi.SetTime
-multi.IsDone=multi.isDone
-multi.SetName = multi.setName
+multi.GetType		=	multi.getType
+multi.IsPaused		=	multi.isPaused
+multi.IsActive		=	multi.isActive
+multi.Reallocate	=	multi.Reallocate
+multi.ConnectFinal	=	multi.connectFinal
+multi.ResetTime		=	multi.SetTime
+multi.IsDone		=	multi.isDone
+multi.SetName		=	multi.setName
 
 -- Special Events
 local _os = os.exit
