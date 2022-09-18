@@ -273,14 +273,7 @@ function multi:newConnection(protect,func,kill)
 
 		function temp:Fire(...)
 			if lock then return end
-			if protect then
-				local t=pcall(call_funcs,...)
-				if t then
-					return t
-				end
-			else
-				return call_funcs(...)
-			end
+			return call_funcs(...)
 		end
 
 		function temp:Destroy()
@@ -298,9 +291,11 @@ function multi:newConnection(protect,func,kill)
 		if name then
 			connections[name]=temp
 		end
+
 		if self.callback then
 			self.callback(temp)
 		end
+
 		return temp
 	end
 
