@@ -109,6 +109,12 @@ function multi:getStats()
 end
 
 --Helpers
+function multi.ForEach(tab,func)
+	for i=1,#tab do
+		func(tab[i])
+	end
+end
+
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
@@ -198,6 +204,7 @@ function multi:newConnection(protect,func,kill)
 		end
 	else
 		function c:Fire(...)
+			if lock then return end
 			for i=#call_funcs,1,-1 do
 				call_funcs[i](...)
 				if kill then
@@ -272,7 +279,6 @@ function multi:newConnection(protect,func,kill)
 		})
 
 		function temp:Fire(...)
-			if lock then return end
 			return call_funcs(...)
 		end
 

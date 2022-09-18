@@ -17,6 +17,10 @@ Added
 
 	Sets the helper function that the connection object uses when creating connection links.
 
+- `multi.ForEach(table, callback_function)`
+
+	Loops through the table and calls callback_function with each element of the array. 
+
 Changed
 ---
 - `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
