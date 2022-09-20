@@ -1254,9 +1254,8 @@ local startme_len = 0
 function thread:newThread(name,func,...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
 	local func = func or name
-
-	if type(name) == "function" then
-		name = "Thread#"..threadCount
+	if func == name then
+		name = name or multi.randomString(16)
 	end
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	local env = {self=c}

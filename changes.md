@@ -21,6 +21,8 @@ Added
 
 	Loops through the table and calls callback_function with each element of the array. 
 
+- If a name is not supplied when creating threads; a name is randomly generated. Unless sending through an established channel/queue you might not be able to easily init the object.
+
 Changed
 ---
 - `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
@@ -32,7 +34,7 @@ Removed
 
 Fixed
 ---
-- 
+- SystemThreaded Objects variables weren't consistent.
 
 ToDo
 ---

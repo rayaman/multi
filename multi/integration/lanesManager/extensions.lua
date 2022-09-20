@@ -24,7 +24,9 @@ SOFTWARE.
 local multi, thread = require("multi"):init()
 local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
 function multi:newSystemThreadedQueue(name)
+	local name = name or multi.randomString(16)
 	local c = {}
+	c.Name = name
 	c.linda = lanes.linda()
 	function c:push(v)
 		self.linda:send("Q", v)
@@ -43,8 +45,10 @@ function multi:newSystemThreadedQueue(name)
 end
 
 function multi:newSystemThreadedTable(name)
+	local name = name or multi.randomString(16)
     local c = {}
     c.link = lanes.linda()
+	c.Name = name
     setmetatable(c,{
         __index = function(t,k)
             return c.link:get(k)

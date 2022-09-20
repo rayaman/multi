@@ -62,6 +62,7 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
+	local name = name or multi.randomString(16)
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()

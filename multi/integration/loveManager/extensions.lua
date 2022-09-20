@@ -27,6 +27,7 @@ local multi, thread = require("multi").init()
 GLOBAL = multi.integration.GLOBAL
 THREAD = multi.integration.THREAD
 function multi:newSystemThreadedQueue(name)
+	local name = name or multi.randomString(16)
 	local c = {}
 	c.Name = name
 	local fRef = {"func",nil}
@@ -64,10 +65,11 @@ function multi:newSystemThreadedQueue(name)
 	return c
 end
 function multi:newSystemThreadedTable(name)
+	local name = name or multi.randomString(16)
     local c = {}
-    c.name = name
+    c.Name = name
     function c:init()
-        return THREAD.createTable(self.name)
+        return THREAD.createTable(self.Name)
     end
     THREAD.package(name,c)
 	return c
