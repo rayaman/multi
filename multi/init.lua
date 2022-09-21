@@ -328,7 +328,7 @@ function multi:newConnection(protect,func,kill)
 		conn_helper = func
 	end
 
-	c.Connect=c.connect
+	c.connect=c.Connect
 	c.GetConnection=c.getConnection
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
