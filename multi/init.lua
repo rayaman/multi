@@ -109,6 +109,11 @@ function multi:getStats()
 end
 
 --Helpers
+
+function multi.ForEach(tab,func)
+	for i=1,#tab do func(tab[i]) end
+end
+
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}

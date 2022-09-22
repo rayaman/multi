@@ -75,7 +75,7 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda)
             c.queue:send("Q", {...})
         end
         function c.error(err)
-            c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
+            c.queue:push("Q",{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__})
             error(err)
         end
         return c

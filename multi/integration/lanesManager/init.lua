@@ -87,6 +87,7 @@ function multi:newSystemThread(name, func, ...)
 		},
 		priority=c.priority
 	},function(...)
+		require("multi.integration.lanesManager.extensions")
 		local has_error = true
 		return_linda:set("returns",{func(...)})
 		has_error = false
@@ -119,6 +120,7 @@ function multi.InitSystemThreadErrorHandler()
 		while true do
 			thread.yield()
 			_,data = __ConsoleLinda:receive(0, "Q")
+			if data then print(unpack(data)) end
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status
