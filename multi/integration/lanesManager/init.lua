@@ -88,6 +88,7 @@ function multi:newSystemThread(name, func, ...)
 		},
 		priority=c.priority
 	},function(...)
+		require("multi.integration.lanesManager.extensions")
 		local has_error = true
 		return_linda:set("returns",{func(...)})
 		has_error = false

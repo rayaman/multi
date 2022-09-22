@@ -7,12 +7,84 @@ Table of contents
 # Update 15.3.0 - A world of connection
 
 Full Update Showcase
+```lua
+multi, thread = require("multi"):init{print=true}
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+
+local conn = multi:newSystemThreadedConnection("conn"):init()
+
+multi:newSystemThread("Thread_Test_1",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	conn(function()
+		print(THREAD:getName().." was triggered!")
+	end)
+	multi:mainloop()
+end)
+
+multi:newSystemThread("Thread_Test_2",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	conn(function(a,b,c)
+		print(THREAD:getName().." was triggered!",a,b,c)
+	end)
+	multi:newAlarm(2):OnRing(function()
+		print("Fire 2!!!")
+		conn:Fire(4,5,6)
+		THREAD.kill()
+	end)
+
+	multi:mainloop()
+end)
+
+conn(function(a,b,c)
+	print("Mainloop conn got triggered!",a,b,c)
+end)
+
+alarm = multi:newAlarm(1)
+alarm:OnRing(function()
+	print("Fire 1!!!")
+	conn:Fire(1,2,3) 
+end)
+
+alarm = multi:newAlarm(3):OnRing(function()
+	multi:newSystemThread("Thread_Test_3",function()
+		local multi, thread = require("multi"):init()
+		local conn = GLOBAL["conn"]:init()
+		conn(function(a,b,c)
+			print(THREAD:getName().." was triggered!",a,b,c)
+		end)
+		multi:newAlarm(2):OnRing(function()
+			print("Fire 3!!!")
+			conn:Fire(7,8,9)
+		end)
+		multi:mainloop()
+	end)
+end)
+
+multi:newSystemThread("Thread_Test_4",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	local conn2 = multi:newConnection()
+	multi:newAlarm(2):OnRing(function()
+		conn2:Fire()
+	end)
+	multi:newThread(function()
+		print("Conn Test!")
+		thread.hold(conn + conn2)
+		print("It held!")
+	end)
+	multi:mainloop()
+end)
+
+multi:mainloop()
+```
 
 Added
 ---
 - `multi:newSystemThreadedConnection()`
 
-	Allows one to trigger connection events across threads.
+	Allows one to trigger connection events across threads. Works like how any connection would work. Supports all of the features, can even be `added` with non SystemThreadedConnections as demonstrated in the full showcase.
 - `multi:newConnection():SetHelper(func)`
 
 	Sets the helper function that the connection object uses when creating connection links.
