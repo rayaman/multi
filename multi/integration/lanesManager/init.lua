@@ -50,7 +50,7 @@ local __SleepingLinda = lanes.linda() -- handles sleeping stuff
 local __ConsoleLinda = lanes.linda() -- handles console stuff
 local __StatusLinda = lanes.linda() -- handles pushstatus for stfunctions
 
-local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda, __SleepingLinda, __StatusLinda)
+local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda, __SleepingLinda, __StatusLinda, __ConsoleLinda)
 local count = 1
 local started = false
 local livingThreads = {}
@@ -62,6 +62,7 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
+	local name = name or multi.randomString(16)
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()

@@ -231,6 +231,12 @@ function multi:newSystemThreadedConnection(name)
 		ping:Resume()
 	end,false)
 
+	local function fire(...)
+		for _, link in pairs(c.links) do
+			link:push {c.TRIG, {...}}
+		end
+	end
+
 	thread:newThread("STC_SUB_MAN"..name,function()
 		local item
 		while true do
@@ -246,11 +252,11 @@ function multi:newSystemThreadedConnection(name)
 				end)
 				c.links[#c.links+1] = item[2]
 			elseif item[1] == c.TRIG then
-				c:Fire(unpack(item[2]))
+				fire(unpack(item[2]))
 				c.proxy_conn:Fire(unpack(item[2]))
 			end
 		end
-	end).OnError(print)
+	end)
 	--- ^^^ This will only exist in the init thread
 
 	function c:Fire(...)
@@ -259,7 +265,7 @@ function multi:newSystemThreadedConnection(name)
 			for _, link in pairs(self.links) do
 				link:push {self.TRIG, args}
 			end
-			--c.proxy_conn:Fire(...)
+			self.proxy_conn:Fire(...)
 		else
 			self.subscribe:push {self.TRIG, args}
 		end
@@ -295,7 +301,7 @@ function multi:newSystemThreadedConnection(name)
 					-- This shouldn't be the case
 				end
 			end
-		end).OnError(print)
+		end)
 		return self
 	end
 

@@ -27,6 +27,7 @@ local multi, thread = require("multi").init()
 GLOBAL = multi.integration.GLOBAL
 THREAD = multi.integration.THREAD
 function multi:newSystemThreadedQueue(name)
+	local name = name or multi.randomString(16)
 	local c = {}
 	c.Name = name
 	local fRef = {"func",nil}
@@ -64,10 +65,11 @@ function multi:newSystemThreadedQueue(name)
 	return c
 end
 function multi:newSystemThreadedTable(name)
+	local name = name or multi.randomString(16)
     local c = {}
-    c.name = name
+    c.Name = name
     function c:init()
-        return THREAD.createTable(self.name)
+        return THREAD.createTable(self.Name)
     end
     THREAD.package(name,c)
 	return c
@@ -440,7 +442,12 @@ function multi:newSystemThreadedConnection(name)
 		end,{sleep=3})
 
 		if not res then
-			self.links = remove(self.links, pings)
+			for i=1,#links do 
+				if links[i] == link then
+					table.remove(links,i,link)
+					break
+				end
+			end
 		else
 			link:pop()
 		end
@@ -458,6 +465,12 @@ function multi:newSystemThreadedConnection(name)
 		ping:Resume()
 	end,false)
 
+	local function fire(...)
+		for _, link in pairs(c.links) do
+			link:push {c.TRIG, {...}}
+		end
+	end
+
 	thread:newThread("STC_SUB_MAN"..name,function()
 		local item
 		while true do
@@ -473,7 +486,7 @@ function multi:newSystemThreadedConnection(name)
 				end)
 				c.links[#c.links+1] = item[2]
 			elseif item[1] == c.TRIG then
-				c:Fire(unpack(item[2]))
+				fire(unpack(item[2]))
 				c.proxy_conn:Fire(unpack(item[2]))
 			end
 		end
@@ -486,6 +499,7 @@ function multi:newSystemThreadedConnection(name)
 			for _, link in pairs(self.links) do
 				link:push {self.TRIG, args}
 			end
+			self.proxy_conn:Fire(...)
 		else
 			self.subscribe:push {self.TRIG, args}
 		end
@@ -497,6 +511,7 @@ function multi:newSystemThreadedConnection(name)
 		self.proxy_conn = multi:newConnection()
 		local mt = getmetatable(self.proxy_conn)
 		setmetatable(self, {__index = self.proxy_conn, __call = function(t,func) self.proxy_conn(func) end, __add = mt.__add})
+		if self.CID == THREAD.getID() then return self end
 		thread:newThread("STC_CONN_MAN"..name,function()
 			local item
 			local link_self_ref = multi:newSystemThreadedQueue()
@@ -524,7 +539,7 @@ function multi:newSystemThreadedConnection(name)
 		return self
 	end
 
-	GLOBAL[name] = c
+	THREAD.package(name,c)
 
 	return c
 end
