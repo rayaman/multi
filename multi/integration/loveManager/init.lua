@@ -109,7 +109,7 @@ end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.loveManager.extensions")
-mulit.print("Integrated Love Threading!")
+multi.print("Integrated Love Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

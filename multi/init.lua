@@ -1189,7 +1189,7 @@ function thread:newFunctionBase(generator,holdme)
 			end
 		end
 		tfunc.__call = function(t,...)
-			if not t.Active then 
+			if t.Active == false then 
 				if holdme then
 					return nil, "Function is paused"
 				end
