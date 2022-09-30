@@ -99,6 +99,38 @@ Changed
 ---
 - `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
 
+- `Connections when added(+) together now act like 'or', to get the 'and' feature multiply(*) them together.`
+
+	**Note:** This is a potentially breaking change for using connections.
+
+	```lua
+	multi, thread = require("multi"):init{print=true}
+	-- GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+
+	local conn1, conn2, conn3 = multi:newConnection(), multi:newConnection(), multi:newConnection()
+
+	thread:newThread(function()
+		print("Awaiting status")
+		thread.hold(conn1 + (conn2 * conn3))
+		print("Conn or Conn2 and Conn3")
+	end)
+
+	multi:newAlarm(1):OnRing(function()
+		print("Conn")
+		conn1:Fire()
+	end)
+
+	multi:newAlarm(2):OnRing(function()
+		print("Conn2")
+		conn2:Fire()
+	end)
+
+	multi:newAlarm(3):OnRing(function()
+		print("Conn3")
+		conn3:Fire()
+	end)
+	```
+
 Removed
 ---
 - Connection objects methods removed:

@@ -137,8 +137,18 @@ function multi:newConnection(protect,func,kill)
 			return self:Connect(...)
 		end
 	end,
-	__add = function(c1,c2)
-		cn = multi:newConnection()
+	__add = function(c1,c2) -- Or
+		local cn = multi:newConnection()
+		c1(function(...)
+			cn:Fire(...)
+		end)
+		c2(function(...)
+			cn:Fire(...)
+		end)
+		return cn
+	end,
+	__mul = function(c1,c2) -- And
+		local cn = multi:newConnection()
 		if not c1.__hasInstances then
 			cn.__hasInstances = 2
 			cn.__count = 0
