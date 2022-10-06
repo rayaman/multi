@@ -160,12 +160,14 @@ function multi:newConnection(protect,func,kill)
 			cn.__count = cn.__count + 1
 			if cn.__count == cn.__hasInstances then
 				cn:Fire(...)
+				cn.__count = 0
 			end
 		end)
 		c2(function(...)
 			cn.__count = cn.__count + 1
 			if cn.__count == cn.__hasInstances then
 				cn:Fire(...)
+				cn.__count = 0
 			end
 		end)
 		return cn
@@ -237,6 +239,7 @@ function multi:newConnection(protect,func,kill)
 		function self:Connect(func)
 			table.insert(fast,func)
 		end
+		return self
 	end
 
 	function c:Bind(t)
@@ -335,6 +338,7 @@ function multi:newConnection(protect,func,kill)
 
 	function c:SetHelper(func)
 		conn_helper = func
+		return self
 	end
 
 	c.connect=c.Connect
@@ -584,7 +588,7 @@ function multi:newEvent(task)
 		task=func
 		return self
 	end
-	c.OnEvent = self:newConnection()
+	c.OnEvent = self:newConnection():fastMode()
 	self:setPriority("core")
 	c:SetName(c.Type)
 	multi:create(c)
@@ -607,7 +611,7 @@ function multi:newUpdater(skip)
 		skip=n
 		return self
 	end
-	c.OnUpdate = self:newConnection()
+	c.OnUpdate = self:newConnection():fastMode()
 	c:SetName(c.Type)
 	multi:create(c)
 	return c
@@ -639,7 +643,7 @@ function multi:newAlarm(set)
 		t = clock()
 		return self
 	end
-	c.OnRing = self:newConnection()
+	c.OnRing = self:newConnection():fastMode()
 	function c:Pause()
 		count = clock()
 		self.Parent.Pause(self)
@@ -663,15 +667,12 @@ function multi:newLoop(func,notime)
 			self.OnLoop:Fire(self,clock()-start)
 		end
 	end
-	c.OnLoop = self:newConnection()
-	function c:fastMode()
-		self.OnLoop:fastMode()
-	end
+	c.OnLoop = self:newConnection():fastMode()
 
 	if func then
 		c.OnLoop(func)
 	end
-
+	
 	multi:create(c)
 	c:SetName(c.Type)
 	return c
@@ -713,9 +714,9 @@ function multi:newStep(start,reset,count,skip)
 		end
 	end
 	c.Reset=c.Resume
-	c.OnStart = self:newConnection()
-	c.OnStep = self:newConnection()
-	c.OnEnd = self:newConnection()
+	c.OnStart = self:newConnection():fastMode()
+	c.OnStep = self:newConnection():fastMode()
+	c.OnEnd = self:newConnection():fastMode()
 	function c:Break()
 		self.Active=nil
 		return self
@@ -763,7 +764,7 @@ function multi:newTLoop(func,set)
 		self.Parent.Pause(self)
 		return self
 	end
-	c.OnLoop = self:newConnection()
+	c.OnLoop = self:newConnection():fastMode()
 	if func then
 		c.OnLoop(func)
 	end
@@ -883,25 +884,28 @@ function multi:newProcessor(name,nothread)
 	c.Type = "process"
 	local Active =  nothread or false
 	c.Name = name or ""
-	c.pump = false
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
 
 	local handler = c:createHandler(c.threads,c.startme)
 
-	c.process = self:newLoop(function()
-		if Active then
-			c:uManager()
-			handler()
-		end
-	end)
+	if not nothread then -- Don't create a loop if we are triggering this manually
+		c.process = self:newLoop(function()
+			if Active then
+				c:uManager()
+				handler()
+			end
+		end)
+		c.process.__ignore = true
+		c.process.isProcessThread = true
+		c.process.PID = sandcount
+		c.OnError = c.process.OnError
+	else
+		c.OnError = multi:newConnection()
+	end
 	
-	c.process.__ignore = true
-
-	c.process.isProcessThread = true
-	c.process.PID = sandcount
-	c.OnError = c.process.OnError
+	
 
 	function c:getThreads()
 		return c.threads
@@ -930,10 +934,8 @@ function multi:newProcessor(name,nothread)
 
 	function c.run()
 		if not Active then return end
-		c.pump = true
 		c:uManager()
 		handler()
-		c.pump = false
 		return c
 	end
 

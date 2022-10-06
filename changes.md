@@ -97,8 +97,10 @@ Added
 
 Changed
 ---
+- All actors now use fastmode on connections
+- Performance enhancement with processes that are pumped instead of automatically running, by suppressing the creation of an internal loop object that would manage the process
+- `Connection:fastMode() or Connection:SetHelper()` now returns a reference to itself
 - `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
-
 - `Connections when added(+) together now act like 'or', to get the 'and' feature multiply(*) them together.`
 
 	**Note:** This is a potentially breaking change for using connections.
@@ -139,6 +141,7 @@ Removed
 Fixed
 ---
 - SystemThreaded Objects variables weren't consistent.
+- Issue with connections being multiplied only being able to have a combined fire once
 
 ToDo
 ---
