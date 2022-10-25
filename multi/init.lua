@@ -29,6 +29,7 @@ local clock = os.clock
 local thread = {}
 local in_proc = false
 local processes = {}
+local find_optimization = false
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
@@ -113,7 +114,11 @@ end
 function multi.ForEach(tab,func)
 	for i=1,#tab do func(tab[i]) end
 end
+local CRef = {
+	Fire = function() end
+}
 
+local optimization_stats = {}
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
@@ -128,8 +133,11 @@ function multi:newConnection(protect,func,kill)
 			for i,v in pairs(t) do
 				if v==self then
 					local ref = self:Connect(select(2,...))
-					ref.root_link = select(1,...)
-					return ref
+					if ref then
+						ref.root_link = select(1,...)
+						return ref
+					end
+					return self
 				end
 			end
 			return self:Connect(...)
@@ -207,7 +215,10 @@ function multi:newConnection(protect,func,kill)
 			if lock then return end
 			for i=#call_funcs,1,-1 do
 				if not call_funcs[i] then return end
-				pcall(call_funcs[i],...)
+				local suc, err = pcall(call_funcs[i],...)
+				if not suc then
+					print(err)
+				end
 				if kill then
 					table.remove(call_funcs,i)
 				end
@@ -231,6 +242,7 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:fastMode()
+		if find_optimization then return self end
 		function self:Fire(...)
 			for i=1,#fast do
 				fast[i](...)
@@ -341,14 +353,37 @@ function multi:newConnection(protect,func,kill)
 		return self
 	end
 
+	if find_optimization then
+		--
+	end
+
 	c.connect=c.Connect
 	c.GetConnection=c.getConnection
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
+
 	if not(ignoreconn) then
 		multi:create(c)
 	end
 	return c
+end
+
+multi.enableOptimization = multi:newConnection()
+multi.optConn = multi:newConnection(true)
+multi.optConn(function(msg)
+	table.insert(optimization_stats, msg)
+end)
+
+function multi:getOptimizationConnection()
+	return multi.optConn
+end
+
+function multi:getOptimizationStats()
+	return optimization_stats
+end
+
+function multi:isFindingOptimizing()
+	return find_optimization
 end
 
 -- Used with ISO Threads
@@ -530,10 +565,6 @@ function multi:newConnector()
 	local c = {Type = "connector"}
 	return c
 end
-
-local CRef = {
-	Fire = function() end
-}
 
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
@@ -1087,6 +1118,62 @@ function thread.hold(n,opt)
 			return rdy()
 		end, nil, interval)
 	elseif type(n) == "function" then
+		return yield(CMD, t_hold, n or dFunc, nil, interval)
+	else
+		error("Invalid argument passed to thread.hold(...)!")
+	end
+end
+
+function thread.hold(n,opt)
+	thread._Requests()
+	local opt = opt or {}
+	if type(opt)=="table" then
+		interval = opt.interval
+		if opt.cycles then
+			return yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
+		elseif opt.sleep then
+			return yield(CMD, t_holdF, opt.sleep, n or dFunc, interval)
+		elseif opt.skip then
+			return yield(CMD, t_skip, opt.skip or 1, nil, interval)
+		end
+	end
+	
+	if type(n) == "number" then
+		thread.getRunningThread().lastSleep = clock()
+		return yield(CMD, t_sleep, n or 0, nil, interval)
+	elseif type(n) == "table" and n.Type == "connector" then
+		local rdy = function()
+			return false
+		end
+		n(function(a1,a2,a3,a4,a5,a6)
+			rdy = function()
+				if a1==nil then
+					return NIL,a2,a3,a4,a5,a6
+				end
+				return a1,a2,a3,a4,a5,a6
+			end
+		end)
+		return yield(CMD, t_hold, function()
+			return rdy()
+		end, nil, interval)
+	elseif type(n) == "function" then
+		if find_optimization then
+			local cache = string.dump(n)
+			local f_str = tostring(n)
+			local good = true
+			for i=1,#func_cache do
+				if func_cache[i][1] == cache and func_cache[i][2] ~= f_str then
+					if not func_cache[i][3] then
+						multi.optConn:Fire("It's better to store a function to a variable than to use an anonymous function within the hold method!\n" .. debug.traceback())
+						func_cache[i][3] = true
+					end
+					good = false
+				end
+			end
+			if good then
+				table.insert(func_cache, {cache, f_str})
+			end
+		end
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
 		error("Invalid argument passed to thread.hold(...)!")
@@ -1744,6 +1831,10 @@ function multi.init(settings, realsettings)
 		else
 			multi.mainloop = mainloop
 		end
+		if settings.findopt then
+			find_optimization = true
+			multi.enableOptimization:Fire(multi, thread)
+		end
 	end
 	return _G["$multi"].multi,_G["$multi"].thread
 end
@@ -2093,5 +2184,64 @@ else
 	multi.m.sentinel = newproxy(true)
 	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
 end
+local func_cache = {}
+multi:newThread(function()
+	thread.skip()
+	if find_optimization then
+		
+		function thread.hold(n,opt)
+			thread._Requests()
+			local opt = opt or {}
+			if type(opt)=="table" then
+				interval = opt.interval
+				if opt.cycles then
+					return yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
+				elseif opt.sleep then
+					return yield(CMD, t_holdF, opt.sleep, n or dFunc, interval)
+				elseif opt.skip then
+					return yield(CMD, t_skip, opt.skip or 1, nil, interval)
+				end
+			end
+			
+			if type(n) == "number" then
+				thread.getRunningThread().lastSleep = clock()
+				return yield(CMD, t_sleep, n or 0, nil, interval)
+			elseif type(n) == "table" and n.Type == "connector" then
+				local rdy = function()
+					return false
+				end
+				n(function(a1,a2,a3,a4,a5,a6)
+					rdy = function()
+						if a1==nil then
+							return NIL,a2,a3,a4,a5,a6
+						end
+						return a1,a2,a3,a4,a5,a6
+					end
+				end)
+				return yield(CMD, t_hold, function()
+					return rdy()
+				end, nil, interval)
+			elseif type(n) == "function" then
+				local cache = string.dump(n)
+				local f_str = tostring(n)
+				local good = true
+				for i=1,#func_cache do
+					if func_cache[i][1] == cache and func_cache[i][2] ~= f_str and not func_cache[i][3] then
+						multi:getOptimizationConnection():Fire("It's better to store a function to a variable than to use an anonymous function within the hold method!\n" .. debug.traceback())
+						func_cache[i][3] = true
+						good = false
+					end
+				end
+				if good then
+					table.insert(func_cache, {cache, f_str})
+				end
+				return yield(CMD, t_hold, n or dFunc, nil, interval)
+			else
+				error("Invalid argument passed to thread.hold(...)!")
+			end
+		end
+		-- Add more Overrides
+	end
+end).OnError(print)
 
 return multi

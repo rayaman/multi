@@ -77,6 +77,7 @@ function multi:newSystemThread(name, func, ...)
 	c.creationTime = os.clock()
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
+	local multi_settings = multi.defaultSettings
 	c.thread = lanes.gen("*",
 	{
 		globals={ -- Set up some globals
@@ -88,6 +89,7 @@ function multi:newSystemThread(name, func, ...)
 		},
 		priority=c.priority
 	},function(...)
+		require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
 		local has_error = true
 		return_linda:set("returns",{func(...)})

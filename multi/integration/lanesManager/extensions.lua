@@ -239,13 +239,14 @@ function multi:newSystemThreadedConnection(name)
 
 	thread:newThread("STC_SUB_MAN"..name,function()
 		local item
+		local sub_func = function() -- This will keep things held up until there is something to process
+			return c.subscribe:pop()
+		end
 		while true do
 			thread.yield()
 			-- We need to check on broken connections
 			ping(c) -- Should return instantlly and process this in another thread
-			item = thread.hold(function() -- This will keep things held up until there is something to process
-				return c.subscribe:pop()
-			end)
+			item = thread.hold(sub_func)
 			if item[1] == c.CONN then
 				multi.ForEach(c.links, function(link) -- Sync new connections
 					item[2]:push{c.CONN, link}
