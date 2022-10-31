@@ -78,6 +78,9 @@ function multi:newSystemThread(name, func, ...)
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
 	local multi_settings = multi.defaultSettings
+	for i,v in pairs(multi_settings) do
+		print(i,v)
+	end
 	c.thread = lanes.gen("*",
 	{
 		globals={ -- Set up some globals

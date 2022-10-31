@@ -935,7 +935,7 @@ function multi:newProcessor(name,nothread)
 	else
 		c.OnError = multi:newConnection()
 	end
-	
+	c.OnError(multi.print)
 	
 
 	function c:getThreads()
@@ -1157,23 +1157,6 @@ function thread.hold(n,opt)
 			return rdy()
 		end, nil, interval)
 	elseif type(n) == "function" then
-		if find_optimization then
-			local cache = string.dump(n)
-			local f_str = tostring(n)
-			local good = true
-			for i=1,#func_cache do
-				if func_cache[i][1] == cache and func_cache[i][2] ~= f_str then
-					if not func_cache[i][3] then
-						multi.optConn:Fire("It's better to store a function to a variable than to use an anonymous function within the hold method!\n" .. debug.traceback())
-						func_cache[i][3] = true
-					end
-					good = false
-				end
-			end
-			if good then
-				table.insert(func_cache, {cache, f_str})
-			end
-		end
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
 		error("Invalid argument passed to thread.hold(...)!")
@@ -1371,6 +1354,7 @@ function thread:newThread(name,func,...)
 	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
+	c.OnError(multi.print)
 
 	function c:getName()
 		return c.Name
@@ -2242,6 +2226,6 @@ multi:newThread(function()
 		end
 		-- Add more Overrides
 	end
-end).OnError(print)
+end)
 
 return multi

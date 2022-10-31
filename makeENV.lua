@@ -1,4 +1,4 @@
-commands = [[
+lcommands = [[
 mkdir luajit && python -m hererocks -j 2.1.0-beta3 -r latest --patch --compat all ./luajit && set "PATH=G:\VSCWorkspace\multi\luajit\bin;%PATH%" && lua -v && luarocks install multi && luarocks install lanes
 mkdir lua5.1 && python -m hererocks -l 5.1 -r latest --patch --compat all ./lua5.1 && set "PATH=G:\VSCWorkspace\multi\luajit\bin;%PATH%" && lua -v && luarocks install multi && luarocks install lanes
 mkdir lua5.2 && python -m hererocks -l 5.2 -r latest --patch --compat all ./lua5.2 && set "PATH=G:\VSCWorkspace\multi\luajit\bin;%PATH%" && lua -v && luarocks install multi && luarocks install lanes

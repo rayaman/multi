@@ -1,6 +1,6 @@
 package.path = "./?/init.lua;?.lua;lua5.4/share/lua/5.4/?/init.lua;lua5.4/share/lua/5.4/?.lua;"--..package.path
 package.cpath = "lua5.4/lib/lua/5.4/?/core.dll;"--..package.cpath
-multi, thread = require("multi"):init{print=true}
+multi, thread = require("multi"):init{print=true,findopt=true}
 GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 multi:getOptimizationConnection()(function(msg)
 	print(msg)

@@ -223,7 +223,7 @@ function multi:newSystemThreadedConnection(name)
 		ping:Pause()
 		multi.ForEach(self.links, function(link) -- Sync new connections
 			link:push{self.PING}
-			multi:newThread("pong Thread", pong, link, links)
+			multi:newThread("pong Thread", pong, link, self.links)
 		end)
 
 		thread.sleep(3)
