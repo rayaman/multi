@@ -2,7 +2,7 @@ if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
     package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
     require("lldebugger").start()
 else
-    package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+	package.path = "../?/init.lua;../?.lua;"..package.path
 end
 --[[
     This file runs all tests.
@@ -36,12 +36,12 @@ runTest = thread:newFunction(function()
     end)
     proc:newTStep(1,10,1,.1):OnStep(function(t)
         tsteps = tsteps + 1
-    end).OnEnd(function(step)
+    end):OnEnd(function(step)
         step:Destroy()
     end)
     proc:newStep(1,10):OnStep(function(s)
         steps = steps + 1
-    end).OnEnd(function(step)
+    end):OnEnd(function(step)
         step:Destroy()
     end)
     local loop = proc:newLoop(function(l)
@@ -102,6 +102,7 @@ runTest = thread:newFunction(function()
     ret3.OnStatus(function(part,whole)
         s3 = math.ceil((part/whole)*1000)/10
     end)
+
 	ret.OnReturn(function()
 		print("Done 1")
 	end)
@@ -111,7 +112,9 @@ runTest = thread:newFunction(function()
 	ret3.OnReturn(function()
 		print("Done 3")
 	end)
-	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn)
+	
+	local err, timeout = thread.hold(ret.OnReturn * ret2.OnReturn * ret3.OnReturn)
+	print("Working!",s1,s2,s3)
 	if s1 == 100 and s2 == 100 and s3 == 100 then
 		print("Threads: Ok")
 	else
@@ -164,11 +167,11 @@ runTest = thread:newFunction(function()
 	os.exit() -- End of tests
 end)
 
-runTest().OnError(function(...)
+print(runTest().OnError(function(...)
 	print("Error: Something went wrong with the test!")
 	print(...)
 	os.exit(1)
-end)
+end))
 
 print("Pumping proc")
 while true do

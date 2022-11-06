@@ -159,23 +159,27 @@ function multi:newConnection(protect,func,kill)
 		local cn = multi:newConnection()
 		if not c1.__hasInstances then
 			cn.__hasInstances = 2
-			cn.__count = 0
+			cn.__count = {0}
 		else
 			cn.__hasInstances = c1.__hasInstances + 1
 			cn.__count = c1.__count
 		end
+
 		c1(function(...)
-			cn.__count = cn.__count + 1
-			if cn.__count == cn.__hasInstances then
+			cn.__count[1] = cn.__count[1] + 1
+			print(cn.__count[1], cn.__hasInstances)
+			if cn.__count[1] == cn.__hasInstances then
 				cn:Fire(...)
-				cn.__count = 0
+				cn.__count[1] = 0
 			end
 		end)
+
 		c2(function(...)
-			cn.__count = cn.__count + 1
-			if cn.__count == cn.__hasInstances then
+			cn.__count[1] = cn.__count[1] + 1
+			print(cn.__count[1], cn.__hasInstances)
+			if cn.__count[1] == cn.__hasInstances then
 				cn:Fire(...)
-				cn.__count = 0
+				cn.__count[1] = 0
 			end
 		end)
 		return cn
@@ -250,6 +254,25 @@ function multi:newConnection(protect,func,kill)
 		end
 		function self:Connect(func)
 			table.insert(fast,func)
+			local temp = {}
+			setmetatable(temp,{
+				__call=function(s,...)
+					return self:Connect(...)
+				end,
+				__index = function(t,k)
+					if rawget(t,"root_link") then
+						return t["root_link"][k]
+					end
+					return nil
+				end,
+				__newindex = function(t,k,v)
+					if rawget(t,"root_link") then
+						t["root_link"][k] = v
+					end
+					rawset(t,k,v)
+				end,
+			})
+			return temp
 		end
 		return self
 	end
@@ -1085,42 +1108,18 @@ function thread.sleep(n)
 	return yield(CMD, t_sleep, n or 1)
 end
 
-function thread.hold(n,opt)
-	thread._Requests()
-	local opt = opt or {}
-	if type(opt)=="table" then
-		interval = opt.interval
-		if opt.cycles then
-			return yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
-		elseif opt.sleep then
-			return yield(CMD, t_holdF, opt.sleep, n or dFunc, interval)
-		elseif opt.skip then
-			return yield(CMD, t_skip, opt.skip or 1, nil, interval)
-		end
+local function conn_test(conn)
+	local ready = false
+	local args
+	local func = function(...)
+		ready = true
+		args = {...}
 	end
-	
-	if type(n) == "number" then
-		thread.getRunningThread().lastSleep = clock()
-		return yield(CMD, t_sleep, n or 0, nil, interval)
-	elseif type(n) == "table" and n.Type == "connector" then
-		local rdy = function()
-			return false
+	conn(func)
+	return function()
+		if ready then
+			return unpack(args) or multi.NIL
 		end
-		n(function(a1,a2,a3,a4,a5,a6)
-			rdy = function()
-				if a1==nil then
-					return NIL,a2,a3,a4,a5,a6
-				end
-				return a1,a2,a3,a4,a5,a6
-			end
-		end)
-		return yield(CMD, t_hold, function()
-			return rdy()
-		end, nil, interval)
-	elseif type(n) == "function" then
-		return yield(CMD, t_hold, n or dFunc, nil, interval)
-	else
-		error("Invalid argument passed to thread.hold(...)!")
 	end
 end
 
@@ -1142,20 +1141,7 @@ function thread.hold(n,opt)
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
 	elseif type(n) == "table" and n.Type == "connector" then
-		local rdy = function()
-			return false
-		end
-		n(function(a1,a2,a3,a4,a5,a6)
-			rdy = function()
-				if a1==nil then
-					return NIL,a2,a3,a4,a5,a6
-				end
-				return a1,a2,a3,a4,a5,a6
-			end
-		end)
-		return yield(CMD, t_hold, function()
-			return rdy()
-		end, nil, interval)
+		return yield(CMD, t_hold, conn_test(n), nil, interval)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
