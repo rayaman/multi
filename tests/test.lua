@@ -5,6 +5,7 @@ GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 multi:getOptimizationConnection()(function(msg)
 	print(msg)
 end)
+
 -- local conn1, conn2, conn3 = multi:newConnection(), multi:newConnection(), multi:newConnection()
 -- thread:newThread(function()
 -- 	print("Awaiting status")
