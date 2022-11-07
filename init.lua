@@ -157,18 +157,18 @@ function multi:newConnection(protect,func,kill)
 	end,
 	__mul = function(c1,c2) -- And
 		local cn = multi:newConnection()
-		if not c1.__hasInstances then
-			cn.__hasInstances = 2
+		if c1.__hasInstances == nil then
+			cn.__hasInstances = {2}
 			cn.__count = {0}
 		else
-			cn.__hasInstances = c1.__hasInstances + 1
+			cn.__hasInstances = c1.__hasInstances
+			cn.__hasInstances[1] = cn.__hasInstances[1] + 1
 			cn.__count = c1.__count
 		end
 
 		c1(function(...)
 			cn.__count[1] = cn.__count[1] + 1
-			print(cn.__count[1], cn.__hasInstances)
-			if cn.__count[1] == cn.__hasInstances then
+			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
 			end
@@ -176,8 +176,7 @@ function multi:newConnection(protect,func,kill)
 
 		c2(function(...)
 			cn.__count[1] = cn.__count[1] + 1
-			print(cn.__count[1], cn.__hasInstances)
-			if cn.__count[1] == cn.__hasInstances then
+			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
 			end

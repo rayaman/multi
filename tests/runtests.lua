@@ -114,17 +114,23 @@ runTest = thread:newFunction(function()
 	end)
 	
 	local err, timeout = thread.hold(ret.OnReturn * ret2.OnReturn * ret3.OnReturn)
-	print("Working!",s1,s2,s3)
+
 	if s1 == 100 and s2 == 100 and s3 == 100 then
-		print("Threads: Ok")
+		print("Threads: All tests Ok")
 	else
-		print("Threads OnStatus or thread.hold(conn) Error!")
+		if s1>0 and s2>0 and s3 > 0 then
+			print("Thread OnStatus: Ok")
+		else
+			print("Threads OnStatus or thread.hold(conn) Error!")
+		end
+		if timeout then
+			print("Connection Error!")
+		else
+			print("Connection Test 1: Ok")
+		end
+		print("Connection holding Error!")
 	end
-	if timeout then
-		print("Threads or Connection Error!")
-	else
-		print("Connection Test 1: Ok")
-	end
+	
 	conn1 = proc:newConnection()
 	conn2 = proc:newConnection()
 	conn3 = proc:newConnection()
