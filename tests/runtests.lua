@@ -78,7 +78,7 @@ runTest = thread:newFunction(function()
 			thread.pushStatus(a,count)
 			if a == count then break end
 		end
-		return "Done"
+		return "Done", true, math.random(1,10000)
 	end)
     local ret = func(10)
     local ret2 = func(15)
@@ -103,14 +103,14 @@ runTest = thread:newFunction(function()
         s3 = math.ceil((part/whole)*1000)/10
     end)
 
-	ret.OnReturn(function()
-		print("Done 1")
+	ret.OnReturn(function(...)
+		print("Done 1",...)
 	end)
-	ret2.OnReturn(function()
-		print("Done 2")
+	ret2.OnReturn(function(...)
+		print("Done 2",...)
 	end)
-	ret3.OnReturn(function()
-		print("Done 3")
+	ret3.OnReturn(function(...)
+		print("Done 3",...)
 	end)
 	
 	local err, timeout = thread.hold(ret.OnReturn * ret2.OnReturn * ret3.OnReturn)

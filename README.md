@@ -1,6 +1,8 @@
-# Multi Version: 15.3.0 Connecting the dots
+# Multi Version: 15.3.0 A world of Connections
 **Key Changes**
-- Bug fix
+- SystemThreadedConnections
+- Restructured the directory structure of the repo (Allows for keeping multi as a submodule and being able to require it as is)
+- Bug fixes
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
@@ -8,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 </br>
 
-Progress is being made in [v15.3.0](https://github.com/rayaman/multi/tree/v15.3.0)
+Progress is being made in [v15.4.0](https://github.com/rayaman/multi/tree/v15.4.0)
 ---
 
 </br>

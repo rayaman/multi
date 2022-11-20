@@ -83,6 +83,13 @@ multi:mainloop()
 
 Added
 ---
+- `thread.chain(...)` allows you to chain `thread.hold(FUNCTIONs)` together
+	```
+	while true do
+		thread.chain(hold_function_1, hold_function_2)
+	end
+	```
+	If the first function returns true, it moves on to the next one
 - Experimental option to multi settings: `findopt`. When set to `true` it will print out a message when certain pattern are used with this library. For example if an anonymous function is used in thread.hold() within a loop. The library will trigger a message alerting you that this isn't the most performant way to use thread.hold().
 - `multi:newSystemThreadedConnection()`
 
@@ -101,7 +108,7 @@ Changed
 ---
 - Internally all `OnError` events are now connected to with multi.print, you must pass `print=true` to the init settings when initializing the multi object. `require("multi"):init{print=true}`
 - All actors now use fastmode on connections
-- Performance enhancement with processes that are pumped instead of automatically running, by suppressing the creation of an internal loop object that would manage the process
+- Performance enhancement with processes that are pumped. Instead of automatically running, by suppressing the creation of an internal loop object that would manage the process, we bypass that freeing up memory and adding a bit more speed.
 - `Connection:fastMode() or Connection:SetHelper()` now returns a reference to itself
 - `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
 - `Connections when added(+) together now act like 'or', to get the 'and' feature multiply(*) them together.`

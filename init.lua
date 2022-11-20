@@ -1122,6 +1122,13 @@ local function conn_test(conn)
 	end
 end
 
+function thread.chain(...)
+	local args = select("#")
+	for i=1,#args do
+		thread.hold(select(i,...))
+	end
+end
+
 function thread.hold(n,opt)
 	thread._Requests()
 	local opt = opt or {}
