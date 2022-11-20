@@ -1124,7 +1124,7 @@ end
 
 function thread.chain(...)
 	local args = select("#")
-	for i=1,#args do
+	for i=1,args do
 		thread.hold(select(i,...))
 	end
 end
