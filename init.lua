@@ -1123,7 +1123,7 @@ local function conn_test(conn)
 end
 
 function thread.chain(...)
-	local args = select("#")
+	local args = select("#",...)
 	for i=1,args do
 		thread.hold(select(i,...))
 	end
