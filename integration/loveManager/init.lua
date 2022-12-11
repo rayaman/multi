@@ -35,6 +35,7 @@ __THREADNAME__=table.remove(__IMPORTS,1)
 stab = THREAD.createStaticTable(__THREADNAME__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
+print(pcall(require,"multi.integration.loveManager.extensions"))
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
 local multi, thread = require("multi"):init()
@@ -103,7 +104,7 @@ end
 THREAD.newSystemThread = multi.newSystemThread
 
 function love.threaderror(thread, errorstr)
-    mulit.print("Thread error!\n"..errorstr)
+    multi.print("Thread error!\n"..errorstr)
 end
 
 multi.integration.GLOBAL = GLOBAL

@@ -108,7 +108,7 @@ Added
 
 	Loops through the table and calls callback_function with each element of the array. 
 
-- If a name is not supplied when creating threads; a name is randomly generated. Unless sending through an established channel/queue you might not be able to easily init the object.
+- If a name is not supplied when creating threads and threaded objects; a name is randomly generated. Unless sending through an established channel/queue you might not be able to easily init the object.
 
 Changed
 ---
