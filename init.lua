@@ -876,6 +876,32 @@ function multi:newTStep(start,reset,count,set)
 	return c
 end
 
+local tasks = {}
+local _tasks = 0
+
+local function _task_handler()
+	tasks[#tasks + 1] = func
+	_tasks = _tasks + 1
+end
+
+function multi:newTask(func)
+	multi:newThread("Task Handler",function()
+		while true do
+			thread.hold(function()
+				return _tasks > 1
+			end)
+			for i=1,_tasks do
+				tasks[i]()
+			end
+			_tasks = 0
+		end
+	end)
+	-- Re bind this method to use the one that doesn't init a thread!
+	multi.newTask = _task_handler
+	tasks[#tasks + 1] = func
+	_tasks = _tasks + 1
+end
+
 local scheduledjobs = {}
 local sthread
 

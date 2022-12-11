@@ -84,12 +84,18 @@ multi:mainloop()
 Added
 ---
 - `thread.chain(...)` allows you to chain `thread.hold(FUNCTIONs)` together
-	```
+	```lua
 	while true do
 		thread.chain(hold_function_1, hold_function_2)
 	end
 	```
-	If the first function returns true, it moves on to the next one
+	If the first function returns true, it moves on to the next one. if expanded it follows:
+	```lua
+	while true do
+		thread.hold(hold_function_1)
+		thread.hold(hold_function_2)
+	end
+	```
 - Experimental option to multi settings: `findopt`. When set to `true` it will print out a message when certain pattern are used with this library. For example if an anonymous function is used in thread.hold() within a loop. The library will trigger a message alerting you that this isn't the most performant way to use thread.hold().
 - `multi:newSystemThreadedConnection()`
 
