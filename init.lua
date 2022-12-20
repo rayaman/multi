@@ -891,7 +891,6 @@ function multi:newTask(func)
 				return _tasks > 0
 			end)
 			for i=1,_tasks do
-				print("Doing tasks")
 				tasks[i]()
 			end
 			_tasks = 0
