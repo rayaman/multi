@@ -888,9 +888,10 @@ function multi:newTask(func)
 	multi:newThread("Task Handler",function()
 		while true do
 			thread.hold(function()
-				return _tasks > 1
+				return _tasks > 0
 			end)
 			for i=1,_tasks do
+				print("Doing tasks")
 				tasks[i]()
 			end
 			_tasks = 0
