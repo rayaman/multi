@@ -83,6 +83,7 @@ multi:mainloop()
 
 Added
 ---
+- `multi:newConnection():Unconnect(conn_link)` Fastmode previously didn't have the ability to be unconnected to. This method works with both fastmode and non fastmode. `fastMode` will be made the default in v16.0.0 (This is a breaking change for those using the Destroy method, use this time to migrate to using `Unconnect()`)
 - `thread.chain(...)` allows you to chain `thread.hold(FUNCTIONs)` together
 	```lua
 	while true do

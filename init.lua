@@ -244,6 +244,14 @@ function multi:newConnection(protect,func,kill)
 		return call_funcs
 	end
 
+	function c:Unconnect(conn)
+		if conn.fast then
+			table.remove(fast,conn.ind)
+		elseif conn.Destroy then
+			conn:Destroy()
+		end
+	end
+
 	function c:fastMode()
 		if find_optimization then return self end
 		function self:Fire(...)
@@ -252,8 +260,8 @@ function multi:newConnection(protect,func,kill)
 			end
 		end
 		function self:Connect(func)
-			table.insert(fast,func)
-			local temp = {}
+			table.insert(fast, func)
+			local temp = {fast = true, ind = #fast}
 			setmetatable(temp,{
 				__call=function(s,...)
 					return self:Connect(...)
