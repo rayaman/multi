@@ -246,7 +246,11 @@ function multi:newConnection(protect,func,kill)
 
 	function c:Unconnect(conn)
 		if conn.fast then
-			table.remove(fast,conn.ind)
+			for i = 1, #fast do
+				if conn.ref == fast[i] then
+					table.remove(fast, i)
+				end
+			end
 		elseif conn.Destroy then
 			conn:Destroy()
 		end
@@ -261,7 +265,7 @@ function multi:newConnection(protect,func,kill)
 		end
 		function self:Connect(func)
 			table.insert(fast, func)
-			local temp = {fast = true, ind = #fast}
+			local temp = {fast = true}
 			setmetatable(temp,{
 				__call=function(s,...)
 					return self:Connect(...)
@@ -279,6 +283,7 @@ function multi:newConnection(protect,func,kill)
 					rawset(t,k,v)
 				end,
 			})
+			temp.ref = func
 			return temp
 		end
 		return self
@@ -337,6 +342,7 @@ function multi:newConnection(protect,func,kill)
 		end
 
 		function temp:Destroy()
+			multi.print("Calling Destroy on a connection link is deprecated and will be removed in v16.0.0")
 			for i=#call_funcs,1,-1 do
 				if call_funcs[i]~=nil then
 					if call_funcs[i]==self.func then
