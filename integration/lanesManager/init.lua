@@ -50,7 +50,7 @@ local __SleepingLinda = lanes.linda() -- handles sleeping stuff
 local __ConsoleLinda = lanes.linda() -- handles console stuff
 local __StatusLinda = lanes.linda() -- handles pushstatus for stfunctions
 
-local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda, __SleepingLinda, __StatusLinda)
+local GLOBAL,THREAD = require("multi.integration.lanesManager.threads").init(__GlobalLinda, __SleepingLinda, __StatusLinda, __ConsoleLinda)
 local count = 1
 local started = false
 local livingThreads = {}
@@ -62,6 +62,7 @@ function THREAD:newFunction(func,holdme)
 end
 
 function multi:newSystemThread(name, func, ...)
+	local name = name or multi.randomString(16)
 	multi.InitSystemThreadErrorHandler()
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
@@ -76,6 +77,10 @@ function multi:newSystemThread(name, func, ...)
 	c.creationTime = os.clock()
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
+	local multi_settings = multi.defaultSettings
+	for i,v in pairs(multi_settings) do
+		print(i,v)
+	end
 	c.thread = lanes.gen("*",
 	{
 		globals={ -- Set up some globals
@@ -87,6 +92,8 @@ function multi:newSystemThread(name, func, ...)
 		},
 		priority=c.priority
 	},function(...)
+		require("multi"):init(multi_settings)
+		require("multi.integration.lanesManager.extensions")
 		local has_error = true
 		return_linda:set("returns",{func(...)})
 		has_error = false
@@ -119,6 +126,7 @@ function multi.InitSystemThreadErrorHandler()
 		while true do
 			thread.yield()
 			_,data = __ConsoleLinda:receive(0, "Q")
+			if data then print(unpack(data)) end
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status

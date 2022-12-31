@@ -29,7 +29,7 @@ local function getOS()
 	end
 end
 
-local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda)
+local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     local THREAD = {}
     THREAD.Priority_Core = 3
     THREAD.Priority_High = 2
@@ -70,12 +70,12 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda)
 
     function THREAD.getConsole()
         local c = {}
-        c.queue = _Console
+        c.queue = __Console
         function c.print(...)
             c.queue:send("Q", {...})
         end
         function c.error(err)
-            c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
+            c.queue:push("Q",{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__})
             error(err)
         end
         return c
@@ -137,6 +137,6 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda)
     return GLOBAL, THREAD
 end
 
-return {init = function(g,s,st)
-    return INIT(g,s,st)
+return {init = function(g,s,st,c)
+    return INIT(g,s,st,c)
 end}

@@ -22,9 +22,15 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
-local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+if not (GLOBAL and THREAD) then
+	local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+else
+	lanes = require("lanes")
+end
 function multi:newSystemThreadedQueue(name)
+	local name = name or multi.randomString(16)
 	local c = {}
+	c.Name = name
 	c.linda = lanes.linda()
 	function c:push(v)
 		self.linda:send("Q", v)
@@ -41,9 +47,12 @@ function multi:newSystemThreadedQueue(name)
 	GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
+	local name = name or multi.randomString(16)
     local c = {}
     c.link = lanes.linda()
+	c.Name = name
     setmetatable(c,{
         __index = function(t,k)
             return c.link:get(k)
@@ -58,14 +67,15 @@ function multi:newSystemThreadedTable(name)
     GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
     c.OnJobCompleted = multi:newConnection()
-    local funcs = multi:newSystemThreadedTable()
-    local queueJob = multi:newSystemThreadedQueue()
-    local queueReturn = multi:newSystemThreadedQueue()
-    local doAll = multi:newSystemThreadedQueue()
+    local funcs = multi:newSystemThreadedTable():init()
+    local queueJob = multi:newSystemThreadedQueue():init()
+    local queueReturn = multi:newSystemThreadedQueue():init()
+    local doAll = multi:newSystemThreadedQueue():init()
     local ID=1
     local jid = 1
     function c:isEmpty()
@@ -168,4 +178,135 @@ function multi:newSystemThreadedJobQueue(n)
         end,i).priority = thread.Priority_Core
     end
     return c
-end 
+end
+
+function multi:newSystemThreadedConnection(name)
+	local name = name or multi.randomString(16)
+	local c = {}
+	c.CONN = 0x00
+	c.TRIG = 0x01
+	c.PING = 0x02
+	c.PONG = 0x03
+	local function remove(a, b)
+		local ai = {}
+		local r = {}
+		for k,v in pairs(a) do ai[v]=true end
+		for k,v in pairs(b) do 
+			if ai[v]==nil then table.insert(r,a[k]) end
+		end
+		return r
+	end
+	c.CID = THREAD.getID()
+	c.subscribe = multi:newSystemThreadedQueue("SUB_STC_"..self.Name):init()
+	c.Name = name
+	c.links = {} -- All triggers sent from main connection. When a connection is triggered on another thread, they speak to the main then send stuff out.
+	-- Locals will only live in the thread that creates the original object
+	local ping
+	local pong = function(link, links)
+		local res = thread.hold(function()
+			return link:peek()[1] == c.PONG
+		end,{sleep=3})
+
+		if not res then
+			for i=1,#links do 
+				if links[i] == link then
+					table.remove(links,i,link)
+					break
+				end
+			end
+		else
+			link:pop()
+		end
+	end
+
+	ping = thread:newFunction(function(self)
+		ping:Pause()
+		multi.ForEach(self.links, function(link) -- Sync new connections
+			link:push{self.PING}
+			multi:newThread("pong Thread", pong, link, self.links)
+		end)
+
+		thread.sleep(3)
+
+		ping:Resume()
+	end,false)
+
+	local function fire(...)
+		for _, link in pairs(c.links) do
+			link:push {c.TRIG, {...}}
+		end
+	end
+
+	thread:newThread("STC_SUB_MAN"..name,function()
+		local item
+		local sub_func = function() -- This will keep things held up until there is something to process
+			return c.subscribe:pop()
+		end
+		while true do
+			thread.yield()
+			-- We need to check on broken connections
+			ping(c) -- Should return instantlly and process this in another thread
+			item = thread.hold(sub_func)
+			if item[1] == c.CONN then
+				multi.ForEach(c.links, function(link) -- Sync new connections
+					item[2]:push{c.CONN, link}
+				end)
+				c.links[#c.links+1] = item[2]
+			elseif item[1] == c.TRIG then
+				fire(unpack(item[2]))
+				c.proxy_conn:Fire(unpack(item[2]))
+			end
+		end
+	end)
+	--- ^^^ This will only exist in the init thread
+
+	function c:Fire(...)
+		local args = {...}
+		if self.CID == THREAD.getID() then -- Host Call
+			for _, link in pairs(self.links) do
+				link:push {self.TRIG, args}
+			end
+			self.proxy_conn:Fire(...)
+		else
+			self.subscribe:push {self.TRIG, args}
+		end
+	end
+
+	function c:init()
+		local multi, thread = require("multi"):init()
+		self.links = {}
+		self.proxy_conn = multi:newConnection()
+		local mt = getmetatable(self.proxy_conn)
+		setmetatable(self, {__index = self.proxy_conn, __call = function(t,func) self.proxy_conn(func) end, __add = mt.__add})
+		if self.CID == THREAD.getID() then return self end
+		thread:newThread("STC_CONN_MAN"..name,function()
+			local item
+			local link_self_ref = multi:newSystemThreadedQueue()
+			self.subscribe:push{self.CONN, link_self_ref}
+			while true do
+				item = thread.hold(function()
+					return link_self_ref:peek()
+				end)
+				if item[1] == self.PING then
+					link_self_ref:push{self.PONG}
+					link_self_ref:pop()
+				elseif item[1] == self.CONN then
+					if item[2].Name ~= link_self_ref.Name then
+						table.insert(self.links, item[2])
+					end
+					link_self_ref:pop()
+				elseif item[1] == self.TRIG then
+					self.proxy_conn:Fire(unpack(item[2]))
+					link_self_ref:pop()
+				else
+					-- This shouldn't be the case
+				end
+			end
+		end)
+		return self
+	end
+
+	GLOBAL[name] = c
+
+	return c
+end

@@ -1,7 +1,2 @@
-*lua5.1
-*lua5.2
-*lua5.3
-*lua5.4
-*luajit
 *.code-workspace
-*.dat
+lua5.4/*

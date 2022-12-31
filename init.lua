@@ -29,12 +29,13 @@ local clock = os.clock
 local thread = {}
 local in_proc = false
 local processes = {}
+local find_optimization = false
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "15.2.1"
+multi.Version = "15.3.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -58,15 +59,15 @@ multi.Priority_Very_Low = 16384
 multi.Priority_Idle = 65536
 
 multi.PriorityResolve = {
-	[1]="Core",
-	[4]="Very High",
-	[16]="High",
-	[64]="Above Normal",
-	[256]="Normal",
-	[1024]="Below Normal",
-	[4096]="Low",
-	[16384]="Very Low",
-	[65536]="Idle",
+	[1]		=	"Core",
+	[4]		=	"Very High",
+	[16]	=	"High",
+	[64]	=	"Above Normal",
+	[256]	=	"Normal",
+	[1024]	=	"Below Normal",
+	[4096]	=	"Low",
+	[16384]	=	"Very Low",
+	[65536]	=	"Idle",
 }
 
 local PList = {multi.Priority_Core,multi.Priority_Very_High,multi.Priority_High,multi.Priority_Above_Normal,multi.Priority_Normal,multi.Priority_Below_Normal,multi.Priority_Low,multi.Priority_Very_Low,multi.Priority_Idle}
@@ -109,6 +110,15 @@ function multi:getStats()
 end
 
 --Helpers
+
+function multi.ForEach(tab,func)
+	for i=1,#tab do func(tab[i]) end
+end
+local CRef = {
+	Fire = function() end
+}
+
+local optimization_stats = {}
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
 	local c={}
@@ -116,70 +126,75 @@ function multi:newConnection(protect,func,kill)
 	local lock = false
 	c.callback = func
 	c.Parent=self
+
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
 				if v==self then
-					local ref = self:connect(select(2,...))
-					ref.root_link = select(1,...)
-					return ref
+					local ref = self:Connect(select(2,...))
+					if ref then
+						ref.root_link = select(1,...)
+						return ref
+					end
+					return self
 				end
 			end
-			return self:connect(...)
+			return self:Connect(...)
 		else
-			return self:connect(...)
+			return self:Connect(...)
 		end
 	end,
-	__add = function(c1,c2)
-		cn = multi:newConnection()
-		if not c1.__hasInstances then
-			cn.__hasInstances = 2
-			cn.__count = 0
-		else
-			cn.__hasInstances = c1.__hasInstances + 1
-			cn.__count = c1.__count
-		end
+	__add = function(c1,c2) -- Or
+		local cn = multi:newConnection()
 		c1(function(...)
-			cn.__count = cn.__count + 1
-			if cn.__count == cn.__hasInstances then
-				cn:Fire(...)
-			end
+			cn:Fire(...)
 		end)
 		c2(function(...)
-			cn.__count = cn.__count + 1
-			if cn.__count == cn.__hasInstances then
+			cn:Fire(...)
+		end)
+		return cn
+	end,
+	__mul = function(c1,c2) -- And
+		local cn = multi:newConnection()
+		if c1.__hasInstances == nil then
+			cn.__hasInstances = {2}
+			cn.__count = {0}
+		else
+			cn.__hasInstances = c1.__hasInstances
+			cn.__hasInstances[1] = cn.__hasInstances[1] + 1
+			cn.__count = c1.__count
+		end
+
+		c1(function(...)
+			cn.__count[1] = cn.__count[1] + 1
+			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
+				cn.__count[1] = 0
+			end
+		end)
+
+		c2(function(...)
+			cn.__count[1] = cn.__count[1] + 1
+			if cn.__count[1] == cn.__hasInstances[1] then
+				cn:Fire(...)
+				cn.__count[1] = 0
 			end
 		end)
 		return cn
 	end})
+
 	c.Type='connector'
 	c.func={}
 	c.ID=0
 	local protect=protect or false
 	local connections={}
 	c.FC=0
+
 	function c:hasConnections()
 		return #call_funcs~=0
 	end
-	function c:holdUT(n)
-		local n=n or 0
-		self.waiting=true
-		local count=0
-		local id=self:connect(function()
-			count = count + 1
-			if n<=count then
-				self.waiting=false
-			end
-		end)
-		repeat
-			self.Parent:uManager()
-		until self.waiting==false
-		id:Destroy()
-		return self
-	end
-	c.HoldUT=c.holdUT
+
 	function c:getConnection(name,ignore)
 		if ignore then
 			return connections[name] or CRef
@@ -187,20 +202,26 @@ function multi:newConnection(protect,func,kill)
 			return connections[name] or self
 		end
 	end
+
 	function c:Lock()
 		lock = true
 		return self
 	end
+
 	function c:Unlock()
 		lock = false
 		return self
 	end
+
 	if protect then
 		function c:Fire(...)
 			if lock then return end
 			for i=#call_funcs,1,-1 do
 				if not call_funcs[i] then return end
-				pcall(call_funcs[i],...)
+				local suc, err = pcall(call_funcs[i],...)
+				if not suc then
+					print(err)
+				end
 				if kill then
 					table.remove(call_funcs,i)
 				end
@@ -208,6 +229,7 @@ function multi:newConnection(protect,func,kill)
 		end
 	else
 		function c:Fire(...)
+			if lock then return end
 			for i=#call_funcs,1,-1 do
 				call_funcs[i](...)
 				if kill then
@@ -216,48 +238,90 @@ function multi:newConnection(protect,func,kill)
 			end
 		end
 	end
+
 	local fast = {}
 	function c:getConnections()
 		return call_funcs
 	end
+
+	function c:Unconnect(conn)
+		if conn.fast then
+			for i = 1, #fast do
+				if conn.ref == fast[i] then
+					table.remove(fast, i)
+				end
+			end
+		elseif conn.Destroy then
+			conn:Destroy()
+		end
+	end
+
 	function c:fastMode()
+		if find_optimization then return self end
 		function self:Fire(...)
 			for i=1,#fast do
 				fast[i](...)
 			end
 		end
-		function self:connect(func)
-			table.insert(fast,func)
+		function self:Connect(func)
+			table.insert(fast, func)
+			local temp = {fast = true}
+			setmetatable(temp,{
+				__call=function(s,...)
+					return self:Connect(...)
+				end,
+				__index = function(t,k)
+					if rawget(t,"root_link") then
+						return t["root_link"][k]
+					end
+					return nil
+				end,
+				__newindex = function(t,k,v)
+					if rawget(t,"root_link") then
+						t["root_link"][k] = v
+					end
+					rawset(t,k,v)
+				end,
+			})
+			temp.ref = func
+			return temp
 		end
+		return self
 	end
+
 	function c:Bind(t)
 		local temp = call_funcs
 		call_funcs=t
 		return temp
 	end
+
 	function c:Remove()
 		local temp = call_funcs
 		call_funcs={}
 		return temp
 	end
+
 	local function conn_helper(self,func,name,num)
 		self.ID=self.ID+1
+
 		if num then
 			table.insert(call_funcs,num,func)
 		else
 			table.insert(call_funcs,1,func)
 		end
+
 		local temp = {
 			func=func,
 			Type="connector_link",
 			Parent=self,
 			connect = function(s,...)
-				return self:connect(...)
+				return self:Connect(...)
 			end
 		}
+
 		setmetatable(temp,{
 			__call=function(s,...)
-				return self:connect(...)
+				return self:Connect(...)
 			end,
 			__index = function(t,k)
 				if rawget(t,"root_link") then
@@ -272,18 +336,13 @@ function multi:newConnection(protect,func,kill)
 				rawset(t,k,v)
 			end,
 		})
+
 		function temp:Fire(...)
-			if lock then return end
-			if protect then
-				local t=pcall(call_funcs,...)
-				if t then
-					return t
-				end
-			else
-				return call_funcs(...)
-			end
+			return call_funcs(...)
 		end
+
 		function temp:Destroy()
+			multi.print("Calling Destroy on a connection link is deprecated and will be removed in v16.0.0")
 			for i=#call_funcs,1,-1 do
 				if call_funcs[i]~=nil then
 					if call_funcs[i]==self.func then
@@ -294,15 +353,19 @@ function multi:newConnection(protect,func,kill)
 				end
 			end
 		end
+
 		if name then
 			connections[name]=temp
 		end
+
 		if self.callback then
 			self.callback(temp)
 		end
+
 		return temp
 	end
-	function c:connect(...)--func,name,num
+
+	function c:Connect(...)--func,name,num
 		local tab = {...}
 		local funcs={}
 		for i=1,#tab do
@@ -320,12 +383,43 @@ function multi:newConnection(protect,func,kill)
 			return conn_helper(self,tab[1],tab[2],tab[3])
 		end
 	end
-	c.Connect=c.connect
+
+	function c:SetHelper(func)
+		conn_helper = func
+		return self
+	end
+
+	if find_optimization then
+		--
+	end
+
+	c.connect=c.Connect
 	c.GetConnection=c.getConnection
+	c.HasConnections = c.hasConnections
+	c.GetConnection = c.getConnection
+
 	if not(ignoreconn) then
 		multi:create(c)
 	end
 	return c
+end
+
+multi.enableOptimization = multi:newConnection()
+multi.optConn = multi:newConnection(true)
+multi.optConn(function(msg)
+	table.insert(optimization_stats, msg)
+end)
+
+function multi:getOptimizationConnection()
+	return multi.optConn
+end
+
+function multi:getOptimizationStats()
+	return optimization_stats
+end
+
+function multi:isFindingOptimizing()
+	return find_optimization
 end
 
 -- Used with ISO Threads
@@ -508,10 +602,6 @@ function multi:newConnector()
 	return c
 end
 
-local CRef = {
-	Fire = function() end
-}
-
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
 multi.OnLoad = multi:newConnection(nil,nil,true)
@@ -565,7 +655,7 @@ function multi:newEvent(task)
 		task=func
 		return self
 	end
-	c.OnEvent = self:newConnection()
+	c.OnEvent = self:newConnection():fastMode()
 	self:setPriority("core")
 	c:SetName(c.Type)
 	multi:create(c)
@@ -588,7 +678,7 @@ function multi:newUpdater(skip)
 		skip=n
 		return self
 	end
-	c.OnUpdate = self:newConnection()
+	c.OnUpdate = self:newConnection():fastMode()
 	c:SetName(c.Type)
 	multi:create(c)
 	return c
@@ -620,7 +710,7 @@ function multi:newAlarm(set)
 		t = clock()
 		return self
 	end
-	c.OnRing = self:newConnection()
+	c.OnRing = self:newConnection():fastMode()
 	function c:Pause()
 		count = clock()
 		self.Parent.Pause(self)
@@ -644,15 +734,12 @@ function multi:newLoop(func,notime)
 			self.OnLoop:Fire(self,clock()-start)
 		end
 	end
-	c.OnLoop = self:newConnection()
-	function c:fastMode()
-		self.OnLoop:fastMode()
-	end
+	c.OnLoop = self:newConnection():fastMode()
 
 	if func then
 		c.OnLoop(func)
 	end
-
+	
 	multi:create(c)
 	c:SetName(c.Type)
 	return c
@@ -694,9 +781,9 @@ function multi:newStep(start,reset,count,skip)
 		end
 	end
 	c.Reset=c.Resume
-	c.OnStart = self:newConnection()
-	c.OnStep = self:newConnection()
-	c.OnEnd = self:newConnection()
+	c.OnStart = self:newConnection():fastMode()
+	c.OnStep = self:newConnection():fastMode()
+	c.OnEnd = self:newConnection():fastMode()
 	function c:Break()
 		self.Active=nil
 		return self
@@ -744,7 +831,7 @@ function multi:newTLoop(func,set)
 		self.Parent.Pause(self)
 		return self
 	end
-	c.OnLoop = self:newConnection()
+	c.OnLoop = self:newConnection():fastMode()
 	if func then
 		c.OnLoop(func)
 	end
@@ -801,6 +888,32 @@ function multi:newTStep(start,reset,count,set)
 	c:SetName(c.Type)
 	multi:create(c)
 	return c
+end
+
+local tasks = {}
+local _tasks = 0
+
+local function _task_handler()
+	tasks[#tasks + 1] = func
+	_tasks = _tasks + 1
+end
+
+function multi:newTask(func)
+	multi:newThread("Task Handler",function()
+		while true do
+			thread.hold(function()
+				return _tasks > 0
+			end)
+			for i=1,_tasks do
+				tasks[i]()
+			end
+			_tasks = 0
+		end
+	end)
+	-- Re bind this method to use the one that doesn't init a thread!
+	multi.newTask = _task_handler
+	tasks[#tasks + 1] = func
+	_tasks = _tasks + 1
 end
 
 local scheduledjobs = {}
@@ -864,25 +977,28 @@ function multi:newProcessor(name,nothread)
 	c.Type = "process"
 	local Active =  nothread or false
 	c.Name = name or ""
-	c.pump = false
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
 
 	local handler = c:createHandler(c.threads,c.startme)
 
-	c.process = self:newLoop(function()
-		if Active then
-			c:uManager()
-			handler()
-		end
-	end)
+	if not nothread then -- Don't create a loop if we are triggering this manually
+		c.process = self:newLoop(function()
+			if Active then
+				c:uManager()
+				handler()
+			end
+		end)
+		c.process.__ignore = true
+		c.process.isProcessThread = true
+		c.process.PID = sandcount
+		c.OnError = c.process.OnError
+	else
+		c.OnError = multi:newConnection()
+	end
+	c.OnError(multi.print)
 	
-	c.process.__ignore = true
-
-	c.process.isProcessThread = true
-	c.process.PID = sandcount
-	c.OnError = c.process.OnError
 
 	function c:getThreads()
 		return c.threads
@@ -911,10 +1027,8 @@ function multi:newProcessor(name,nothread)
 
 	function c.run()
 		if not Active then return end
-		c.pump = true
 		c:uManager()
 		handler()
-		c.pump = false
 		return c
 	end
 
@@ -1033,6 +1147,28 @@ function thread.sleep(n)
 	return yield(CMD, t_sleep, n or 1)
 end
 
+local function conn_test(conn)
+	local ready = false
+	local args
+	local func = function(...)
+		ready = true
+		args = {...}
+	end
+	conn(func)
+	return function()
+		if ready then
+			return unpack(args) or multi.NIL
+		end
+	end
+end
+
+function thread.chain(...)
+	local args = select("#",...)
+	for i=1,args do
+		thread.hold(select(i,...))
+	end
+end
+
 function thread.hold(n,opt)
 	thread._Requests()
 	local opt = opt or {}
@@ -1051,20 +1187,7 @@ function thread.hold(n,opt)
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
 	elseif type(n) == "table" and n.Type == "connector" then
-		local rdy = function()
-			return false
-		end
-		n(function(a1,a2,a3,a4,a5,a6)
-			rdy = function()
-				if a1==nil then
-					return NIL,a2,a3,a4,a5,a6
-				end
-				return a1,a2,a3,a4,a5,a6
-			end
-		end)
-		return yield(CMD, t_hold, function()
-			return rdy()
-		end, nil, interval)
+		return yield(CMD, t_hold, conn_test(n), nil, interval)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
@@ -1180,7 +1303,7 @@ function thread:newFunctionBase(generator,holdme)
 			end
 		end
 		tfunc.__call = function(t,...)
-			if not t.Active then 
+			if t.Active == false then 
 				if holdme then
 					return nil, "Function is paused"
 				end
@@ -1244,9 +1367,8 @@ local startme_len = 0
 function thread:newThread(name,func,...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
 	local func = func or name
-
-	if type(name) == "function" then
-		name = "Thread#"..threadCount
+	if func == name then
+		name = name or multi.randomString(16)
 	end
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	local env = {self=c}
@@ -1264,6 +1386,7 @@ function thread:newThread(name,func,...)
 	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
+	c.OnError(multi.print)
 
 	function c:getName()
 		return c.Name
@@ -1471,7 +1594,6 @@ co_status = {
 		switch[task](ref,thd)
 		cmds[r1](ref,r2,r3,r4,r5)
 		if ret ~= CMD and _ ~= nil then -- The rework makes this necessary
-			print("Hello")
 			co_status["dead"](thd,ref,task,i,th)
 		end
 		r1=nil r2=nil r3=nil r4=nil r5=nil
@@ -1724,6 +1846,10 @@ function multi.init(settings, realsettings)
 			multi.mainloop = p_mainloop
 		else
 			multi.mainloop = mainloop
+		end
+		if settings.findopt then
+			find_optimization = true
+			multi.enableOptimization:Fire(multi, thread)
 		end
 	end
 	return _G["$multi"].multi,_G["$multi"].thread
@@ -2046,14 +2172,14 @@ function multi.print(...)
 	end
 end
 
-multi.GetType=multi.getType
-multi.IsPaused=multi.isPaused
-multi.IsActive=multi.isActive
-multi.Reallocate=multi.Reallocate
-multi.ConnectFinal=multi.connectFinal
-multi.ResetTime=multi.SetTime
-multi.IsDone=multi.isDone
-multi.SetName = multi.setName
+multi.GetType		=	multi.getType
+multi.IsPaused		=	multi.isPaused
+multi.IsActive		=	multi.isActive
+multi.Reallocate	=	multi.Reallocate
+multi.ConnectFinal	=	multi.connectFinal
+multi.ResetTime		=	multi.SetTime
+multi.IsDone		=	multi.isDone
+multi.SetName		=	multi.setName
 
 -- Special Events
 local _os = os.exit
@@ -2074,5 +2200,64 @@ else
 	multi.m.sentinel = newproxy(true)
 	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
 end
+local func_cache = {}
+multi:newThread(function()
+	thread.skip()
+	if find_optimization then
+		
+		function thread.hold(n,opt)
+			thread._Requests()
+			local opt = opt or {}
+			if type(opt)=="table" then
+				interval = opt.interval
+				if opt.cycles then
+					return yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
+				elseif opt.sleep then
+					return yield(CMD, t_holdF, opt.sleep, n or dFunc, interval)
+				elseif opt.skip then
+					return yield(CMD, t_skip, opt.skip or 1, nil, interval)
+				end
+			end
+			
+			if type(n) == "number" then
+				thread.getRunningThread().lastSleep = clock()
+				return yield(CMD, t_sleep, n or 0, nil, interval)
+			elseif type(n) == "table" and n.Type == "connector" then
+				local rdy = function()
+					return false
+				end
+				n(function(a1,a2,a3,a4,a5,a6)
+					rdy = function()
+						if a1==nil then
+							return NIL,a2,a3,a4,a5,a6
+						end
+						return a1,a2,a3,a4,a5,a6
+					end
+				end)
+				return yield(CMD, t_hold, function()
+					return rdy()
+				end, nil, interval)
+			elseif type(n) == "function" then
+				local cache = string.dump(n)
+				local f_str = tostring(n)
+				local good = true
+				for i=1,#func_cache do
+					if func_cache[i][1] == cache and func_cache[i][2] ~= f_str and not func_cache[i][3] then
+						multi:getOptimizationConnection():Fire("It's better to store a function to a variable than to use an anonymous function within the hold method!\n" .. debug.traceback())
+						func_cache[i][3] = true
+						good = false
+					end
+				end
+				if good then
+					table.insert(func_cache, {cache, f_str})
+				end
+				return yield(CMD, t_hold, n or dFunc, nil, interval)
+			else
+				error("Invalid argument passed to thread.hold(...)!")
+			end
+		end
+		-- Add more Overrides
+	end
+end)
 
 return multi

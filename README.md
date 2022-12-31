@@ -1,6 +1,8 @@
-# Multi Version: 15.2.1 
+# Multi Version: 15.3.0 A world of Connections
 **Key Changes**
-- Bug fix
+- SystemThreadedConnections
+- Restructured the directory structure of the repo (Allows for keeping multi as a submodule and being able to require it as is)
+- Bug fixes
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
@@ -8,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 </br>
 
-Progress is being made in [v15.3.0](https://github.com/rayaman/multi/tree/v15.3.0)
+Progress is being made in [v15.4.0](https://github.com/rayaman/multi/tree/v15.4.0)
 ---
 
 </br>
@@ -16,12 +18,16 @@ Progress is being made in [v15.3.0](https://github.com/rayaman/multi/tree/v15.3.
 INSTALLING
 ----------
 Link to optional dependencies:
-[lanes](https://github.com/LuaLanes/lanes)
-[love2d](https://love2d.org/)
+- [lanes](https://github.com/LuaLanes/lanes)
+
+- [love2d](https://love2d.org/)
 
 To install copy the multi folder into your environment and you are good to go</br>
 If you want to use the system threads, then you'll need to install lanes or love2d game engine!
-**or** use luarocks `luarocks install multi`
+
+```
+luarocks install multi
+```
 
 Discord
 -------

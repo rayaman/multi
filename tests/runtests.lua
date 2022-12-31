@@ -2,7 +2,7 @@ if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
     package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
     require("lldebugger").start()
 else
-    package.path="./?.lua;../?/init.lua;../?.lua;../?/?/init.lua;"..package.path
+	package.path = "../?/init.lua;../?.lua;"..package.path
 end
 --[[
     This file runs all tests.
@@ -36,12 +36,12 @@ runTest = thread:newFunction(function()
     end)
     proc:newTStep(1,10,1,.1):OnStep(function(t)
         tsteps = tsteps + 1
-    end).OnEnd(function(step)
+    end):OnEnd(function(step)
         step:Destroy()
     end)
     proc:newStep(1,10):OnStep(function(s)
         steps = steps + 1
-    end).OnEnd(function(step)
+    end):OnEnd(function(step)
         step:Destroy()
     end)
     local loop = proc:newLoop(function(l)
@@ -78,7 +78,7 @@ runTest = thread:newFunction(function()
 			thread.pushStatus(a,count)
 			if a == count then break end
 		end
-		return "Done"
+		return "Done", true, math.random(1,10000)
 	end)
     local ret = func(10)
     local ret2 = func(15)
@@ -102,26 +102,35 @@ runTest = thread:newFunction(function()
     ret3.OnStatus(function(part,whole)
         s3 = math.ceil((part/whole)*1000)/10
     end)
-	ret.OnReturn(function()
-		print("Done 1")
+
+	ret.OnReturn(function(...)
+		print("Done 1",...)
 	end)
-	ret2.OnReturn(function()
-		print("Done 2")
+	ret2.OnReturn(function(...)
+		print("Done 2",...)
 	end)
-	ret3.OnReturn(function()
-		print("Done 3")
+	ret3.OnReturn(function(...)
+		print("Done 3",...)
 	end)
-	local err, timeout = thread.hold(ret.OnReturn + ret2.OnReturn + ret3.OnReturn)
+	
+	local err, timeout = thread.hold(ret.OnReturn * ret2.OnReturn * ret3.OnReturn)
+
 	if s1 == 100 and s2 == 100 and s3 == 100 then
-		print("Threads: Ok")
+		print("Threads: All tests Ok")
 	else
-		print("Threads OnStatus or thread.hold(conn) Error!")
+		if s1>0 and s2>0 and s3 > 0 then
+			print("Thread OnStatus: Ok")
+		else
+			print("Threads OnStatus or thread.hold(conn) Error!")
+		end
+		if timeout then
+			print("Connection Error!")
+		else
+			print("Connection Test 1: Ok")
+		end
+		print("Connection holding Error!")
 	end
-	if timeout then
-		print("Threads or Connection Error!")
-	else
-		print("Connection Test 1: Ok")
-	end
+	
 	conn1 = proc:newConnection()
 	conn2 = proc:newConnection()
 	conn3 = proc:newConnection()
@@ -164,11 +173,11 @@ runTest = thread:newFunction(function()
 	os.exit() -- End of tests
 end)
 
-runTest().OnError(function(...)
+print(runTest().OnError(function(...)
 	print("Error: Something went wrong with the test!")
 	print(...)
 	os.exit(1)
-end)
+end))
 
 print("Pumping proc")
 while true do

@@ -1,11 +1,173 @@
 # Changelog
 Table of contents
 ---
+[Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
 [Update 15.2.1 - Bug fix](#update-1521---bug-fix)</br>
 [Update 15.2.0 - Upgrade Complete](#update-1520---upgrade-complete)</br>[Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
+# Update 15.3.0 - A world of Connections
+
+Full Update Showcase
+```lua
+multi, thread = require("multi"):init{print=true}
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+
+local conn = multi:newSystemThreadedConnection("conn"):init()
+
+multi:newSystemThread("Thread_Test_1",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	conn(function()
+		print(THREAD:getName().." was triggered!")
+	end)
+	multi:mainloop()
+end)
+
+multi:newSystemThread("Thread_Test_2",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	conn(function(a,b,c)
+		print(THREAD:getName().." was triggered!",a,b,c)
+	end)
+	multi:newAlarm(2):OnRing(function()
+		print("Fire 2!!!")
+		conn:Fire(4,5,6)
+		THREAD.kill()
+	end)
+
+	multi:mainloop()
+end)
+
+conn(function(a,b,c)
+	print("Mainloop conn got triggered!",a,b,c)
+end)
+
+alarm = multi:newAlarm(1)
+alarm:OnRing(function()
+	print("Fire 1!!!")
+	conn:Fire(1,2,3) 
+end)
+
+alarm = multi:newAlarm(3):OnRing(function()
+	multi:newSystemThread("Thread_Test_3",function()
+		local multi, thread = require("multi"):init()
+		local conn = GLOBAL["conn"]:init()
+		conn(function(a,b,c)
+			print(THREAD:getName().." was triggered!",a,b,c)
+		end)
+		multi:newAlarm(2):OnRing(function()
+			print("Fire 3!!!")
+			conn:Fire(7,8,9)
+		end)
+		multi:mainloop()
+	end)
+end)
+
+multi:newSystemThread("Thread_Test_4",function()
+	local multi, thread = require("multi"):init()
+	local conn = GLOBAL["conn"]:init()
+	local conn2 = multi:newConnection()
+	multi:newAlarm(2):OnRing(function()
+		conn2:Fire()
+	end)
+	multi:newThread(function()
+		print("Conn Test!")
+		thread.hold(conn + conn2)
+		print("It held!")
+	end)
+	multi:mainloop()
+end)
+
+multi:mainloop()
+```
+
+Added
+---
+- `multi:newConnection():Unconnect(conn_link)` Fastmode previously didn't have the ability to be unconnected to. This method works with both fastmode and non fastmode. `fastMode` will be made the default in v16.0.0 (This is a breaking change for those using the Destroy method, use this time to migrate to using `Unconnect()`)
+- `thread.chain(...)` allows you to chain `thread.hold(FUNCTIONs)` together
+	```lua
+	while true do
+		thread.chain(hold_function_1, hold_function_2)
+	end
+	```
+	If the first function returns true, it moves on to the next one. if expanded it follows:
+	```lua
+	while true do
+		thread.hold(hold_function_1)
+		thread.hold(hold_function_2)
+	end
+	```
+- Experimental option to multi settings: `findopt`. When set to `true` it will print out a message when certain pattern are used with this library. For example if an anonymous function is used in thread.hold() within a loop. The library will trigger a message alerting you that this isn't the most performant way to use thread.hold().
+- `multi:newSystemThreadedConnection()`
+
+	Allows one to trigger connection events across threads. Works like how any connection would work. Supports all of the features, can even be `added` with non SystemThreadedConnections as demonstrated in the full showcase.
+- `multi:newConnection():SetHelper(func)`
+
+	Sets the helper function that the connection object uses when creating connection links.
+
+- `multi.ForEach(table, callback_function)`
+
+	Loops through the table and calls callback_function with each element of the array. 
+
+- If a name is not supplied when creating threads and threaded objects; a name is randomly generated. Unless sending through an established channel/queue you might not be able to easily init the object.
+
+Changed
+---
+- Internally all `OnError` events are now connected to with multi.print, you must pass `print=true` to the init settings when initializing the multi object. `require("multi"):init{print=true}`
+- All actors now use fastmode on connections
+- Performance enhancement with processes that are pumped. Instead of automatically running, by suppressing the creation of an internal loop object that would manage the process, we bypass that freeing up memory and adding a bit more speed.
+- `Connection:fastMode() or Connection:SetHelper()` now returns a reference to itself
+- `Connection:[connect, hasConnections, getConnection]` changed to be `Connection:[Connect, HasConnections, getConnections]`. This was done in an attempt to follow a consistent naming scheme. The old methods still will work to prevent old code breaking.
+- `Connections when added(+) together now act like 'or', to get the 'and' feature multiply(*) them together.`
+
+	**Note:** This is a potentially breaking change for using connections.
+
+	```lua
+	multi, thread = require("multi"):init{print=true}
+	-- GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+
+	local conn1, conn2, conn3 = multi:newConnection(), multi:newConnection(), multi:newConnection()
+
+	thread:newThread(function()
+		print("Awaiting status")
+		thread.hold(conn1 + (conn2 * conn3))
+		print("Conn or Conn2 and Conn3")
+	end)
+
+	multi:newAlarm(1):OnRing(function()
+		print("Conn")
+		conn1:Fire()
+	end)
+
+	multi:newAlarm(2):OnRing(function()
+		print("Conn2")
+		conn2:Fire()
+	end)
+
+	multi:newAlarm(3):OnRing(function()
+		print("Conn3")
+		conn3:Fire()
+	end)
+	```
+
+Removed
+---
+- Connection objects methods removed:
+	- holdUT(), HoldUT() -- With the way `thread.hold(conn)` interacts with connections this method was no longer needed. To emulate this use `multi.hold(conn)`. `multi.hold()` is able to emulate what `thread.hold()` outside of a thread, albeit with some drawbacks.
+
+Fixed
+---
+- SystemThreaded Objects variables weren't consistent.
+- Issue with connections being multiplied only being able to have a combined fire once
+
+ToDo
+---
+
+- Work on network parallelism (I am really excited to start working on this. Not because it will have much use, but because it seems like a cool addition/project to work on. I just need time to actually do work on stuff)
+
 # Update 15.2.1 - Bug fix
 Fixed issue #41
+---
 
 # Update 15.2.0 - Upgrade Complete
 
