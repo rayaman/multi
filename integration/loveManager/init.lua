@@ -26,16 +26,23 @@ if ISTHREAD then
 end
 local ThreadFileData = [[
 ISTHREAD = true
-THREAD = require("multi.integration.loveManager.threads") -- order is important!
+THREAD = require("multi.integration.loveManager.threads")
 sThread = THREAD
 __IMPORTS = {...}
 __FUNC__=table.remove(__IMPORTS,1)
 __THREADID__=table.remove(__IMPORTS,1)
 __THREADNAME__=table.remove(__IMPORTS,1)
+math.randomseed(__THREADID__)
+math.random()
+math.random()
+math.random()
 stab = THREAD.createStaticTable(__THREADNAME__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
-print(pcall(require,"multi.integration.loveManager.extensions"))
+multi.integration={}
+multi.integration.GLOBAL = GLOBAL
+multi.integration.THREAD = THREAD
+pcall(require,"multi.integration.loveManager.extensions")
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
 local multi, thread = require("multi"):init()
@@ -43,7 +50,6 @@ local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
 multi.integration={}
-multi.integration.love2d={}
 local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1

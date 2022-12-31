@@ -27,7 +27,8 @@ if not ISTHREAD then
 	GLOBAL = multi.integration.GLOBAL
 	THREAD = multi.integration.THREAD
 else
-
+	GLOBAL = multi.integration.GLOBAL
+	THREAD = multi.integration.THREAD
 end
 
 function multi:newSystemThreadedQueue(name)
@@ -218,17 +219,17 @@ function multi:newSystemThreadedConnection(name)
 	c.PING = 0x02
 	c.PONG = 0x03
 
-	local subscribe = multi:newSystemThreadedQueue("SUB_STC_" .. name):init()
+	local subscribe = love.thread.getChannel("SUB_STC_" .. name)
 
 	function c:init()
 
-		self.subscribe = THREAD.waitFor("SUB_STC_" .. self.Name):init()
+		self.subscribe = love.thread.getChannel("SUB_STC_" .. self.Name)
 
 		function self:Fire(...)
 			local args = {...}
 			if self.CID == THREAD.getID() then -- Host Call
 				for _, link in pairs(self.links) do
-					link:push{self.TRIG, args}
+					love.thread.getChannel(link):push{self.TRIG, args}
 				end
 				self.proxy_conn:Fire(...)
 			else
@@ -245,7 +246,7 @@ function multi:newSystemThreadedConnection(name)
 		thread:newThread("STC_CONN_MAN" .. self.Name,function()
 			local item
 			local string_self_ref = "LSF_" .. multi.randomString(16)
-			local link_self_ref = multi:newSystemThreadedQueue():init()
+			local link_self_ref = love.thread.getChannel(string_self_ref)
 			self.subscribe:push{self.CONN, string_self_ref}
 			while true do
 				item = thread.hold(function()
@@ -256,7 +257,7 @@ function multi:newSystemThreadedConnection(name)
 					link_self_ref:pop()
 				elseif item[1] == self.CONN then
 					if string_self_ref ~= item[2] then
-						table.insert(self.links, THREAD.waitFor(item[2]):init())
+						table.insert(self.links, love.thread.getChannel(item[2]))
 					end
 					link_self_ref:pop()
 				elseif item[1] == self.TRIG then
@@ -286,7 +287,7 @@ function multi:newSystemThreadedConnection(name)
 	local ping
 	local pong = function(link, links)
 		local res = thread.hold(function()
-			return link:peek()[1] == c.PONG
+			return love.thread.getChannel(link):peek()[1] == c.PONG
 		end,{sleep=3})
 
 		if not res then
@@ -297,7 +298,7 @@ function multi:newSystemThreadedConnection(name)
 				end
 			end
 		else
-			link:pop()
+			love.thread.getChannel(link):pop()
 		end
 	end
 
@@ -305,8 +306,8 @@ function multi:newSystemThreadedConnection(name)
 		ping:Pause()
 
 		multi.ForEach(self.links, function(link) -- Sync new connections
-			link:push{self.PING}
-			multi:newThread("pong Thread", pong, link, links)
+			love.thread.getChannel(link):push{self.PING}
+			multi:newThread("pong Thread", pong, link, self.links)
 		end)
 
 		thread.sleep(3)
@@ -316,7 +317,7 @@ function multi:newSystemThreadedConnection(name)
 
 	local function fire(...)
 		for _, link in pairs(c.links) do
-			link:push {c.TRIG, {...}}
+			love.thread.getChannel(link):push {c.TRIG, {...}}
 		end
 	end
 
@@ -330,11 +331,12 @@ function multi:newSystemThreadedConnection(name)
 				return c.subscribe:pop()
 			end)
 			if item[1] == c.CONN then
+
 				multi.ForEach(c.links, function(link) -- Sync new connections
-					THREAD.waitFor(item[2]):init():push{c.CONN, link.Name}
+					love.thread.getChannel(item[2]):push{c.CONN, link}
 				end)
-				print("Adding link")
-				c.links[#c.links+1] = THREAD.waitFor(item[2]):init()
+				c.links[#c.links+1] = item[2]
+
 			elseif item[1] == c.TRIG then
 				fire(unpack(item[2]))
 				c.proxy_conn:Fire(unpack(item[2]))
