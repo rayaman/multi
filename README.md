@@ -1,8 +1,6 @@
-# Multi Version: 15.3.1 A world of Connections
+# Multi Version: 16.0.0
 **Key Changes**
-- SystemThreadedConnections
-- Restructured the directory structure of the repo (Allows for keeping multi as a submodule and being able to require it as is)
-- Bug fixes
+- Concat connections
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
