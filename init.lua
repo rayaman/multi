@@ -168,17 +168,23 @@ function multi:newConnection(protect,func,kill)
 
 		c1(function(...)
 			cn.__count[1] = cn.__count[1] + 1
+			c1:Lock()
 			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
+				c1:Unlock()
+				c2:Unlock()
 			end
 		end)
 
 		c2(function(...)
 			cn.__count[1] = cn.__count[1] + 1
+			c2:Lock()
 			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
+				c1:Unlock()
+				c2:Unlock()
 			end
 		end)
 		return cn
@@ -259,6 +265,7 @@ function multi:newConnection(protect,func,kill)
 	function c:fastMode()
 		if find_optimization then return self end
 		function self:Fire(...)
+			if lock then return end
 			for i=1,#fast do
 				fast[i](...)
 			end
