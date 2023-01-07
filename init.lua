@@ -35,7 +35,7 @@ if not _G["$multi"] then
 	_G["$multi"] = {multi=multi,thread=thread}
 end
 
-multi.Version = "16.0.0"
+multi.Version = "15.3.1"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -124,17 +124,19 @@ function multi:newConnection(protect,func,kill)
 	local c={}
 	local call_funcs = {}
 	local lock = false
+	c.__connectionAdded = function() end
+	c.rawadd = false
 	c.callback = func
-	c.Parent=self
+	c.Parent = self
 
-	setmetatable(c,{__call=function(self,...)
+	setmetatable(c,{__call=function(self, ...)
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
-				if v==self then
-					local ref = self:Connect(select(2,...))
+				if v == self then
+					local ref = self:Connect(select(2, ...))
 					if ref then
-						ref.root_link = select(1,...)
+						ref.root_link = select(1, ...)
 						return ref
 					end
 					return self
@@ -144,6 +146,36 @@ function multi:newConnection(protect,func,kill)
 		else
 			return self:Connect(...)
 		end
+	end,
+	__concat = function(obj1, obj2)
+		local cn = multi:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			cn(function(...)
+				if obj1(...) then
+					obj2:Fire(...)
+				end
+			end)
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			ref = cn(function(...)
+				print("Fire")
+				obj1:Fire(...)
+				print("call")
+				obj2(...)
+			end)
+			cn.__connectionAdded = function()
+				cn.rawadd = true
+				cn:Unconnect(ref)
+				ref = cn(function(...)
+					if obj2(...) then
+						obj1:Fire(...)
+					end
+				end)
+			end
+		else
+			error("Invalid concat!", type(obj1), type(obj2))
+		end
+		return cn
 	end,
 	__add = function(c1,c2) -- Or
 		local cn = multi:newConnection()
@@ -245,16 +277,15 @@ function multi:newConnection(protect,func,kill)
 		end
 	end
 
-	local fast = {}
 	function c:getConnections()
 		return call_funcs
 	end
 
 	function c:Unconnect(conn)
 		if conn.fast then
-			for i = 1, #fast do
-				if conn.ref == fast[i] then
-					table.remove(fast, i)
+			for i = 1, #call_funcs do
+				if conn.ref == call_funcs[i] then
+					table.remove(call_funcs, i)
 				end
 			end
 		elseif conn.Destroy then
@@ -266,12 +297,12 @@ function multi:newConnection(protect,func,kill)
 		if find_optimization then return self end
 		function self:Fire(...)
 			if lock then return end
-			for i=1,#fast do
-				fast[i](...)
+			for i=1,#call_funcs do
+				call_funcs[i](...)
 			end
 		end
 		function self:Connect(func)
-			table.insert(fast, func)
+			table.insert(call_funcs, func)
 			local temp = {fast = true}
 			setmetatable(temp,{
 				__call=function(s,...)
@@ -291,6 +322,11 @@ function multi:newConnection(protect,func,kill)
 				end,
 			})
 			temp.ref = func
+			if self.rawadd then
+				self.rawadd = false
+			else
+				self.__connectionAdded(temp)
+			end
 			return temp
 		end
 		return self
@@ -349,7 +385,6 @@ function multi:newConnection(protect,func,kill)
 		end
 
 		function temp:Destroy()
-			multi.print("Calling Destroy on a connection link is deprecated and will be removed in v16.0.0")
 			for i=#call_funcs,1,-1 do
 				if call_funcs[i]~=nil then
 					if call_funcs[i]==self.func then
@@ -372,22 +407,33 @@ function multi:newConnection(protect,func,kill)
 		return temp
 	end
 
-	function c:Connect(...)--func,name,num
+	function c:Connect(...) -- func, name, num
 		local tab = {...}
-		local funcs={}
-		for i=1,#tab do
+		local funcs = {}
+		for i = 1, #tab do
 			if type(tab[i])=="function" then
-				funcs[#funcs+1] = tab[i]
+				funcs[#funcs + 1] = tab[i]
 			end
 		end
 		if #funcs>1 then
 			local ret = {}
-			for i=1,#funcs do
-				table.insert(ret,conn_helper(self,funcs[i]))
+			for i = 1, #funcs do
+				table.insert(ret, conn_helper(self, funcs[i]))
+			end
+			if self.rawadd then
+				self.rawadd = false
+			else
+				self.__connectionAdded(ret)
 			end
 			return ret
 		else
-			return conn_helper(self,tab[1],tab[2],tab[3])
+			local conn = conn_helper(self, tab[1], tab[2], tab[3])
+			if self.rawadd then
+				self.rawadd = false
+			else
+				self.__connectionAdded(conn)
+			end
+			return conn
 		end
 	end
 

@@ -1,10 +1,82 @@
 # Changelog
 Table of contents
 ---
+[Update 16.0.0 - ?](#update-1600---?)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
 [Update 15.2.1 - Bug fix](#update-1521---bug-fix)</br>
 [Update 15.2.0 - Upgrade Complete](#update-1520---upgrade-complete)</br>[Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.0.0 - ?
+Added
+---
+- Connection objects can now be concatenated with functions, not each other. For example:
+	```lua
+	multi, thread = require("multi"):init{print=true,findopt=true}
+
+	local conn1, conn2 = multi:newConnection(), multi:newConnection():fastMode()
+	conn3 = conn1 + conn2
+
+	conn1(function()
+		print("Hi 1")
+	end)
+
+	conn2(function()
+		print("Hi 2")
+	end)
+
+	conn3(function()
+		print("Hi 3")
+	end)
+
+	function test(a,b,c)
+		print("I run before all and control if things go!")
+		return a>b
+	end
+
+	conn4 = test .. conn1
+
+	conn5 = conn2 .. function() print("I run after it all!") end
+
+	conn4:Fire(3,2,3)
+
+	conn5(function()
+		print("Test 1")
+	end)
+
+	conn5(function()
+		print("Test 2")
+	end)
+
+	conn5(function()
+		print("Test 3")
+	end)
+
+	conn5:Fire()
+	```
+
+	Output:
+	```
+	I run before all and control if things go!
+	Hi 3
+	Hi 1
+	Test 1
+	Test 2
+	Test 3
+	I run after it all!
+	```
+
+Changed
+---
+
+Removed
+---
+
+Fixed
+---
+
+ToDo
+---
 
 # Update 15.3.1 - Bug fix
 Fixed
@@ -203,7 +275,7 @@ multi, thread = require("multi"):init{print=true}
 GLOBAL, THREAD = require("multi.integration.threading"):init()
 
 -- Using a system thread, but both system and local threads support this!
--- Don't worry if you don't have lanes or love2d. PseudoThreading will kick in to emulate the threading features if you do not have access to system threading.
+-- Don't worry if you don't have lanes or love2d. PesudoThreading will kick in to emulate the threading features if you do not have access to system threading.
 func = THREAD:newFunction(function(count)
 	print("Starting Status test: ",count)
 	local a = 0
@@ -368,7 +440,7 @@ Added:
 
 Changed:
 ---
-- `thread.hold(connectionObj)` now passes the returns of that connection to `thread.hold()`! See Example below: 
+- `thread.hold(connectionObj)` now passes the returns of that connection to `thread.hold()`! See Exampe below: 
 	```lua
 	multi, thread = require("multi"):init()
 
@@ -607,7 +679,7 @@ Added:
 Example:
 ```lua
 local multi,thread = require("multi"):init()
-GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your environment and uses what's available
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
 jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
 func = jq:newFunction("test",function(a,b)
@@ -636,7 +708,7 @@ multi:mainloop()
 
 ## multi.TIMEOUT
 
-`multi.TIMEOUT` is equal to "TIMEOUT", it is recommended to use this incase things change later on. There are plans to change the timeout value to become a custom object instead of a string.
+`multi.TIMEOUT` is equal to "TIMEOUT", it is reccomended to use this incase things change later on. There are plans to change the timeout value to become a custom object instead of a string.
 
 ## new connections on threaded functions
 
@@ -874,7 +946,7 @@ Full Update Showcase
 ---
 ```lua
 local multi,thread = require("multi"):init()
-GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your environment and uses what's available
+GLOBAL,THREAD = require("multi.integration.threading"):init() -- Auto detects your enviroment and uses what's available
 
 jq = multi:newSystemThreadedJobQueue(4) -- Job queue with 4 worker threads
 func = jq:newFunction("test",function(a,b)
@@ -906,20 +978,20 @@ multi:mainloop()
 ```
 Note:
 ---
-This was supposed to be released over a year ago, but work and other things got in my way. Pseudo-Threading now works. The goal of this is so you can write modules that can be scaled up to utilize threading features when available.
+This was supposed to be released over a year ago, but work and other things got in my way. Pesudo Threading now works. The goal of this is so you can write modules that can be scaled up to utilize threading features when available.
 
 Added:
 ---
 - multi:newISOThread(name,func,env)
   - Creates an isolated thread that prevents both locals and globals from being accessed.
-  - Was designed for the pseudoManager so it can emulate threads. You can use it as a super sandbox, but remember upvalues are also stripped which was intended for what I wanted them to do!
-- Added new integration: pseudoManager, functions just like lanesManager and loveManager, but it's actually single threaded
-  - This was implemented because, you may want to build your code around being multi threaded, but some systems/implementations of lua may not permit this. Since we now have a "single threaded" implementation of multi threading. We can actually create scalable code where things automatically are threaded if built correctly. I am planning on adding more threadedOjbects.
-- In addition to adding pseudo Threading `multi.integration.threading` can now be used to autodetect which environment you are on and use the threading features.
+  - Was designed for the pesudoManager so it can emulate threads. You can use it as a super sandbox, but remember upvalues are also stripped which was intened for what I wanted them to do!
+- Added new integration: pesudoManager, functions just like lanesManager and loveManager, but it's actually single threaded
+  - This was implemented because, you may want to build your code around being multi threaded, but some systems/implemetations of lua may not permit this. Since we now have a "single threaded" implementation of multi threading. We can actually create scalable code where things automatcally are threaded if built correctly. I am planning on adding more threadedOjbects.
+- In addition to adding pesudo Threading `multi.integration.threading` can now be used to autodetect which enviroment you are on and use the threading features.
 	```
 	GLOBAL,THREAD = require("multi.integration.threading"):init()
 	```
-	If you are using love2d it will use that, if you have lanes available then it will use lanes. Otherwise it will use pseudo-threading. This allows module creators to implement scalable features without having to worry about which environment they are in. Can now require a consistent module: `require("multi.integration.threading"):init()`
+	If you are using love2d it will use that, if you have lanes avaialble then it will use lanes. Otherwise it will use pesudo threading. This allows module creators to implement scalable features without having to worry about which enviroment they are in. Can now require a consistant module: `require("multi.integration.threading"):init()`
 
 Changed:
 ---
@@ -927,7 +999,7 @@ Changed:
 
 Removed:
 ---
-- CBT (Coroutine Based threading) has lost a feature, one that hasn't been used much, but broke compatibility with anything above lua 5.1. My goal is to make my library work with all versions of lua above 5.1, including 5.4. Lua 5.2+ changed how environments worked which means that you can no longer modify an environment of function without using the debug library. This isn't ideal for how things in my library worked, but it is what it is. The feature lost is the one that converted all functions within a threaded environment into a threadedfunction. This in hindsight wasn't the best practice and if it is the desired state you as the user can manually do that anyway. This shouldn't affect anyone's code in a massive way.
+- CBT (Coroutine Based threading) has lost a feature, one that hasn't been used much, but broke compatiblity with anything above lua 5.1. My goal is to make my library work with all versions of lua above 5.1, including 5.4. Lua 5.2+ changed how enviroments worked which means that you can no longer modify an enviroment of function without using the debug library. This isn't ideal for how things in my library worked, but it is what it is. The feature lost is the one that converted all functions within a threaded enviroment into a threadedfunction. This in hindsight wasn't the best pratice and if it is the desired state you as the user can manually do that anyway. This shouldn't affect anyones code in a massive way.
 
 Fixed:
 ---
@@ -1048,9 +1120,9 @@ Removed: (Cleaning up a lot of old features)
 - multi:setDomainName(name)*
 - multi:linkDomain(name)*
 - multi:_Pause()* — Use multi:Stop() instead!
-- multi:isHeld()/multi:IsHeld()* Holding is handled differently so a held variable is no longer needed for checking.
+- multi:isHeld()/multi:IsHeld()* Holding is handled differently so a held variable is no longer needed for chacking.
 - multi.executeFunction(name,...)*
-- multi:getError()* — Errors are no longer received like that, multi.OnError(func) is the way to go
+- multi:getError()* — Errors are nolonger gotten like that, multi.OnError(func) is the way to go
 - multi.startFPSMonitior()*
 - multi.doFPS(s)*
 
@@ -1072,7 +1144,7 @@ end)
 serv.OnStarted(function(self,data)
 	print("Started!",self.Type,data)
 	data.test = "Testing..."
-	-- self as reference to the object and data is a reference to the data table that the service has access to
+	-- self as reference to the object and data is a reference to the datatable that the service has access to
 end)
 serv:Start()
 serv:SetPriority(multi.Priority_Idle)
@@ -1113,7 +1185,7 @@ setmetatable(example,{
 		print("We did it!",a,b)
 		rawset(t,k,v)
 		-- This means by using a threaded function we can get around the yielding across metamethods.
-		-- This is useful if you aren't using luajit, or if you using lua in an environment that is on version 5.1
+		-- This is useful if you aren't using luajit, or if you using lua in an enviroment that is on version 5.1
 		-- There is a gotcha however, if using code that was meant to work with another coroutine based scheduler this may not work
 	end,
 	__index = thread:newFunction(function(t,k,v) -- Using a threaded function as the metamethod
@@ -1125,7 +1197,7 @@ setmetatable(example,{
 example["test"] = "We set a variable!"
 print(example["test"])
 print(example.hi)
--- When not in a threaded environment at root level we need to tell the code that we are waiting! Alternatively after the function argument we can pass true to force a wait 
+-- When not in a threaded enviroment at root level we need to tell the code that we are waiting! Alternitavely after the function argument we can pass true to force a wait 
 c,d = test().wait()
 print(c,d)
 a,b = 6,7
@@ -1228,10 +1300,10 @@ Added:
 Changed:
 ---
 - threaded functions no longer auto detect the presence of arguments when within a threaded function. However, you can use the holup method to produce the same effect. If you plan on using a function in different ways then you can use .wait() and .connect() without setting the holup argument
-- thread:newFunction(func,holup) — Added an argument holup to always force the threaded function to wait. Meaning you don't need to tell it to func().wait() or func().connect()
+- thread:newFunction(func,holup) — Added an argument holup to always force the threaded funcion to wait. Meaning you don't need to tell it to func().wait() or func().connect()
 - multi:newConnection(protect,callback,kill) — Added the kill argument. Makes connections work sort of like a stack. Pop off the connections as they get called. So a one time connection handler.
-	- I'm not sure callback has been documented in any form. callback gets called each and every time conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
-- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both environments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistent. looping through upvalues and sterilizing them and sending them are very complex and slow. 
+	- I'm not sure callback has been documented in any form. callback gets called each and everytime conn:Fire() gets called! As well as being triggered for each connfunc that is part of the connection.
+- modified the lanes manager to create globals GLOBAL and THREAD when a thread is started. This way you are now able to more closely mirror code between lanes and love. As of right now parity between both enviroments is now really good. Upvalues being copied by default in lanes is something that I will not try and mirror in love. It's better to pass what you need as arguments, this way you can keep things consistant. looping through upvalues and sterlizing them and sending them are very complex and slow. 
 
 Removed:
 ---
@@ -1240,7 +1312,7 @@ Removed:
 Fixed:
 ---
 - Issue where setting the priority of lanes Threads were not working since we were using the data before one could have a chance to set it. This has been resolved!
-- Issue where connections object:conn() was firing based on the existence of a Type field. Now this only fires if the table contains a reference to itself. Otherwise it will connect instead of firing
+- Issue where connections object:conn() was firing based on the existance of a Type field. Now this only fires if the table contains a reference to itself. Otherwise it will connect instead of firing
 - Issue where async functions connect wasn't properly triggering when a function returned
 - Issue where async functions were not passing arguments properly.
 - Issue where async functions were not handling errors properly
@@ -1263,12 +1335,12 @@ Fixed:
 
 Added:
 ---
-- multi.init() — Initializes the library! Must be called for multiple files to have the same handle. Example below
-- thread.holdFor(NUMBER sec, FUNCTION condition) — Works like hold, but times out when a certain amount of time has passed!
+- multi.init() — Initlizes the library! Must be called for multiple files to have the same handle. Example below
+- thread.holdFor(NUMBER sec, FUNCTION condition) — Works like hold, but timesout when a certain amount of time has passed!
 - multi.hold(function or number) — It's back and better than ever! Normal multi objs without threading will all be halted where threads will still run. If within a thread continue using thread.hold() and thread.sleep()
 - thread.holdWithin(NUMBER; cycles,FUNCTION; condition) — Holds until the condition is met! If the number of cycles passed is equal to cycles, hold will return a timeout error
-- multi.holdFor(NUMBER; seconds,FUNCTION; condition) — Follows the same rules as multi.hold while mimicking the functionality of thread.holdWithin
-**Note:** when hold has a timeout the first argument will return nil and the second argument will be TIMEOUT, if not timed out hold will return the values from the conditions
+- multi.holdFor(NUMBER; seconds,FUNCTION; condition) — Follows the same rules as multi.hold while mimicing the functionality of thread.holdWithin
+**Note:** when hold has a timeout the first argument will return nil and the second atgument will be TIMEOUT, if not timed out hold will return the values from the conditions
 - thread objects now have hooks that allow you to interact with it in more refined ways!
 -- tObj.OnDeath(self,status,returns[...]) — This is a connection that passes a reference to the self, the status, whether or not the thread ended or was killed, and the returns of the thread.
 -- tObj.OnError(self,error) — returns a reference to self and the error as a string
@@ -1278,7 +1350,7 @@ Added:
 -- returns a function that gives you the option to wait or connect to the returns of the function.
 -- func().wait() — waits for the function to return works both within a thread and outside of one
 -- func().connect() — connects to the function finishing
--- func() — If your function does not return anything you don't have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
+-- func() — If your function does not return anything you dont have to use wait or connect at all and the function will return instantly. You could also use wait() to hold until the function does it thing
 -- If the created function encounters an error, it will return nil, the error message!
 - special variable multi.NIL was added to allow error handling in threaded functions.
 -- multi.NIL can be used in to force a nil value when using thread.hold()
@@ -1351,7 +1423,7 @@ multi:mainloop()
 
 Fixed:
 ---
-- Connections had a performance issue where they would create a non function when using connection.getConnection() of a non existing label.
+- Connections had a preformance issue where they would create a non function when using connection.getConnection() of a non existing label.
 - An internal mismanagement of the threads scheduler was fixed. Now it should be quicker and free of bugs
 - Thread error management is the integrations was not properly implemented. This is now fixed
 
@@ -1382,18 +1454,18 @@ Changed:
 ```lua
 local multi, thread = require("multi").init() -- The require multi function still returns the multi object like before
 ```
-- love/lanesManager system threading integration has been reworked. Faster and cleaner code! Consistent code as well
+- love/lanesManager system threading integration has been reworked. Faster and cleaner code! Consistant code as well
 
 Note: Using init allows you to get access to the thread handle. This was done because thread was modifying the global space as well as multi. I wanted to not modify the global space anymore.
 internally most of your code can stay the same, you only need to change how the library is required. I do toy a bit with the global space, buy I use a variable name that is invalid as a variable name. The variable name is  $multi. This is used internally to keep some records and maintain a clean space
 
-Also when using integrations things now look more consistent.
+Also when using intergrations things now look more consistant.
 ```lua
 local multi, thread = require("multi").init()
 local GLOBSL, THREAD = require("multi.integration.lanesManager").init() -- or whichever manager you are using
 local nGLOBAL, nTHREAD = require("multi.intergration.networkManager).inti()
 ```
-Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create coroutine based threads within both network and system threads. This gives you quite a bit of flexibility to create something awesome.
+Note: You can mix and match integrations together. You can create systemthreads within network threads, and you can also create cotoutine based threads within bothe network and system threads. This gives you quite a bit of flexibility to create something awesome.
 
 Going forward:
 ---
@@ -1406,7 +1478,7 @@ Added:
 ---
 - Connections:Lock() — Prevents a connection object form being fired
 - Connections:Unlock() — Removes the restriction imposed by conn:Lock()
-- new functions added to the thread namespace
+- new fucntions added to the thread namespace
 -- thread.request(THREAD handle,STRING cmd,VARARGS args) — allows you to push thread requests from outside the running thread! Extremely powerful.
 -- thread.exec(FUNCTION func) — Allows you to push code to run within the thread execution block!
 - handle = multi:newThread() — now returns a thread handle to interact with the object outside fo the thread
@@ -1418,18 +1490,18 @@ Fixed:
 ---
 - Minor bug with multi:newThread() in how names and functions were managed
 - Major bug with the system thread handler. Saw healthy threads as dead ones
-- Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler operates. 
+- Major bug the thread scheduler was seen creating a massive amount of 'event' causing memory leaks and hard crashes! This has been fixed by changing how the scheduler opperates. 
 - newSystemThread()'s returned object now matches both the lanes and love2d in terms of methods that are usable. Error handling of System threads now behave the same across both love and lanes implementations.
-- looks like I found a typo, thread.yield -> thread.yield
+- looks like I found a typo, thread.yeild -> thread.yield
 
 Changed: 
 ---
-- getTasksDetails("t"), the table variant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
+- getTasksDetails("t"), the table varaiant, formats threads, and system threads in the same way that tasks are formatted. Please see below for the format of the task details
 - TID has been added to multi objects. They count up from 0 and no 2 objects will have the same number
 - thread.hold() — As part of the memory leaks that I had to fix thread.hold() is slightly different. This change shouldn't impact previous code at all, but thread.hold() can not only return at most 7 arguments!
-- You should notice some faster code execution from threads, the changes improve performance of threads greatly. They are now much faster than before!
-- multi:threadloop() — No longer runs normal multi objects at all! The new change completely allows the multi objects to be separated from the thread objects!
-- local multi, thread = require("multi") — Since coroutine based threading has seen a change to how it works, requiring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
+- You should notice some faster code execution from threads, the changes improve preformance of threads greatly. They are now much faster than before!
+- multi:threadloop() — No longer runs normal multi objects at all! The new change completely allows the multi objects to be seperated from the thread objects!
+- local multi, thread = require("multi") — Since coroutine based threading has seen a change to how it works, requring the multi library now returns the namespace for the threading interface as well. For now I will still inject into global the thread namespace, but in release 13.2.0 or 14.0.0 It will be removed!
 
 
 Tasks Details Table format
@@ -1490,7 +1562,7 @@ Changed:
 ---
 - A few things, to make concepts in the library more clear.
 - The way functions returned paused status. Before it would return "PAUSED" now it returns nil, true if paused
-- Modified the connection object to allow for some more syntactical sugar!
+- Modified the connection object to allow for some more syntaxial suger!
 - System threads now trigger an OnError connection that is a member of the object itself. multi.OnError() is no longer triggered for a system thread that crashes!
 
 Connection Example:
@@ -1517,7 +1589,7 @@ print(func()) -- nil, true
 
 Removed:
 ---
-- Ranges and conditions — coroutine based threads can emulate what these objects did and much better!
+- Ranges and conditions — corutine based threads can emulate what these objects did and much better!
 - Due to the creation of hyper threaded processes the following objects are no more!
 	- ~~multi:newThreadedEvent()~~
 	- ~~multi:newThreadedLoop()~~
@@ -1532,33 +1604,33 @@ These didn't have much use in their previous form, but with the addition of hype
 
 Fixed:
 ---
-- There were some bugs in the networkmanager.lua file. Destroy -> Destroy some misspellings.
+- There were some bugs in the networkmanager.lua file. Desrtoy -> Destroy some misspellings.
 - Massive object management bugs which caused performance to drop like a rock.
 - Found a bug with processors not having the Destroy() function implemented properly.
-- Found an issue with the rockspec which is due to the networkManager addition. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
-- Insane performance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes further than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release (Im releasing 13.0.0 though this hasn't been ironed out just yet)
-- Fixed an issue where any argument greater than 256^2 or 65536 bytes is sent the networkmanager would soft crash. This was fixed by increasing the limit to 256^4 or 4294967296. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
+- Found an issue with the rockspec which is due to the networkManager additon. The net Library and the multi Library are now codependent if using that feature. Going forward you will have to now install the network library separately
+- Insane proformance bug found in the networkManager file, where each connection to a node created a new thread (VERY BAD) If say you connected to 100s of threads, you would lose a lot of processing power due to a bad implementation of this feature. But it goes further than this, the net library also creates a new thread for each connection made, so times that initial 100 by about 3, you end up with a system that quickly eats itself. I have to do tons of rewriting of everything. Yet another setback for the 13.0.0 release (Im releasing 13.0.0 though this hasn't been ironed out just yet)
+- Fixed an issue where any argument greater than 256^2 or 65536 bytes is sent the networkmanager would soft crash. This was fixed by increading the limit to 256^4 or 4294967296. The fix was changing a 2 to a 4. Arguments greater than 256^4 would be impossible in 32 bit lua, and highly unlikely even in lua 64 bit. Perhaps someone is reading an entire file into ram and then sending the entire file that they read over a socket for some reason all at once!?
 - Fixed an issue with processors not properly destroying objects within them and not being destroyable themselves
 - Fixed a bug where pause and resume would duplicate objects! Not good
-- Noticed that the switching of lua states, coroutine based threading, is slower than multi-objs (Not by much though).
+- Noticed that the switching of lua states, corutine based threading, is slower than multi-objs (Not by much though).
 - multi:newSystemThreadedConnection(name,protect) — I did it! It works and I believe all the gotchas are fixed as well.
 	- Issue one, if a thread died that was connected to that connection all connections would stop since the queue would get clogged! FIXED
 	- There is one thing, the connection does have some handshakes that need to be done before it functions as normal!
 
 Added:
 ---
-- Documentation, the purpose of 13.0.0, originally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
+- Documentation, the purpose of 13.0.0, orginally going to be 12.2.3, but due to the amount of bugs and features added it couldn't be a simple bug fix update.
 - multi:newHyperThreadedProcess(STRING name) — This is a version of the threaded process that gives each object created its own coroutine based thread which means you can use thread.* without affecting other objects created within the hyper threaded processes. Though, creating a self contained single thread is a better idea which when I eventually create the wiki page I'll discuss
 - multi:newConnector() — A simple object that allows you to use the new connection Fire syntax without using a multi obj or the standard object format that I follow.
 - multi:purge() — Removes all references to objects that are contained withing the processes list of tasks to do. Doing this will stop all objects from functioning. Calling Resume on an object should make it work again.
 - multi:getTasksDetails(STRING format) — Simple function, will get massive updates in the future, as of right now It will print out the current processes that are running; listing their type, uptime, and priority. More useful additions will be added in due time. Format can be either a string "s" or "t" see below for the table format
 - multi:endTask(TID) — Use multi:getTasksDetails("t") to get the tid of a task
 - multi:enableLoadDetection() — Reworked how load detection works. It gives better values now, but it still needs some work before I am happy with it
-- THREAD.getID() — returns a unique ID for the current thread. This variable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
+- THREAD.getID() — returns a unique ID for the current thread. This varaiable is visible to the main thread as well by accessing it through the returned thread object. OBJ.Id Do not confuse this with thread.* this refers to the system threading interface. Each thread, including the main thread has a threadID the main thread has an ID of 0!
 - multi.print(...) works like normal print, but only prints if the setting print is set to true
 - setting: `print` enables multi.print() to work
 - STC: IgnoreSelf defaults to false, if true a Fire command will not be sent to the self
-- STC: OnConnectionAdded(function(connID)) — Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are generated for you.
+- STC: OnConnectionAdded(function(connID)) — Is fired when a connection is added you can use STC:FireTo(id,...) to trigger a specific connection. Works like the named non threaded connections, only the id's are genereated for you.
 - STC: FireTo(id,...) — Described above.
 
 ```lua
@@ -1598,19 +1670,19 @@ Table format for getTasksDetails(STRING format)
     }
 }
 ```
-**Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a significant increase in performance.
+**Note:** After adding the getTasksDetails() function I noticed many areas where threads, and tasks were not being cleaned up and fixed the leaks. I also found out that a lot of tasks were starting by default and made them enable only. If you compare the benchmark from this version to last version you;ll notice a signifacant increase in performance.
 
 **Going forward:**
 - Work on system threaded functions
 - work on the node manager
 - patch up bugs
-- finish documentation
+- finish documentstion
 
 # Update 12.2.2 - Time for some more bug fixes!
 
 Fixed:
 --- 
-- multi.Stop() not actually stopping due to the new priority management scheme and performance boost changes.
+- multi.Stop() not actually stopping due to the new pirority management scheme and preformance boost changes.
 
 # Update 12.2.1 - Time for some bug fixes!
 
@@ -1621,13 +1693,13 @@ Fixed: SystemThreadedJobQueues
 - No longer need to use jobqueue.OnReady() The code is smarter and will send the pushed jobs automatically when the threads are ready
 
 Fixed: SystemThreadedConnection
-- They work the exact same way as before, but actually work as expected now. The issue before was how i implemented it. Now each connection knows the number of instances of that object that exist. This way I no longer have to do fancy timings that may or may not work. I can send exactly enough info for each connection to consume from the queue.
+- They work the exact same way as before, but actually work as expected now. The issue before was how i implemented it. Now each connection knows the number of instances of that object that ecist. This way I no longer have to do fancy timings that may or may not work. I can send exactly enough info for each connection to consume from the queue.
 
 Removed: multi:newQueuer
-- This feature has no real use after coroutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
+- This feature has no real use after corutine based threads were introduced. You can use those to get the same effect as the queuer and do it better too. 
 
 Going forward:
-- Will I ever finish sterilization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
+- Will I ever finish steralization? Who knows, but being able to save state would be nice. The main issue is there is no simple way to save state. While I can provide methods to allow one to turn the objects into strings and back, there is no way for me to make your code work with it in a simple way. For now only the basic functions will be here.
 - I need to make better documentation for this library as well. In its current state, all I have are examples and not a list of what is what.
 
 Example
@@ -1655,8 +1727,8 @@ multi:mainloop()
 - Priority 3 has been added!
 - ResetPriority() — This will set a flag for a process to be re evaluated for how much of an impact it is having on the performance of the system.
 - setting: auto_priority added! — If only lua os.clock was more fine tuned... milliseconds are not enough for this to work
-- setting: auto_lowerbound added! — when using auto_priority this will allow you to set the lower bound for priority. The default is a hybrid value that was calculated to reach the max potential with a delay of .001, but can be changed to whatever. Remember this is set to processes that preform really badly! If lua could handle more detail in regards to os.clock() then i would set the value a bit lower like .0005 or something like that
-- setting: auto_stretch added! — This is another way to modify the extent of the lowest setting. This reduces the impact that a low preforming process has! Setting this higher reduces the number of times that a process is called. Only in effect when using auto_priority
+- setting: auto_lowerbound added! — when using auto_priority this will allow you to set the lowbound for pirority. The defualt is a hyrid value that was calculated to reach the max potential with a delay of .001, but can be changed to whatever. Remember this is set to processes that preform really badly! If lua could handle more detail in regards to os.clock() then i would set the value a bit lower like .0005 or something like that
+- setting: auto_stretch added! — This is another way to modify the extent of the lowest setting. This reduces the impact that a low preforming process has! Setting this higher reduces the number of times that a process is called. Only in effect when using auto_priotity
 - setting: auto_delay added! — sets the time in seconds that the system will recheck for low performing processes and manage them. Will also upgrade a process if it starts to run better.
 ```lua
 -- All methods that did not return before now return a copy of itself. Thus allowing chaining. Most if not all mutators returned nil, so chaining can now be done. I will eventually write up a full documentation of everything which will show this.
@@ -1672,7 +1744,7 @@ multi:mainloop{
 ```
 Priority 3 works a bit differently than the other 2.
 
-P1 follows a formula that resembles this: ~n=I*PRank where n is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
+P1 follows a forumla that resembles this: ~n=I*PRank where n is the amount of steps given to an object with PRank and where I is the idle time see chart below. The aim of this priority scheme was to make core objects run fastest while letting idle processes get decent time as well.
 ```
 C: 3322269	~I*7
 H: 2847660	~I*6
@@ -1705,17 +1777,17 @@ L: 2120906
 I: 2120506
 ```
 
-Auto Priority works by seeing what should be set high or low. Due to lua not having more precision than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the default is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting.
+Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting.
 
 **Improved:**
 - Performance at the base level has been doubled! On my machine benchmark went from ~9mil to ~20 mil steps/s.
 Note: If you write slow code this library's improvements wont make much of a difference.
-- Loops have been optimized as well! Being the most used objects I felt they needed to be made as fast as possible
+- Loops have been optimised as well! Being the most used objects I felt they needed to be made as fast as possible
 
-I usually give an example of the changes made, but this time I have an explanation for `multi.nextStep()`. It's not an entirely new feature since multi:newJob() does something like this, but is completely different. nextStep adds a function that is executed first on the next step. If multiple things are added to next step, then they will be executed in the order that they were added.
+I usually give an example of the changes made, but this time I have an explantion for `multi.nextStep()`. It's not an entirely new feature since multi:newJob() does something like this, but is completely different. nextStep adds a function that is executed first on the next step. If multiple things are added to next step, then they will be executed in the order that they were added.
 
 Note:
-The upper limit of this libraries performance on my machine is ~39mil. This is simply a while loop counting up from 0 and stops after 1 second. The 20mil that I am currently getting is probably as fast as it can get since its half of the max performance possible, and each layer I have noticed that it doubles complexity. Throughout the years with this library I have seen massive improvements in speed. In the beginning we had only ~2000 steps per second. Fast right? then after some tweaks we went to about 300000 steps per second, then 600000. Some more tweaks brought me to ~1mil steps per second, then to ~4 mil then ~9 mil and now finally ~20 mil... the doubling effect that i have now been seeing means that odds are I have reach the limit. I will aim to add more features and optimize individual objects. If its possible to make the library even faster then I will go for it.
+The upper limit of this libraries performance on my machine is ~39mil. This is simply a while loop counting up from 0 and stops after 1 second. The 20mil that I am currently getting is probably as fast as it can get since its half of the max performance possible, and each layer I have noticed that it doubles complexity. Throughout the years with this library I have seen massive improvements in speed. In the beginning we had only ~2000 steps per second. Fast right? then after some tweaks we went to about 300000 steps per second, then 600000. Some more tweaks brought me to ~1mil steps per second, then to ~4 mil then ~9 mil and now finally ~20 mil... the doubling effect that i have now been seeing means that odds are I have reach the limit. I will aim to add more features and optimize individule objects. If its possible to make the library even faster then I will go for it.
 
 
 # Update 12.1.0 - Threads just can't hold on anymore
@@ -1750,16 +1822,16 @@ multi:mainloop()
 
 Going forward:
 ---
-Continue to make small changes as I come about them. This change was inspired when working of the net library. I was adding simple binary file support over tcp, and needed to pass the data from the socket when the requested amount has been received. While upvalues did work, i felt returning data was cleaner and added this feature.
+Contunue to make small changes as I come about them. This change was inspired when working of the net library. I was addind simple binary file support over tcp, and needed to pass the data from the socket when the requested amount has been recieved. While upvalues did work, i felt returning data was cleaner and added this feature.
 
 # Update: 12.0.0 - Big update (Lots of additions some changes)
 
 **Note:** ~~After doing some testing, I have noticed that using multi-objects are slightly, quite a bit, faster than using (coroutines)multi:newthread(). Only create a thread if there is no other possibility! System threads are different and will improve performance if you know what you are doing. Using a (coroutine)thread as a loop with a 
-is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with separate objects. And finally, reduced function overhead help keeps the threads running better.
+is slower than using a TLoop! If you do not need the holding features I strongly recommend that you use the multi-objects. This could be due to the scheduler that I am using, and I am looking into improving the performance of the scheduler for (coroutine)threads. This is still a work in progress so expect things to only get better as time passes!~~ This was the reason threadloop was added. It binds the thread scheduler into the mainloop allowing threads to run much faster than before. Also the use of locals is now possible since I am not dealing with seperate objects. And finally, reduced function overhead help keeps the threads running better.
 
 **Note:** The nodeManager is being reworked! This will take some time before it is in a stable state. The old version had some major issues that caused it to perform poorly.
 
-**Note:** Version names were brought back to reality this update. When transitioning from EventManager to multi I stopped counting when in reality it was simply an overhaul of the previous library
+**Note:** Version names were brought back to reality this update. When transistioning from EventManager to multi I stopped counting when in reality it was simply an overhaul of the previous library
 
 Added:
 ---
@@ -1769,11 +1841,11 @@ Added:
 - `multi:nodeManager(port)`
 - `thread.isThread()` — for coroutine based threads
 - New setting to the main loop, stopOnError which defaults to true. This will cause the objects that crash, when under protect, to be destroyed. So the error does not keep happening.
-- multi:threadloop(settings) works just like mainloop, but prioritizes (coroutine based) threads. Regular multi-objects will still work. This improves the performance of (coroutine based) threads greatly.
+- multi:threadloop(settings) works just like mainloop, but prioritizes (corutine based) threads. Regular multi-objects will still work. This improves the preformance of (coroutine based) threads greatly.
 - multi.OnPreLoad — an event that is triggered right before the mainloop starts
 
 Changed:
-- When a (coroutine based)thread errors it does not print anymore! Connect to multi.OnError() to get errors when they happen!
+- When a (corutine based)thread errors it does not print anymore! Conect to multi.OnError() to get errors when they happen!
 - Connections get yet another update. Connect takes an additional argument now which is the position in the table that the func should be called. Note: Fire calls methods backwards so 1 is the back and the # of connections (the default value) is the beginning of the call table
 - The love2d compat layer has now been revamped allowing module creators to connect to events without the user having to add likes of code for those events. Its all done automagically.
 - This library is about 8 years old and using 2.0.0 makes it seem young. I changed it to 12.0.0 since it has some huge changes and there were indeed 12 major releases that added some cool things. Going forward I'll use major.minor.bugfix
@@ -2523,7 +2595,7 @@ function comma_value(amount)
 	end
 	return formatted
 end
-multi:newSystemThread("test1",function() -- Another difference is that the multi library is already loaded in the threaded environment as well as a call to multi:mainloop()
+multi:newSystemThread("test1",function() -- Another difference is that the multi library is already loaded in the threaded enviroment as well as a call to multi:mainloop()
 	multi:benchMark(sThread.waitFor("Bench"),nil,"Thread 1"):OnBench(function(self,c) GLOBAL["T1"]=c multi:Stop() end)
 end)
 multi:newSystemThread("test2",function() -- spawns a thread in another lua process

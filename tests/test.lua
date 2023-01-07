@@ -1,133 +1,42 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,findopt=true}
-GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
-multi:getOptimizationConnection()(function(msg)
-	print(msg)
+
+local conn1, conn2 = multi:newConnection(), multi:newConnection():fastMode()
+conn3 = conn1 + conn2
+
+conn1(function()
+	print("Hi 1")
 end)
 
--- local conn1, conn2, conn3 = multi:newConnection(), multi:newConnection():fastMode(), multi:newConnection()
-
--- local link = conn1(function()
--- 	print("Conn1, first")
--- end)
-
--- local link2 = conn1(function()
--- 	print("Conn1, second")
--- end)
-
--- local link3 = conn1(function()
--- 	print("Conn1, third")
--- end)
-
--- local link4 = conn2(function()
--- 	print("Conn2, first")
--- end)
-
--- local link5 = conn2(function()
--- 	print("Conn2, second")
--- end)
-
--- local link6 = conn2(function()
--- 	print("Conn2, third")
--- end)
-
--- print("All conns\n-------------")
--- conn1:Fire()
--- conn2:Fire()
-
--- conn1:Unconnect(link3)
--- conn2:Unconnect(link6)
--- print("All conns Edit\n---------------------")
--- conn1:Fire()
--- conn2:Fire()
-
--- thread:newThread(function()
--- 	print("Awaiting status")
--- 	thread.hold(conn1 + (conn2 * conn3))
--- 	print("Conn or Conn2 and Conn3")
--- end)
-
--- multi:newAlarm(1):OnRing(function()
--- 	print("Conn")
--- 	conn1:Fire()
--- end)
--- multi:newAlarm(2):OnRing(function()
--- 	print("Conn2")
--- 	conn2:Fire()
--- end)
--- multi:newAlarm(3):OnRing(function()
--- 	print("Conn3")
--- 	conn3:Fire()
--- end)
-
-local conn = multi:newSystemThreadedConnection("conn"):init()
-
-multi:newSystemThread("Thread_Test_1", function()
-	local multi, thread = require("multi"):init()
-	local conn = GLOBAL["conn"]:init()
-	local console = THREAD.getConsole()
-	conn(function(a,b,c)
-		console.print(THREAD:getName().." was triggered!",a,b,c)
-	end)
-	multi:mainloop()
+conn2(function()
+	print("Hi 2")
 end)
 
-multi:newSystemThread("Thread_Test_2", function()
-	local multi, thread = require("multi"):init()
-	local conn = GLOBAL["conn"]:init()
-	local console = THREAD.getConsole()
-	conn(function(a,b,c)
-		console.print(THREAD:getName().." was triggered!",a,b,c)
-	end)
-	multi:newAlarm(2):OnRing(function()
-		console.print("Fire 2!!!")
-		conn:Fire(4,5,6)
-		THREAD.kill()
-	end)
-
-	multi:mainloop()
-end)
-local console = THREAD.getConsole()
-conn(function(a,b,c)
-	console.print("Mainloop conn got triggered!",a,b,c)
+conn3(function()
+	print("Hi 3")
 end)
 
-alarm = multi:newAlarm(1)
-alarm:OnRing(function()
-	console.print("Fire 1!!!")
-	conn:Fire(1,2,3) 
+function test(a,b,c)
+	print("I run before all and control if things go!")
+	return a>b
+end
+
+conn4 = test .. conn1
+
+conn5 = conn2 .. function() print("I run after it all!") end
+
+conn4:Fire(3,2,3)
+
+conn5(function()
+	print("Test 1")
 end)
 
-alarm = multi:newAlarm(3):OnRing(function()
-	multi:newSystemThread("Thread_Test_3",function()
-		local multi, thread = require("multi"):init()
-		local conn = GLOBAL["conn"]:init()
-		local console = THREAD.getConsole()
-		conn(function(a,b,c)
-			console.print(THREAD:getName().." was triggered!",a,b,c)
-		end)
-		multi:newAlarm(4):OnRing(function()
-			console.print("Fire 3!!!")
-			conn:Fire(7,8,9)
-		end)
-		multi:mainloop()
-	end)
+conn5(function()
+	print("Test 2")
 end)
 
-multi:newSystemThread("Thread_Test_4",function()
-	local multi, thread = require("multi"):init()
-	local conn = GLOBAL["conn"]:init()
-	local conn2 = multi:newConnection()
-	local console = THREAD.getConsole()
-	multi:newAlarm(2):OnRing(function()
-		conn2:Fire()
-	end)
-	multi:newThread(function()
-		console.print("Conn Test!")
-		thread.hold(conn + conn2)
-		console.print("It held!")
-	end)
-	multi:mainloop()
+conn5(function()
+	print("Test 3")
 end)
 
-multi:mainloop()
+conn5:Fire()
