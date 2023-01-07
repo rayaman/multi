@@ -156,11 +156,13 @@ function multi:newConnection(protect,func,kill)
 					obj2:Fire(...)
 				end
 			end)
+			cn.__connectionAdded = function(conn, func)
+				cn:Unconnect(conn)
+				obj2:Connect(func)
+			end
 		elseif type(obj1) == "table" and type(obj2) == "function" then
 			ref = cn(function(...)
-				print("Fire")
 				obj1:Fire(...)
-				print("call")
 				obj2(...)
 			end)
 			cn.__connectionAdded = function()
@@ -325,7 +327,7 @@ function multi:newConnection(protect,func,kill)
 			if self.rawadd then
 				self.rawadd = false
 			else
-				self.__connectionAdded(temp)
+				self.__connectionAdded(temp, func)
 			end
 			return temp
 		end
@@ -418,12 +420,13 @@ function multi:newConnection(protect,func,kill)
 		if #funcs>1 then
 			local ret = {}
 			for i = 1, #funcs do
-				table.insert(ret, conn_helper(self, funcs[i]))
-			end
-			if self.rawadd then
-				self.rawadd = false
-			else
-				self.__connectionAdded(ret)
+				local temp =  conn_helper(self, funcs[i])
+				table.insert(ret, temp)
+				if self.rawadd then
+					self.rawadd = false
+				else
+					self.__connectionAdded(temp, funcs[i])
+				end
 			end
 			return ret
 		else
@@ -431,7 +434,7 @@ function multi:newConnection(protect,func,kill)
 			if self.rawadd then
 				self.rawadd = false
 			else
-				self.__connectionAdded(conn)
+				self.__connectionAdded(conn, tab[1])
 			end
 			return conn
 		end
