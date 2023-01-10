@@ -82,6 +82,24 @@ function multi.Stop()
 	mainloopActive = false
 end
 
+-- Types
+multi.DESTROYED			= multi.DestroyedObj
+multi.ROOTPROCESS		= "rootprocess"
+multi.CONNECTOR			= "connector"
+multi.CONNECTOR_LINK	= "connector_link"
+multi.TIMEMASTER		= "timemaster"
+multi.PROCESS			= "process"
+multi.TIMER				= "timer"
+multi.EVENT				= "event"
+multi.UPDATER			= "updater"
+multi.ALARM				= "alarm"
+multi.LOOP				= "loop"
+multi.TLOOP				= "tloop"
+multi.STEP				= "step"
+multi.TSTEP				= "tstep"
+multi.THREAD			= "thread"
+multi.SERVICE			= "service"
+
 --Processor
 local priorityTable = {[false]="Disabled",[true]="Enabled"}
 local ProcessName = {"SubProcessor","MainProcessor"}
@@ -89,6 +107,10 @@ local globalThreads = {}
 
 function multi:getProcessors()
 	return processes
+end
+
+function multi:isType(type)
+	return self.Type == type
 end
 
 function multi:getStats()
