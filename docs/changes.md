@@ -10,6 +10,40 @@ Table of contents
 # Update 16.0.0 - ?
 Added
 ---
+- Connection objects now support the % function. This supports a function % connection object. What it does is allow you to **mod**ify the incoming arguments of a connection event.
+	```lua
+	local conn1 = multi:newConnection()
+	local conn2 = function(a,b,c) return a*2, b*2, c*2 end % conn1
+	conn2(function(a,b,c)
+		print("Conn2",a,b,c)
+	end)
+	conn1(function(a,b,c)
+		print("Conn1",a,b,c)
+	end)
+	conn1:Fire(1,2,3)
+	conn2:Fire(1,2,3)
+	```
+	Output:
+	```
+	Conn2   2       4       6
+	Conn1   1       2       3
+	Conn2	1		2		3
+	```
+	**Note:** Conn1 does not get modified, however firing conn1 will also fire conn2 and have it's arguments modified. Also firing conn2 directly **does not** modify conn2's arguments!
+	See it's implementation below:
+	```lua
+	__mod = function(obj1, obj2)
+		local cn = multi:newConnection()
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				cn:Fire(obj1(...))
+			end)
+		else
+			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+		end
+		return cn
+	end
+	```
 - Connection objects can now be concatenated with functions, not each other. For example:
 	```lua
 	multi, thread = require("multi"):init{print=true,findopt=true}
@@ -64,6 +98,42 @@ Added
 	Test 2
 	Test 3
 	I run after it all!
+	```
+
+	**Note:** Concat of connections does modify internal events on both connections depending on the direction func .. conn or conn .. func See implemention below:
+	```lua
+	__concat = function(obj1, obj2)
+		local cn = multi:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			cn(function(...)
+				if obj1(...) then
+					obj2:Fire(...)
+				end
+			end)
+			cn.__connectionAdded = function(conn, func)
+				cn:Unconnect(conn)
+				obj2:Connect(func)
+			end
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			ref = cn(function(...)
+				obj1:Fire(...)
+				obj2(...)
+			end)
+			cn.__connectionAdded = function()
+				cn.rawadd = true
+				cn:Unconnect(ref)
+				ref = cn(function(...)
+					if obj2(...) then
+						obj1:Fire(...)
+					end
+				end)
+			end
+		else
+			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
+		end
+		return cn
+	end
 	```
 
 Changed

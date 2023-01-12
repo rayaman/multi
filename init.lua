@@ -82,6 +82,10 @@ function multi.Stop()
 	mainloopActive = false
 end
 
+local function pack(...)
+	return {...}
+end
+
 -- Types
 multi.DESTROYED			= multi.DestroyedObj
 multi.ROOTPROCESS		= "rootprocess"
@@ -140,6 +144,19 @@ local CRef = {
 	Fire = function() end
 }
 
+--[[
+	cn(function(...)
+				local data = pack(obj1(...))
+				local len = #data
+				if len ~= 0 then
+					if data[1] == true then
+						obj2:Fire(...)
+					else
+						obj2:Fire(unpack(data))
+					end
+				end
+			end)
+]]
 local optimization_stats = {}
 local ignoreconn = true
 function multi:newConnection(protect,func,kill)
@@ -169,6 +186,17 @@ function multi:newConnection(protect,func,kill)
 			return self:Connect(...)
 		end
 	end,
+	__mod = function(obj1, obj2)
+		local cn = multi:newConnection()
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				cn:Fire(obj1(...))
+			end)
+		else
+			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+		end
+		return cn
+	end,
 	__concat = function(obj1, obj2)
 		local cn = multi:newConnection()
 		local ref
@@ -197,7 +225,7 @@ function multi:newConnection(protect,func,kill)
 				end)
 			end
 		else
-			error("Invalid concat!", type(obj1), type(obj2))
+			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
 		end
 		return cn
 	end,
