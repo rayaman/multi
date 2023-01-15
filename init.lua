@@ -159,16 +159,16 @@ local CRef = {
 ]]
 local optimization_stats = {}
 local ignoreconn = true
-function multi:newConnection(protect,func,kill)
+function multi:newConnection(protect, func, kill)
 	local c={}
 	local call_funcs = {}
 	local lock = false
 	c.__connectionAdded = function() end
 	c.rawadd = false
-	c.callback = func
 	c.Parent = self
 
-	setmetatable(c,{__call=function(self, ...)
+	setmetatable(c,{
+	__call=function(self, ...) -- ()
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
@@ -186,7 +186,7 @@ function multi:newConnection(protect,func,kill)
 			return self:Connect(...)
 		end
 	end,
-	__mod = function(obj1, obj2)
+	__mod = function(obj1, obj2) -- %
 		local cn = multi:newConnection()
 		if type(obj1) == "function" and type(obj2) == "table" then
 			obj2(function(...)
@@ -197,7 +197,7 @@ function multi:newConnection(protect,func,kill)
 		end
 		return cn
 	end,
-	__concat = function(obj1, obj2)
+	__concat = function(obj1, obj2) -- ..
 		local cn = multi:newConnection()
 		local ref
 		if type(obj1) == "function" and type(obj2) == "table" then
@@ -294,39 +294,14 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Lock()
-		lock = true
+		lock = self.Fire
+		self.Fire = function() end
 		return self
 	end
 
 	function c:Unlock()
-		lock = false
+		self.Fire = lock
 		return self
-	end
-
-	if protect then
-		function c:Fire(...)
-			if lock then return end
-			for i=#call_funcs,1,-1 do
-				if not call_funcs[i] then return end
-				local suc, err = pcall(call_funcs[i],...)
-				if not suc then
-					print(err)
-				end
-				if kill then
-					table.remove(call_funcs,i)
-				end
-			end
-		end
-	else
-		function c:Fire(...)
-			if lock then return end
-			for i=#call_funcs,1,-1 do
-				call_funcs[i](...)
-				if kill then
-					table.remove(call_funcs,i)
-				end
-			end
-		end
 	end
 
 	function c:getConnections()
@@ -345,75 +320,18 @@ function multi:newConnection(protect,func,kill)
 		end
 	end
 
-	function c:fastMode()
-		if find_optimization then return self end
-		function self:Fire(...)
-			if lock then return end
-			for i=1,#call_funcs do
-				call_funcs[i](...)
-			end
+	function c:Fire(...)
+		for i=1,#call_funcs do
+			call_funcs[i](...)
 		end
-		function self:Connect(func)
-			table.insert(call_funcs, func)
-			local temp = {fast = true}
-			setmetatable(temp,{
-				__call=function(s,...)
-					return self:Connect(...)
-				end,
-				__index = function(t,k)
-					if rawget(t,"root_link") then
-						return t["root_link"][k]
-					end
-					return nil
-				end,
-				__newindex = function(t,k,v)
-					if rawget(t,"root_link") then
-						t["root_link"][k] = v
-					end
-					rawset(t,k,v)
-				end,
-			})
-			temp.ref = func
-			if self.rawadd then
-				self.rawadd = false
-			else
-				self.__connectionAdded(temp, func)
-			end
-			return temp
-		end
-		return self
 	end
 
-	function c:Bind(t)
-		local temp = call_funcs
-		call_funcs=t
-		return temp
-	end
+	-- Not needed anymore, since it's so light, I'll leave it in forever
+	function c:fastMode() return self end
 
-	function c:Remove()
-		local temp = call_funcs
-		call_funcs={}
-		return temp
-	end
-
-	local function conn_helper(self,func,name,num)
-		self.ID=self.ID+1
-
-		if num then
-			table.insert(call_funcs,num,func)
-		else
-			table.insert(call_funcs,1,func)
-		end
-
-		local temp = {
-			func=func,
-			Type="connector_link",
-			Parent=self,
-			connect = function(s,...)
-				return self:Connect(...)
-			end
-		}
-
+	function c:Connect(func)
+		table.insert(call_funcs, func)
+		local temp = {fast = true}
 		setmetatable(temp,{
 			__call=function(s,...)
 				return self:Connect(...)
@@ -431,68 +349,25 @@ function multi:newConnection(protect,func,kill)
 				rawset(t,k,v)
 			end,
 		})
-
-		function temp:Fire(...)
-			return call_funcs(...)
+		temp.ref = func
+		if self.rawadd then
+			self.rawadd = false
+		else
+			self.__connectionAdded(temp, func)
 		end
-
-		function temp:Destroy()
-			for i=#call_funcs,1,-1 do
-				if call_funcs[i]~=nil then
-					if call_funcs[i]==self.func then
-						table.remove(call_funcs,i)
-						self.remove=function() end
-						multi.setType(temp,multi.DestroyedObj)
-					end
-				end
-			end
-		end
-
-		if name then
-			connections[name]=temp
-		end
-
-		if self.callback then
-			self.callback(temp)
-		end
-
 		return temp
 	end
 
-	function c:Connect(...) -- func, name, num
-		local tab = {...}
-		local funcs = {}
-		for i = 1, #tab do
-			if type(tab[i])=="function" then
-				funcs[#funcs + 1] = tab[i]
-			end
-		end
-		if #funcs>1 then
-			local ret = {}
-			for i = 1, #funcs do
-				local temp =  conn_helper(self, funcs[i])
-				table.insert(ret, temp)
-				if self.rawadd then
-					self.rawadd = false
-				else
-					self.__connectionAdded(temp, funcs[i])
-				end
-			end
-			return ret
-		else
-			local conn = conn_helper(self, tab[1], tab[2], tab[3])
-			if self.rawadd then
-				self.rawadd = false
-			else
-				self.__connectionAdded(conn, tab[1])
-			end
-			return conn
-		end
+	function c:Bind(t)
+		local temp = call_funcs
+		call_funcs=t
+		return temp
 	end
 
-	function c:SetHelper(func)
-		conn_helper = func
-		return self
+	function c:Remove()
+		local temp = call_funcs
+		call_funcs={}
+		return temp
 	end
 
 	if find_optimization then
@@ -504,9 +379,36 @@ function multi:newConnection(protect,func,kill)
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
 
+	if protect then -- Do some tests and override the fastmode if you want to do something differently
+		function c:Fire(...)
+			for i=#call_funcs,1,-1 do
+				if not call_funcs[i] then return end
+				local suc, err = pcall(call_funcs[i],...)
+				if not suc then
+					print(err)
+				end
+				if kill then
+					table.remove(call_funcs,i)
+				end
+			end
+		end
+	elseif kill then
+		function c:Fire(...)
+			for i=#call_funcs,1,-1 do
+				call_funcs[i](...)
+				table.remove(call_funcs,i)
+			end
+		end
+	end
+
+	if func then
+		c = c .. func
+	end
+
 	if not(ignoreconn) then
 		multi:create(c)
 	end
+
 	return c
 end
 

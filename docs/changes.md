@@ -138,9 +138,18 @@ Added
 
 Changed
 ---
+- Connections internals changed, not too much changed on the surface.
+- newConnection(protect, func, kill)
+	- `protect` disables fastmode, but protects the connection
+	- `func` uses `..` and appends func to the connection so it calls it after all connections run. There is some internal overhead added when using this, but it isn't much.
+	- `kill` removes the connection when fired
+	
+	**Note:** When using protect/kill connections are triggered in reverse order
 
 Removed
 ---
+- conn:SetHelper(func) -- With the removal of old Connect this function is nolonger needed
+- connection events can nolonger can be chained with connect. Connect only takes a function that you want to connect
 
 Fixed
 ---
