@@ -976,10 +976,10 @@ end
 
 local sandcount = 1
 
-function multi:newProcessor(name,nothread)
+function multi:newProcessor(name, nothread)
 	local c = {}
 	setmetatable(c,{__index = multi})
-	local name = name or "Processor_"..sandcount
+	local name = name or "Processor_" .. sandcount
 	sandcount = sandcount + 1
 	c.Mainloop = {}
 	c.Type = "process"
@@ -989,12 +989,12 @@ function multi:newProcessor(name,nothread)
 	c.startme = {}
 	c.parent = self
 
-	local handler = c:createHandler(c.threads,c.startme)
+	local handler = c:createHandler(c.threads, c.startme)
 
 	if not nothread then -- Don't create a loop if we are triggering this manually
 		c.process = self:newLoop(function()
 			if Active then
-				c:uManager()
+				c:uManager(true)
 				handler()
 			end
 		end)
@@ -1005,8 +1005,8 @@ function multi:newProcessor(name,nothread)
 	else
 		c.OnError = multi:newConnection()
 	end
+
 	c.OnError(multi.print)
-	
 
 	function c:getThreads()
 		return c.threads
@@ -1027,15 +1027,15 @@ function multi:newProcessor(name,nothread)
 		return t
 	end
 
-	function c:newFunction(func,holdme)
+	function c:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
 			return c:newThread("TempThread",func,...)
-		end,holdme)()
+		end, holdme)()
 	end
 
 	function c.run()
 		if not Active then return end
-		c:uManager()
+		c:uManager(true)
 		handler()
 		return c
 	end
@@ -1274,7 +1274,7 @@ end
 
 local handler
 
-function thread:newFunctionBase(generator,holdme)
+function thread:newFunctionBase(generator, holdme)
 	return function()
 		local tfunc = {}
 		tfunc.Active = true
@@ -1351,7 +1351,7 @@ function thread:newFunctionBase(generator,holdme)
 			t.statusconnector = temp.OnStatus
 			return temp
 		end
-		setmetatable(tfunc,tfunc)
+		setmetatable(tfunc, tfunc)
 		return tfunc
 	end
 end
@@ -1863,17 +1863,17 @@ function multi.init(settings, realsettings)
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 
-function multi:uManager()
+function multi:uManager(proc)
 	if self.Active then
 		__CurrentProcess = self
 		multi.OnPreLoad:Fire()
 		self.uManager=self.uManagerRef
 		multi.OnLoad:Fire()
-		handler()
+		if not proc then handler() end
 	end
 end
 
-function multi:uManagerRefP1()
+function multi:uManagerRefP1(proc)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
@@ -1886,11 +1886,11 @@ function multi:uManagerRefP1()
 				end
 			end
 		end
-		handler()
+		if not proc then handler() end
 	end
 end
 
-function multi:uManagerRef()
+function multi:uManagerRef(proc)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
@@ -1899,7 +1899,7 @@ function multi:uManagerRef()
 			__CurrentTask:Act()
 			__CurrentProcess = self
 		end
-		handler()
+		if not proc then handler() end
 	end
 end
 

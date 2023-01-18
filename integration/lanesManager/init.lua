@@ -55,10 +55,10 @@ local count = 1
 local started = false
 local livingThreads = {}
 
-function THREAD:newFunction(func,holdme)
+function THREAD:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
 		return multi:newSystemThread("TempSystemThread",func,...)
-	end,holdme)()
+	end, holdme)()
 end
 
 function multi:newSystemThread(name, func, ...)

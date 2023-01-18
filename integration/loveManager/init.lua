@@ -72,7 +72,7 @@ function multi:newSystemThread(name,func,...)
 		return c.name
 	end
     thread:newThread(function()
-        if name:find("TempSystemThread") then
+        if name == "TempSystemThread" then
             local status_channel = love.thread.getChannel("__"..c.ID.."__MULTI__STATUS_CHANNEL__")
             thread.hold(function()
                 -- While the thread is running we might as well do something in the loop
@@ -101,10 +101,10 @@ function multi:newSystemThread(name,func,...)
     return c
 end
 
-function THREAD:newFunction(func)
+function THREAD:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
-		return multi:newSystemThread("TempSystemThread"..THREAD_ID,func,...)
-	end)()
+		return multi:newSystemThread("TempSystemThread", func, ...)
+	end, holdme)()
 end
 
 THREAD.newSystemThread = multi.newSystemThread
