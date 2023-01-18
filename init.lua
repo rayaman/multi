@@ -22,6 +22,8 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
+traceback = debug.traceback
+
 local multi = {}
 local mainloopActive = false
 local isRunning = false
@@ -1471,10 +1473,10 @@ function thread:newISOThread(name,func,_env,...)
 		env.multi = multi
 	end
 	if type(name) == "function" then
-		name = "Thread#"..threadCount
+		name = "Thread#" .. threadCount
 	end
-	local func = isolateFunction(func,env)
-	return thread:newThread(name,func,...)
+	local func = isolateFunction(func, env)
+	return thread:newThread(name, func,...)
 end
 
 multi.newThread = thread.newThread
@@ -1486,7 +1488,7 @@ local ret,_
 local task, thd, ref, ready
 local switch = {
 	function(th,co)--hold
-		if clock() - th.intervalR>=th.interval then
+		if clock() - th.intervalR >= th.interval then
 			t0,t1,t2,t3,t4,t5,t6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = th.func()
 			if t0 then
 				if t0==NIL then t0 = nil end
@@ -1615,6 +1617,7 @@ co_status = {
 		else
 			ref.OnError:Fire(ref,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		end
+		print(ref.Name, traceback())
 		if i then
 			table.remove(th,i)
 		else
