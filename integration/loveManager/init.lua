@@ -20,9 +20,12 @@ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
 LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
-]] if ISTHREAD then
+]]
+
+if ISTHREAD then
     error("You cannot require the loveManager from within a thread!")
 end
+
 local ThreadFileData = [[
 ISTHREAD = true
 THREAD = require("multi.integration.loveManager.threads")
@@ -35,7 +38,7 @@ math.randomseed(__THREADID__)
 math.random()
 math.random()
 math.random()
-stab = THREAD.createStaticTable(__THREADNAME__)
+stab = THREAD.createStaticTable(__THREADNAME__ .. __THREADID__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
 multi.integration={}
@@ -68,14 +71,13 @@ function multi:newSystemThread(name, func, ...)
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID = THREAD_ID + 1
     function c:getName() return c.name end
-    thread:newThread(function()
+    thread:newThread(name .. "_System_Thread_Handler",function()
         if name == "TempSystemThread" then
             local status_channel = love.thread.getChannel("STATCHAN_" .. c.ID)
             thread.hold(function()
                 -- While the thread is running we might as well do something in the loop
-                local status = status_channel
-                if status:peek() ~= nil then
-                    c.statusconnector:Fire(unpack(status:pop()))
+                if status_channel:peek() ~= nil then
+                    c.statusconnector:Fire(unpack(status_channel:pop()))
                 end
                 return not c.thread:isRunning()
             end)
@@ -98,7 +100,7 @@ end
 
 function THREAD:newFunction(func, holdme)
     return thread:newFunctionBase(function(...)
-        return multi:newSystemThread("TempSystemThread", func, ...)
+        return multi:newSystemThread("SystemThreaded Function Handler", func, ...)
     end, holdme)()
 end
 

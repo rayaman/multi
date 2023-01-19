@@ -25,7 +25,6 @@ require("love.timer")
 require("love.system")
 require("love.data")
 require("love.thread")
-local socket = require("socket")
 local multi, thread = require("multi").init()
 local threads = {}
 
@@ -47,15 +46,6 @@ local function manage(channel, value)
     else
         channel:push(value)
     end
-end
-
-local function RandomVariable(length)
-    local res = {}
-    math.randomseed(socket.gettime()*10000)
-	for i = 1, length do
-		res[#res+1] = string.char(math.random(97, 122))
-	end
-	return table.concat(res)
 end
 
 local GNAME = "__GLOBAL_"
