@@ -25,7 +25,7 @@ require("love.timer")
 require("love.system")
 require("love.data")
 require("love.thread")
-local multi, thread = require("multi").init()
+local multi, thread = require("multi"):init()
 local threads = {}
 
 function threads.loadDump(d)
@@ -180,20 +180,11 @@ function threads.getConsole()
 end
 
 if not ISTHREAD then
-    local clock = os.clock
-    local lastproc = clock()
     local queue = love.thread.getChannel("__CONSOLE__")
-    thread:newThread("consoleManager",function()
-        while true do
-            thread.yield()
-            dat = queue:pop()
-            if dat then
-                lastproc = clock()
-                print(unpack(dat))
-            end
-            if clock()-lastproc>2 then
-                thread.sleep(.1)
-            end
+    multi:newLoop(function(loop)
+        dat = queue:pop()
+        if dat then
+            print(unpack(dat))
         end
     end)
 end

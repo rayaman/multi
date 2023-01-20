@@ -32,7 +32,7 @@ local find_optimization = false
 local threadManager
 
 if not _G["$multi"] then
-	_G["$multi"] = {multi=multi,thread=thread}
+	_G["$multi"] = {multi = multi, thread = thread}
 end
 
 multi.Version = "16.0.0"
@@ -140,23 +140,7 @@ end
 function multi.ForEach(tab,func)
 	for i=1,#tab do func(tab[i]) end
 end
-local CRef = {
-	Fire = function() end
-}
 
---[[
-	cn(function(...)
-				local data = pack(obj1(...))
-				local len = #data
-				if len ~= 0 then
-					if data[1] == true then
-						obj2:Fire(...)
-					else
-						obj2:Fire(unpack(data))
-					end
-				end
-			end)
-]]
 local optimization_stats = {}
 local ignoreconn = true
 function multi:newConnection(protect, func, kill)
@@ -849,7 +833,7 @@ function multi:newTLoop(func,set)
 end
 
 function multi:setTimeout(func, t)
-	thread:newThread("TimeoutThread",function() thread.sleep(t) func() end)
+	thread:newThread("TimeoutThread", function() thread.sleep(t) func() end)
 end
 
 function multi:newTStep(start,reset,count,set)
@@ -901,23 +885,18 @@ end
 local tasks = {}
 local _tasks = 0
 
-local function _task_handler()
+local function _task_handler(self, func)
 	tasks[#tasks + 1] = func
 	_tasks = _tasks + 1
 end
 
 function multi:newTask(func)
-	thread:newThread("Task Handler",function()
-		while true do
-			thread.hold(function()
-				return _tasks > 0
-			end)
-			for i=1,_tasks do
-				tasks[i]()
-			end
-			_tasks = 0
+	multi:newLoop(function(loop)
+		for i=1,_tasks do
+			tasks[i]()
 		end
-	end)
+		_tasks = 0
+	end):setName("Task Handler")
 	-- Re bind this method to use the one that doesn't init a thread!
 	multi.newTask = _task_handler
 	tasks[#tasks + 1] = func
@@ -989,7 +968,7 @@ function multi:newProcessor(name, nothread)
 	c.startme = {}
 	c.parent = self
 
-	local handler = c:createHandler(c.threads, c.startme)
+	local handler = c:createHandler(c)
 
 	if not nothread then -- Don't create a loop if we are triggering this manually
 		c.process = self:newLoop(function()
@@ -1362,21 +1341,17 @@ end
 -- A cross version way to set enviroments, not the same as fenv though
 function multi.setEnv(func,env)
 	local f = string.dump(func)
-	local chunk = load(f,"env","bt",env)
+	local chunk = load(f, "env", "bt", env)
 	return chunk
 end
 
-local threads = {}
-local startme = {}
-local startme_len = 0
-function thread:newThread(name,func,...)
+function thread:newThread(name, func, ...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
 	local func = func or name
 	if func == name then
 		name = name or multi.randomString(16)
 	end
 	local c={nil,nil,nil,nil,nil,nil,nil}
-	local env = {self=c}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
 	c.startArgs = {...}
 	c.ref={}
@@ -1404,7 +1379,7 @@ function thread:newThread(name,func,...)
 	local resumed = false
 	function c:Pause()
 		if not self._isPaused then
-			thread.request(self,"exec",function()
+			thread.request(self, "exec", function()
 				thread.hold(function()
 					return resumed
 				end)
@@ -1427,7 +1402,7 @@ function thread:newThread(name,func,...)
 	end
 
 	function c:Sleep(n)
-		thread.request(self, "exec",function()
+		thread.request(self, "exec", function()
 			thread.sleep(n)
 			resumed = false
 		end)
@@ -1435,7 +1410,7 @@ function thread:newThread(name,func,...)
 	end
 	
 	function c:Hold(n,opt)
-		thread.request(self, "exec",function()
+		thread.request(self, "exec", function()
 			thread.hold(n, opt)
 			resumed = false
 		end)
@@ -1443,16 +1418,21 @@ function thread:newThread(name,func,...)
 	end
 
 	c.Destroy = c.Kill
-
-	if self.Type == "process" then
-		multi.print("Creating thread (" .. self.Name .."):", name)
-		table.insert(self.startme, c)
+	if thread.isThread() then
+		multi:newLoop(function(loop)
+			if self.Type == "process" then
+				table.insert(self.startme, c)
+			else
+				table.insert(threadManager.startme, c)
+			end
+			loop:Break()
+		end)
 	else
-		multi.print("Creating thread (Global_Thread_Manager):", name)
-		if type(name) == "function" then
-			multi.print(debug.traceback())
+		if self.Type == "process" then
+			table.insert(self.startme, c)
+		else
+			table.insert(threadManager.startme, c)
 		end
-		table.insert(threadManager.startme, c)
 	end
 	
 	globalThreads[c] = multi
@@ -1474,8 +1454,8 @@ function thread:newISOThread(name, func, _env, ...)
 	if type(name) == "function" then
 		name = "Thread#"..threadCount
 	end
-	local func = isolateFunction(func,env)
-	return thread:newThread(name,func,...)
+	local func = isolateFunction(func, env)
+	return thread:newThread(name, func, ...)
 end
 
 multi.newThread = thread.newThread
@@ -1631,16 +1611,17 @@ co_status = {
 	end,
 }
 
-function multi:createHandler(threads,startme)
-	return coroutine.wrap(function(self)
+function multi:createHandler()
+	local threads, startme = self.threads, self.startme
+	return coroutine.wrap(function()
 		local temp_start
 		while true do
 			for start = #startme, 1, -1 do
 				temp_start = startme[start]
 				table.remove(startme)
-				_,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16 = resume(temp_start.thread,unpack(temp_start.startArgs))
-				co_status[status(temp_start.thread)](temp_start.thread,temp_start,t_none,nil,threads) -- Make sure there was no error
-				table.insert(threads,temp_start)
+				_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, unpack(temp_start.startArgs))
+				co_status[status(temp_start.thread)](temp_start.thread, temp_start, t_none, nil, threads)
+				table.insert(threads, temp_start)
 				yield()
 			end
 			for i=#threads,1,-1 do
@@ -1649,7 +1630,7 @@ function multi:createHandler(threads,startme)
 					task = ref.task
 					thd = ref.thread
 					ready = ref.__ready
-					co_status[status(thd)](thd,ref,task,i,threads)
+					co_status[status(thd)](thd, ref, task, i, threads)
 				end
 				yield()
 			end
@@ -1676,7 +1657,7 @@ function multi:newService(func) -- Priority managed threads
 			time = self:newTimer()
 			time:Start()
 			active = true
-			c:OnStarted(c,Service_Data)
+			c:OnStarted(c, Service_Data)
 		end
 		return c
 	end
@@ -1685,7 +1666,7 @@ function multi:newService(func) -- Priority managed threads
 		thread.hold(function()
 			return active
 		end)
-		func(c,Service_Data)
+		func(c, Service_Data)
 		task(ap)
 		return c
 	end
