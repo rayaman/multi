@@ -30,6 +30,7 @@ local thread = {}
 local processes = {}
 local find_optimization = false
 local threadManager
+local __CurrentConnectionThread
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi = multi, thread = thread}
@@ -305,7 +306,7 @@ function multi:newConnection(protect, func, kill)
 	end
 
 	function c:Fire(...)
-		for i=1,#call_funcs do
+		for i=1, #call_funcs do
 			call_funcs[i](...)
 		end
 	end
@@ -314,6 +315,17 @@ function multi:newConnection(protect, func, kill)
 	function c:fastMode() return self end
 
 	function c:Connect(func)
+		local th 
+		if thread.getRunningThread then
+			th = thread.getRunningThread()
+		end
+		if th then
+			local fref = func
+			func = function(...)
+				__CurrentConnectionThread = th
+				fref(...)
+			end
+		end
 		table.insert(call_funcs, func)
 		local temp = {fast = true}
 		setmetatable(temp,{
@@ -1244,7 +1256,7 @@ local function cleanReturns(...)
 end
 
 function thread.pushStatus(...)
-	local t = thread.getRunningThread()
+	local t = thread.getRunningThread() or __CurrentConnectionThread
 	t.statusconnector:Fire(...)
 end
 
@@ -1286,8 +1298,8 @@ function thread:newFunctionBase(generator, holdme)
 				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
 			end
 		end
-		tfunc.__call = function(t,...)
-			if t.Active == false then 
+		tfunc.__call = function(th,...)
+			if th.Active == false then 
 				if holdme then
 					return nil, "Function is paused"
 				end

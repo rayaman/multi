@@ -97,9 +97,9 @@ function threads.kill()
 end
 
 function threads.pushStatus(...)
-    local status_channel = love.thread.getChannel("__"..__THREADID__.."__MULTI__STATUS_CHANNEL__")
+    local status_channel = love.thread.getChannel("STATCHAN_" ..__THREADID__)
     local args = {...}
-    status_channel:push(__THREADID__, args)
+    status_channel:push(args)
 end
 
 function threads.getThreads()

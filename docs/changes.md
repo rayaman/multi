@@ -148,11 +148,34 @@ Changed
 
 Removed
 ---
-- conn:SetHelper(func) -- With the removal of old Connect this function is nolonger needed
-- connection events can nolonger can be chained with connect. Connect only takes a function that you want to connect
+- conn:SetHelper(func) -- With the removal of old Connect this function is no longer needed
+- connection events can no longer can be chained with connect. Connect only takes a function that you want to connect
 
 Fixed
 ---
+- Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events
+	```lua
+	func = thread:newFunction(function()
+		for i=1,10 do
+			thread.sleep(1)
+			thread.pushStatus(i)
+		end
+	end)
+
+	func2 = thread:newFunction(function()
+		local ref = func()
+		ref.OnStatus(function(num)
+			-- do stuff with this data
+
+			thread.pushStatus(num*2) -- Technically this is not ran within a thread. This is ran outside of a thread inside the thread handler. 
+		end)
+	end)
+
+	local handler = func2()
+	handler.OnStatus(function(num)
+		print(num)
+	end)
+	```
 
 ToDo
 ---

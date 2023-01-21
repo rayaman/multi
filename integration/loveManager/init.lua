@@ -47,7 +47,14 @@ multi.integration.THREAD = THREAD
 pcall(require,"multi.integration.loveManager.extensions")
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
+
 local multi, thread = require("multi"):init()
+
+-- We do not want to load this module twice
+if multi.integration and multi.integration.THREAD then
+    return multi.integration.GLOBAL, multi.integration.THREAD
+end
+
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
@@ -55,8 +62,6 @@ multi.integration = {}
 local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
-local OBJECT_ID = 0
-local stf = 0
 
 function multi:newSystemThread(name, func, ...)
     local c = {}
@@ -72,7 +77,7 @@ function multi:newSystemThread(name, func, ...)
     THREAD_ID = THREAD_ID + 1
     function c:getName() return c.name end
     thread:newThread(name .. "_System_Thread_Handler",function()
-        if name == "TempSystemThread" then
+        if name == "SystemThreaded Function Handler" then
             local status_channel = love.thread.getChannel("STATCHAN_" .. c.ID)
             thread.hold(function()
                 -- While the thread is running we might as well do something in the loop
