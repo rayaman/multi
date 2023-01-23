@@ -50,11 +50,6 @@ stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 
 local multi, thread = require("multi"):init()
 
--- We do not want to load this module twice
-if multi.integration and multi.integration.THREAD then
-    return multi.integration.GLOBAL, multi.integration.THREAD
-end
-
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
