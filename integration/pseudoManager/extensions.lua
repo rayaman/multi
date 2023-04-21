@@ -50,6 +50,7 @@ function multi:newSystemThreadedQueue(name)
 	GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
     local c = {}
     function c:init()
@@ -68,6 +69,7 @@ if not setfenv then
         end
     end
 end
+
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2

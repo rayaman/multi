@@ -69,6 +69,7 @@ function multi:newSystemThreadedQueue(name)
 	THREAD.package(name,c)
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
 	local name = name or multi.randomString(16)
     local c = {}
@@ -79,6 +80,7 @@ function multi:newSystemThreadedTable(name)
     THREAD.package(name,c)
 	return c
 end
+
 local jqc = 1
 function multi:newSystemThreadedJobQueue(n)
 	local c = {}

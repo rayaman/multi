@@ -1,7 +1,7 @@
 # Changelog
 Table of contents
 ---
-[Update 16.0.0 - ?](#update-1600---?)</br>
+[Update 16.0.0 - Connecting the dots](#update-1600---connecting-the-dots)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
 [Update 15.2.1 - Bug fix](#update-1521---bug-fix)</br>
@@ -58,7 +58,7 @@ Table of contents
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
-# Update 16.0.0 - ?
+# Update 16.0.0 - Connecting the dots
 Added
 ---
 - Connection objects now support the % function. This supports a function % connection object. What it does is allow you to **mod**ify the incoming arguments of a connection event.

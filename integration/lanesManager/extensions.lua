@@ -27,6 +27,7 @@ if not (GLOBAL and THREAD) then
 else
 	lanes = require("lanes")
 end
+
 function multi:newSystemThreadedQueue(name)
 	local name = name or multi.randomString(16)
 	local c = {}
