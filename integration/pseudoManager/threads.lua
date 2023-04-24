@@ -102,6 +102,10 @@ local function INIT(thread)
 
     THREAD.hold = thread.hold
 
+    function THREAD.setENV(env)
+        GLOBAL["__env"] = env
+    end
+
     return GLOBAL, THREAD
 end
 

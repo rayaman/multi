@@ -134,6 +134,11 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
 			__GlobalLinda:set(k, v)
 		end
 	})
+
+    function THREAD.setENV(env)
+        GLOBAL["__env"] = env
+    end
+
     return GLOBAL, THREAD
 end
 

@@ -139,6 +139,10 @@ function threads.getGlobal()
     )
 end
 
+function THREAD.setENV(env)
+    (threads.getGlobal())["__env"] = env
+end
+
 function threads.createTable(n)
     local _proxy = {}
     local function set(name,val)

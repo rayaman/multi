@@ -78,19 +78,22 @@ function multi:newSystemThread(name, func, ...)
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
 	local multi_settings = multi.defaultSettings
-	for i,v in pairs(multi_settings) do
-		print(i,v)
+	local globe = {
+		THREAD_NAME = name,
+		THREAD_ID = count,
+		THREAD = THREAD,
+		GLOBAL = GLOBAL,
+		_Console = __ConsoleLinda
+	}
+	if GLOBAL["__env"] then
+		for i,v in pairs(GLOBAL["__env"]) do
+			globe[i] = v
+		end
 	end
 	c.thread = lanes.gen("*",
 	{
-		globals={ -- Set up some globals
-			THREAD_NAME = name,
-			THREAD_ID = count,
-			THREAD = THREAD,
-			GLOBAL = GLOBAL,
-			_Console = __ConsoleLinda
-		},
-		priority=c.priority
+		globals = globe,
+		priority = c.priority
 	},function(...)
 		require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
@@ -168,7 +171,7 @@ function multi.InitSystemThreadErrorHandler()
 	end)
 end
 
-multi.print("Integrated Lanes!")
+multi.print("Integrated Lanes Threading!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
