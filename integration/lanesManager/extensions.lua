@@ -114,7 +114,6 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = {...}
-                    link:Destroy()
                 end
             end)
             return thread.hold(function()
@@ -278,7 +277,13 @@ function multi:newSystemThreadedConnection(name)
 		self.links = {}
 		self.proxy_conn = multi:newConnection()
 		local mt = getmetatable(self.proxy_conn)
-		setmetatable(self, {__index = self.proxy_conn, __call = function(t,func) self.proxy_conn(func) end, __add = mt.__add})
+		local tempMT = {}
+		for i,v in pairs(mt) do
+			tempMT[i] = v
+		end
+		tempMT.__index = self.proxy_conn
+		tempMT.__call = function(t,func) self.proxy_conn(func) end
+		setmetatable(self, tempMT)
 		if self.CID == THREAD.getID() then return self end
 		thread:newThread("STC_CONN_MAN"..name,function()
 			local item

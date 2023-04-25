@@ -67,6 +67,12 @@ function multi:newSystemThread(name,func,...)
 		THREAD_ID = id,
 		thread = thread
 	}
+
+	if GLOBAL["__env"] then
+		for i,v in pairs(GLOBAL["__env"]) do
+			env[i] = v
+		end
+	end
 	
 	for i = 1,#tab do
 		env[tab[i]] = _G[tab[i]]

@@ -101,8 +101,8 @@ local function INIT(thread)
     THREAD.sleep = thread.sleep
 
     THREAD.hold = thread.hold
-
-    function THREAD.setENV(env)
+	
+	function THREAD.setENV(env)
         GLOBAL["__env"] = env
     end
 

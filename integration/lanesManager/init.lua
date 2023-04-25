@@ -95,10 +95,11 @@ function multi:newSystemThread(name, func, ...)
 		globals = globe,
 		priority = c.priority
 	},function(...)
-		require("multi"):init(multi_settings)
+		multi, thread = require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
 		local has_error = true
-		return_linda:set("returns",{func(...)})
+		returns = {pcall(func, ...)}
+		return_linda:set("returns", returns)
 		has_error = false
 	end)(...)
 	count = count + 1
@@ -138,9 +139,15 @@ function multi.InitSystemThreadErrorHandler()
 					temp.statusconnector:Fire(unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
 				end
 				if status == "done" or temp.returns:get("returns") then
+					returns = ({temp.returns:receive(0, "returns")})[2]
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
-					temp.OnDeath:Fire(unpack(({temp.returns:receive(0, "returns")})[2]))
+					if returns[1] == false then
+						temp.OnError:Fire(temp, returns[2])
+					else
+						table.remove(returns,1)
+						temp.OnDeath:Fire(unpack(returns))
+					end
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "running" then
@@ -148,11 +155,7 @@ function multi.InitSystemThreadErrorHandler()
 				elseif status == "waiting" then
 					--
 				elseif status == "error" then
-					livingThreads[temp.Id] = {false, temp.Name}
-					temp.alive = false
-					temp.OnError:Fire(temp,unpack(temp.returns:receive(0,"returns") or {"Thread Killed!"}))
-					GLOBAL["__THREADS__"] = livingThreads
-					table.remove(threads, i)
+					-- The thread never really errors, we handle this through our linda object
 				elseif status == "cancelled" then
 					livingThreads[temp.Id] = {false, temp.Name}
 					temp.alive = false
@@ -168,7 +171,7 @@ function multi.InitSystemThreadErrorHandler()
 				end
 			end
 		end
-	end)
+	end).OnError(print)
 end
 
 multi.print("Integrated Lanes Threading!")

@@ -50,7 +50,6 @@ function multi:newSystemThreadedQueue(name)
 	GLOBAL[name or "_"] = c
 	return c
 end
-
 function multi:newSystemThreadedTable(name)
     local c = {}
     function c:init()
@@ -69,7 +68,6 @@ if not setfenv then
         end
     end
 end
-
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
@@ -96,7 +94,6 @@ function multi:newSystemThreadedJobQueue(n)
         return jid-1
     end
     function c:isEmpty()
-        print(#jobs)
         return #jobs == 0
     end
     local nFunc = 0
@@ -116,7 +113,6 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = {...}
-                    link:Destroy()
                 end
             end)
             return thread.hold(function()
@@ -127,7 +123,7 @@ function multi:newSystemThreadedJobQueue(n)
         end,holup),name
     end
     for i=1,c.cores do
-        thread:newthread("PesudoThreadedJobQueue_"..i,function()
+        thread:newThread("PesudoThreadedJobQueue_"..i,function()
             while true do
                 thread.yield()
                 if #jobs>0 then
@@ -137,7 +133,14 @@ function multi:newSystemThreadedJobQueue(n)
                     thread.sleep(.05)
                 end
             end
-        end)
+        end).OnError(print)
     end
     return c
-end 
+end
+
+function multi:newSystemThreadedConnection(name)
+	local conn = multi.newConnection()
+	conn.init = function(self) return self end
+	GLOBAL[name or "_"] = conn
+	return conn
+end

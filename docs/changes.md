@@ -204,6 +204,7 @@ Removed
 
 Fixed
 ---
+- Issue with lanes not handling errors properly. This is now resolved
 - Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events
 	```lua
 	func = thread:newFunction(function()
