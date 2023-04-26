@@ -139,8 +139,36 @@ function threads.getGlobal()
     )
 end
 
-function THREAD.setENV(env)
-    (threads.getGlobal())["__env"] = env
+function threads.packENV(env)
+    local e = {}
+    for i,v in pairs(env) do
+        if type(v) == "function" then
+            e["$f"..i] = string.dump(v)
+        elseif type(v) == "table" then
+            e["$t"..i] = threads.packENV(v)
+        else
+            e[i] = v
+        end
+    end
+    return e
+end
+
+function threads.unpackENV(env)
+    local e = {}
+    for i,v in pairs(env) do
+        if type(i) == "string" and i:sub(1,2) == "$f" then
+            e[i:sub(3,-1)] = loadstring(v)
+        elseif type(i) == "string" and i:sub(1,2) == "$t" then
+            e[i:sub(3,-1)] = threads.unpackENV(v)
+        else
+            e[i] = v
+        end
+    end
+    return e
+end
+
+function threads.setENV(env)
+    (threads.getGlobal())["__env"] = threads.packENV(env)
 end
 
 function threads.createTable(n)

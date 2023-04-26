@@ -40,6 +40,12 @@ math.random()
 math.random()
 stab = THREAD.createStaticTable(__THREADNAME__ .. __THREADID__)
 GLOBAL = THREAD.getGlobal()
+if GLOBAL["__env"] then
+    local env = THREAD.unpackENV(GLOBAL["__env"])
+    for i,v in pairs(env) do
+        _G[i] = v
+    end
+end
 multi, thread = require("multi").init()
 multi.integration={}
 multi.integration.GLOBAL = GLOBAL

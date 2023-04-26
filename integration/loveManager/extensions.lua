@@ -130,7 +130,6 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = {...}
-                    link:Destroy()
                 end
             end)
             return thread.hold(function()
