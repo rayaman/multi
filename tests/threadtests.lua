@@ -7,6 +7,12 @@ local env
 if love then
     GLOBAL, THREAD = require("multi.integration.loveManager"):init()
     env = LOVE
+elseif arg[1] == "l" then
+    GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+    env = LANES
+elseif arg[1] == "p" then
+    GLOBAL, THREAD = require("multi.integration.pseudoManager"):init()
+    env = PSEUDO
 else
     io.write("Test Pseudo(p), Lanes(l), or love(Run in love environment) Threading: ")
     choice = io.read()

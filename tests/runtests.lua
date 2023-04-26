@@ -22,7 +22,10 @@ end
 ]]
 local multi, thread = require("multi"):init{print=true}--{priority=true}
 local good = false
-local proc = multi:newProcessor("Test",true)
+local proc = multi:newProcessor("Test")
+
+proc.Start()
+
 proc:newAlarm(3):OnRing(function()
 	good = true
 end)
@@ -163,23 +166,27 @@ runTest = thread:newFunction(function()
 	end
 	c3 = false
 	c4 = false
-	d:Destroy()
+	conn3:Unconnect(d)
 	conn3:Fire()
 	if c3 and not(c4) then
 		print("Connection Test 3: Ok")
 	else
 		print("Connection Test 3: Error removing connection")
 	end
-	os.exit() -- End of tests
+	if not love then
+		print("Testing pseudo threading")
+		os.execute("lua tests/threadtests.lua p")
+		print("Testing lanes threading")
+		os.execute("lua tests/threadtests.lua l")
+		os.exit()
+	end
 end)
 
-print(runTest().OnError(function(...)
+runTest().OnError(function(...)
 	print("Error: Something went wrong with the test!")
 	print(...)
-	os.exit(1)
-end))
+end)
 
-print("Pumping proc")
-while true do
-	proc.run()
+if not love then
+	multi:mainloop()
 end

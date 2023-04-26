@@ -1,4 +1,4 @@
-# Multi Version: 16.0.0
+# Multi Version: 16.0.0 Connecting the dots
 **Key Changes**
 - Concat connections
 
@@ -34,11 +34,17 @@ https://discord.gg/U8UspuA
 
 Planned features/TODO
 ---------------------
-- [ ] Create test suite (In progress, mostly done)
+- [x] Create test suite (In progress, mostly done)
 - [ ] Network Parallelism rework
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)
 -----
+
+You can run tests in 2 ways:
+```
+lua tests/runtests.lua (Runs all tests, attempts to use lanes)
+love tests (Runs all tests in love2d env)
+```
 
 ```lua
 local multi, thread = require("multi"):init()
