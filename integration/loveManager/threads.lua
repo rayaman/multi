@@ -171,6 +171,10 @@ function threads.setENV(env)
     (threads.getGlobal())["__env"] = threads.packENV(env)
 end
 
+function threads.getENV()
+    return threads.unpackENV((threads.getGlobal())["__env"])
+end
+
 function threads.createTable(n)
     local _proxy = {}
     local function set(name,val)

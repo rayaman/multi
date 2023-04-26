@@ -61,6 +61,18 @@ Table of contents
 # Update 16.0.0 - Connecting the dots
 Added
 ---
+- THREAD.setENV(table) -- Set a simple table that will be merged into the global namespace
+	
+	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only
+	```lua
+	THREAD.setENV({
+		shared_function = function()
+			print("I am shared!")
+		end
+	})
+	```
+	When this function is used it writes to a special variable that is read at thread spawn time. If this function is then ran later it can be used to set a different env and be applied to future spawned threads.
+- THREAD.getENV() can be used to manage advanced uses of the setENV() functionality
 - Connection objects now support the % function. This supports a function % connection object. What it does is allow you to **mod**ify the incoming arguments of a connection event.
 	```lua
 	local conn1 = multi:newConnection()

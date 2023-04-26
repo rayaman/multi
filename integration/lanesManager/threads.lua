@@ -139,6 +139,10 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         GLOBAL["__env"] = env
     end
 
+    function THREAD.getENV()
+        return GLOBAL["__env"]
+    end
+
     return GLOBAL, THREAD
 end
 

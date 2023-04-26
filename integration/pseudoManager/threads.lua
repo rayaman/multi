@@ -106,6 +106,10 @@ local function INIT(thread)
         GLOBAL["__env"] = env
     end
 
+    function THREAD.getENV()
+        return GLOBAL["__env"]
+    end
+
     return GLOBAL, THREAD
 end
 
