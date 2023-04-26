@@ -1,5 +1,2 @@
 require("threadtests")
-
-function love.update()
-
-end
+-- Allows you to run "love tests" which runs the tests
