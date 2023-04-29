@@ -58,12 +58,6 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         return __GlobalLinda:get(name)
     end
 
-    if getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
-
     function THREAD.getCores()
         return THREAD.__CORES
     end

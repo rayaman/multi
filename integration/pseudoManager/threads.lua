@@ -80,12 +80,6 @@ local function INIT(thread)
 
     THREAD.pushStatus = thread.pushStatus
 
-    if os.getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
-
     function THREAD.kill()
         error("Thread was killed!")
     end
