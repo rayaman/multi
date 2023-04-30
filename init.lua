@@ -178,7 +178,7 @@ function multi:newConnection(protect, func, kill)
 				cn:Fire(obj1(...))
 			end)
 		else
-			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+			multi.error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
 		end
 		return cn
 	end,
@@ -210,7 +210,7 @@ function multi:newConnection(protect, func, kill)
 				end)
 			end
 		else
-			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
+			multi.error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
 		end
 		return cn
 	end,
@@ -576,7 +576,7 @@ end
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
-	if not(self.Type=='rootprocess' or self.Type=='process') then error('Can only create an object on multi or an interface obj') return false end
+	if not(self.Type=='rootprocess' or self.Type=='process') then multi.error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
 	if self.Type=='process' then
 		setmetatable(c, {__index = multi})
@@ -1187,7 +1187,7 @@ function thread.hold(n,opt)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
 	else
-		error("Invalid argument passed to thread.hold(...)!")
+		multi.error("Invalid argument passed to thread.hold(...)!")
 	end
 end
 
@@ -1207,7 +1207,7 @@ function thread.skip(n)
 end
 
 function thread.kill()
-	error("thread killed!")
+	multi.error("thread killed!")
 end
 
 function thread.yield()
@@ -1759,7 +1759,7 @@ function multi:newService(func) -- Priority managed threads
 end
 
 -- Multi runners
-local function mainloop(self)
+function multi:mainloopRef()
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	self.uManager = self.uManagerRef
@@ -1782,9 +1782,9 @@ local function mainloop(self)
 	end
 end
 
-multi.mainloop = mainloop
+multi.mainloop = multi.mainloopRef
 
-local function p_mainloop(self)
+function multi:p_mainloop()
 	__CurrentProcess = self
 	multi.OnPreLoad:Fire()
 	self.uManager = self.uManagerRefP1
@@ -1859,9 +1859,13 @@ local function doOpt()
 			end
 			return yield(CMD, t_hold, n or dFunc, nil, interval)
 		else
-			error("Invalid argument passed to thread.hold(...)!")
+			multi.error("Invalid argument passed to thread.hold(...)!")
 		end
 	end
+end
+
+function multi:setCurrentProcess()
+	__CurrentProcess = self
 end
 
 local init = false
@@ -1872,9 +1876,9 @@ function multi.init(settings, realsettings)
 	if type(settings)=="table" then
 		multi.defaultSettings = settings
 		if settings.priority then
-			multi.mainloop = p_mainloop
+			multi.mainloop = multi.p_mainloop
 		else
-			multi.mainloop = mainloop
+			multi.mainloop = multi.mainloopRef
 		end
 		if settings.findopt then
 			find_optimization = true
@@ -2195,8 +2199,18 @@ end
 
 function multi.print(...)
 	if multi.defaultSettings.print then
-		print(...)
+		print("INFO:", table.concat({...}, " "))
 	end
+end
+
+function multi.warn(...)
+	if multi.defaultSettings.warn then
+		print("WARNING:", table.concat({...}, " "))
+	end
+end
+
+function multi.error(err)
+	error("ERROR: " .. err)
 end
 
 multi.GetType		=	multi.getType

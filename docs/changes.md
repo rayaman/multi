@@ -61,6 +61,9 @@ Table of contents
 # Update 16.0.0 - Connecting the dots
 Added
 ---
+- multi:setCurrentProcess() -- Used to set the current processor. It should only be called on a processor object
+- multi.warn(...) -- Sends a warning. 
+- multi.error(err) -- When called this function will gracefully kill multi, cleaning things up.
 - THREAD.setENV(table) -- Set a simple table that will be merged into the global namespace
 	
 	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only
@@ -201,6 +204,7 @@ Added
 
 Changed
 ---
+- multi.print shows "INFO" before it's message.
 - Connections internals changed, not too much changed on the surface.
 - newConnection(protect, func, kill)
 	- `protect` disables fastmode, but protects the connection
