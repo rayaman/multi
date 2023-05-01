@@ -402,7 +402,7 @@ function multi:newConnection(protect, func, kill)
 	end
 
 	if not(ignoreconn) then
-		multi:create(c)
+		self:create(c)
 	end
 
 	return c
@@ -638,7 +638,7 @@ function multi:newTimer()
 		time=os.clock()-time
 		return self
 	end
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -662,7 +662,7 @@ function multi:newEvent(task)
 	c.OnEvent = self:newConnection():fastMode()
 	self:setPriority("core")
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -684,7 +684,7 @@ function multi:newUpdater(skip)
 	end
 	c.OnUpdate = self:newConnection():fastMode()
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -721,7 +721,7 @@ function multi:newAlarm(set)
 		return self
 	end
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -744,7 +744,7 @@ function multi:newLoop(func,notime)
 		c.OnLoop(func)
 	end
 	
-	multi:create(c)
+	self:create(c)
 	c:setName(c.Type)
 	return c
 end
@@ -804,7 +804,7 @@ function multi:newStep(start,reset,count,skip)
 		return self
 	end
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -840,7 +840,7 @@ function multi:newTLoop(func,set)
 		c.OnLoop(func)
 	end
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -890,7 +890,7 @@ function multi:newTStep(start,reset,count,set)
 		return self
 	end
 	c:setName(c.Type)
-	multi:create(c)
+	self:create(c)
 	return c
 end
 
@@ -979,6 +979,7 @@ function multi:newProcessor(name, nothread)
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
+	c.OnObjectCreated = multi:newConnection()
 
 	local handler = c:createHandler(c)
 
@@ -1449,7 +1450,7 @@ function thread:newThread(name, func, ...)
 	
 	globalThreads[c] = multi
 	threadid = threadid + 1
-	multi:create(c)
+	self:create(c)
 	c.creationTime = os.clock()
 	return c
 end
@@ -2172,7 +2173,7 @@ function multi:IsAnActor()
 	return self.Act~=nil
 end
 
-function multi:reallocate(o,n)
+function multi:reallocate(o, n)
 	n=n or #o.Mainloop+1
 	local int=self.Parent
 	self:Destroy()

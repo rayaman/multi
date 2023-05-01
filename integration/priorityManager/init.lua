@@ -27,17 +27,12 @@ local uManagerRefP = multi.uManagerRefP1
 
 -- self:setCurrentProcess() a bit slower than using the local var, but there isn't another option
 
--- function multi:uManagerRef()
--- 	if self.Active then
--- 		self:setCurrentProcess()
--- 		local Loop=self.Mainloop
--- 		for _D=#Loop,1,-1 do
--- 			__CurrentTask = Loop[_D]
--- 			__CurrentTask:Act()
--- 			self:setCurrentProcess()
--- 		end
--- 	end
--- end
+local priorityManager = multi:newProcessor("Priority Manager", true)
+
+local function processHook(obj, proc)
+	obj.__restoreProc = proc
+	obj:reallocate(priorityManager)
+end
 
 local function init()
 	local RR, PB, TB = 0, 1, 2
@@ -67,7 +62,12 @@ local function init()
 end
 
 local function init_chronos()
-
+	multi:newThread("Priority Manager", function()
+		while true do
+			thread.yield()
+			priorityManager.run()
+		end
+	end)
 end
 
 if chronos then

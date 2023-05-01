@@ -204,6 +204,7 @@ Added
 
 Changed
 ---
+- multi.OnObjectCreated is only called when an object is created in a particular process. Proc.OnObjectCreated is needed to detect when an object is created within a process.
 - multi.print shows "INFO" before it's message.
 - Connections internals changed, not too much changed on the surface.
 - newConnection(protect, func, kill)
