@@ -142,25 +142,34 @@ function multi.ForEach(tab,func)
 	for i=1,#tab do func(tab[i]) end
 end
 
+function multi.randomString(n)
+	local str = ''
+	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
+	for i=1,n do
+		str = str..''..strings[math.random(1,#strings)]
+	end
+	return str
+end
+
 local optimization_stats = {}
 local ignoreconn = true
-function multi:newConnection(protect, func, kill)
+local empty_func = function() end
+function multi:newConnection(protect,func,kill)
 	local c={}
 	local call_funcs = {}
 	local lock = false
-	c.__connectionAdded = function() end
-	c.rawadd = false
-	c.Parent = self
+	local locked = {}
+	local fast = {}
+	c.Parent=self
 
-	setmetatable(c,{
-	__call=function(self, ...) -- ()
+	setmetatable(c,{__call=function(self,...)
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
-				if v == self then
-					local ref = self:Connect(select(2, ...))
+				if v==self then
+					local ref = self:Connect(select(2,...))
 					if ref then
-						ref.root_link = select(1, ...)
+						ref.root_link = select(1,...)
 						return ref
 					end
 					return self
@@ -170,49 +179,6 @@ function multi:newConnection(protect, func, kill)
 		else
 			return self:Connect(...)
 		end
-	end,
-	__mod = function(obj1, obj2) -- %
-		local cn = multi:newConnection()
-		if type(obj1) == "function" and type(obj2) == "table" then
-			obj2(function(...)
-				cn:Fire(obj1(...))
-			end)
-		else
-			multi.error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
-		end
-		return cn
-	end,
-	__concat = function(obj1, obj2) -- ..
-		local cn = multi:newConnection()
-		local ref
-		if type(obj1) == "function" and type(obj2) == "table" then
-			cn(function(...)
-				if obj1(...) then
-					obj2:Fire(...)
-				end
-			end)
-			cn.__connectionAdded = function(conn, func)
-				cn:Unconnect(conn)
-				obj2:Connect(func)
-			end
-		elseif type(obj1) == "table" and type(obj2) == "function" then
-			ref = cn(function(...)
-				obj1:Fire(...)
-				obj2(...)
-			end)
-			cn.__connectionAdded = function()
-				cn.rawadd = true
-				cn:Unconnect(ref)
-				ref = cn(function(...)
-					if obj2(...) then
-						obj1:Fire(...)
-					end
-				end)
-			end
-		else
-			multi.error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
-		end
-		return cn
 	end,
 	__add = function(c1,c2) -- Or
 		local cn = multi:newConnection()
@@ -270,63 +236,106 @@ function multi:newConnection(protect, func, kill)
 		return #call_funcs~=0
 	end
 
-	function c:getConnection(name,ignore)
-		if ignore then
-			return connections[name] or CRef
-		else
-			return connections[name] or self
+	function c:Lock(conn)
+		if conn and not conn.lock then
+			conn.lock = function() end
+			for i = 1, #fast do
+				if conn.ref == fast[i] then
+					fast[i] = conn.lock
+					return self
+				end
+			end
+			return self
 		end
-	end
-
-	function c:Lock()
-		lock = self.Fire
-		self.Fire = function() end
+		lock = true
 		return self
 	end
 
-	function c:Unlock()
-		self.Fire = lock
+	function c:Unlock(conn)
+		if conn and conn.lock then
+			for i = 1, #fast do
+				if conn.lock == fast[i] then
+					fast[i] = conn.ref
+					return self
+				end
+			end
+			return self
+		end
+		lock = false
 		return self
+	end
+
+	if protect then
+		function c:Fire(...)
+			if lock then return end
+			local kills = {}
+			for i=1,#fast do
+				local suc, err = pcall(fast[i], ...)
+				if not suc then
+					print(err)
+				end
+				if kill then
+					table.remove(kills,i)
+					multi:newTask(function()
+						for _,k in pairs(kills) do
+							table.remove(fast, k)
+						end
+					end)
+				end
+			end
+		end
 	end
 
 	function c:getConnections()
 		return call_funcs
 	end
 
+	function c:getConnection(name, ignore)
+		return fast[name] or function() multi:warning("") end
+	end
+
 	function c:Unconnect(conn)
-		if conn.fast then
-			for i = 1, #call_funcs do
-				if conn.ref == call_funcs[i] then
-					table.remove(call_funcs, i)
+		for i = 1, #fast do
+			if conn.ref == fast[i] then
+				return table.remove(fast, i), i
+			end
+		end
+	end
+
+	function c:fastMode() return self end
+	if kill then
+		local kills = {}
+		function c:Fire(...)
+			if lock then return end
+			for i=1,#fast do
+				fast[i](...)
+				if kill then
+					table.insert(kills,i)
+					multi:newTask(function()
+						for k = #kills, 1, -1 do
+							table.remove(fast, k)
+							table.remove(kills,i)
+						end
+					end)
 				end
 			end
-		elseif conn.Destroy then
-			conn:Destroy()
 		end
-	end
-
-	function c:Fire(...)
-		for i=1, #call_funcs do
-			call_funcs[i](...)
-		end
-	end
-
-	-- Not needed anymore, since it's so light, I'll leave it in forever
-	function c:fastMode() return self end
-
-	function c:Connect(func)
-		local th 
-		if thread.getRunningThread then
-			th = thread.getRunningThread()
-		end
-		if th then
-			local fref = func
-			func = function(...)
-				__CurrentConnectionThread = th
-				fref(...)
+	else
+		function c:Fire(...)
+			if lock then return end
+			for i=1,#fast do
+				fast[i](...)
 			end
 		end
-		table.insert(call_funcs, func)
+	end
+
+	function c:Connect(func, name)
+		table.insert(fast, func)
+		if name then 
+			fast[name] = func 
+		else 
+			fast["Conn_"..multi.randomString(12)] = func
+		end
 		local temp = {fast = true}
 		setmetatable(temp,{
 			__call=function(s,...)
@@ -346,11 +355,7 @@ function multi:newConnection(protect, func, kill)
 			end,
 		})
 		temp.ref = func
-		if self.rawadd then
-			self.rawadd = false
-		else
-			self.__connectionAdded(temp, func)
-		end
+		temp.name = name
 		return temp
 	end
 
@@ -366,40 +371,10 @@ function multi:newConnection(protect, func, kill)
 		return temp
 	end
 
-	if find_optimization then
-		--
-	end
-
 	c.connect=c.Connect
 	c.GetConnection=c.getConnection
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
-
-	if protect then -- Do some tests and override the fastmode if you want to do something differently
-		function c:Fire(...)
-			for i=#call_funcs,1,-1 do
-				if not call_funcs[i] then return end
-				local suc, err = pcall(call_funcs[i],...)
-				if not suc then
-					multi.print(err)
-				end
-				if kill then
-					table.remove(call_funcs,i)
-				end
-			end
-		end
-	elseif kill then
-		function c:Fire(...)
-			for i=#call_funcs,1,-1 do
-				call_funcs[i](...)
-				table.remove(call_funcs,i)
-			end
-		end
-	end
-
-	if func then
-		c = c .. func
-	end
 
 	if not(ignoreconn) then
 		self:create(c)
@@ -474,6 +449,7 @@ function multi:SetTime(n)
 			self.link:Pause()
 			self.OnTimedOut:Fire(self.link)
 			self:Destroy()
+			return true
 		end
 	end
 	return self
@@ -564,7 +540,7 @@ function multi:isDone()
 end
 
 function multi:create(ref)
-	self.OnObjectCreated:Fire(ref,self)
+	self.OnObjectCreated:Fire(ref, self)
 	return self
 end
 
@@ -653,6 +629,7 @@ function multi:newEvent(task)
 			self:Pause()
 			self.returns = t
 			c.OnEvent:Fire(self)
+			return true
 		end
 	end
 	function c:SetTask(func)
@@ -675,6 +652,7 @@ function multi:newUpdater(skip)
 		if pos >= skip then
 			pos = 0
 			self.OnUpdate:Fire(self)
+			return true
 		end
 		pos = pos+1
 	end
@@ -701,6 +679,7 @@ function multi:newAlarm(set)
 			self.Active=false
 			self.OnRing:Fire(self)
 			t = clock()
+			return true
 		end
 	end
 	function c:Resume()
@@ -732,10 +711,12 @@ function multi:newLoop(func,notime)
 	if notime then
 		function c:Act()
 			self.OnLoop:Fire(self)
+			return true
 		end
 	else
 		function c:Act()
 			self.OnLoop:Fire(self,clock()-start)
+			return true
 		end
 	end
 	c.OnLoop = self:newConnection():fastMode()
@@ -783,6 +764,7 @@ function multi:newStep(start,reset,count,skip)
 		if self.spos>=self.skip then
 			self.spos=0
 		end
+		return true
 	end
 	c.Reset=c.Resume
 	c.OnStart = self:newConnection():fastMode()
@@ -820,6 +802,7 @@ function multi:newTLoop(func,set)
 			self.life=self.life+1
 			self.timer:Reset()
 			self.OnLoop:Fire(self,self.life)
+			return true
 		end
 	end
 	function c:Set(set)
@@ -878,6 +861,7 @@ function multi:newTStep(start,reset,count,set)
 				self.OnEnd:Fire(self)
 				self.pos=self.start
 			end
+			return true
 		end
 	end
 	function c:Set(set)
@@ -957,6 +941,14 @@ function multi.getCurrentTask()
 	return __CurrentTask
 end
 
+function multi:setCurrentProcess()
+	__CurrentProcess = self
+end
+
+function multi:setCurrentTask()
+	__CurrentTask = self
+end
+
 function multi:getName()
 	return self.Name
 end
@@ -998,7 +990,7 @@ function multi:newProcessor(name, nothread)
 		c.OnError = multi:newConnection()
 	end
 
-	c.OnError(multi.print)
+	c.OnError(multi.error)
 
 	function c:getThreads()
 		return c.threads
@@ -1379,7 +1371,7 @@ function thread:newThread(name, func, ...)
 	c.isError = false 
 	c.OnError = multi:newConnection(true,nil,true)
 	c.OnDeath = multi:newConnection(true,nil,true)
-	c.OnError(multi.print)
+	c.OnError(multi.error)
 
 	function c:getName()
 		return c.Name
@@ -1450,7 +1442,7 @@ function thread:newThread(name, func, ...)
 	
 	globalThreads[c] = multi
 	threadid = threadid + 1
-	self:create(c)
+	multi:getCurrentProcess():create(c)
 	c.creationTime = os.clock()
 	return c
 end
@@ -1865,10 +1857,6 @@ local function doOpt()
 	end
 end
 
-function multi:setCurrentProcess()
-	__CurrentProcess = self
-end
-
 local init = false
 function multi.init(settings, realsettings)
 	if settings == multi then settings = realsettings end
@@ -2076,15 +2064,6 @@ else
 	end
 end
 
-function multi.randomString(n)
-	local str = ''
-	local strings = {'a','b','c','d','e','f','g','h','i','j','k','l','m','n','o','p','q','r','s','t','u','v','w','x','y','z','1','2','3','4','5','6','7','8','9','0','A','B','C','D','E','F','G','H','I','J','K','L','M','N','O','P','Q','R','S','T','U','V','W','X','Y','Z'}
-	for i=1,n do
-		str = str..''..strings[math.random(1,#strings)]
-	end
-	return str
-end
-
 function multi:getChildren()
 	return self.Mainloop
 end
@@ -2173,12 +2152,16 @@ function multi:IsAnActor()
 	return self.Act~=nil
 end
 
-function multi:reallocate(o, n)
-	n=n or #o.Mainloop+1
+function multi:reallocate(processor, index)
+	index=index or #processor.Mainloop+1
 	local int=self.Parent
-	self:Destroy()
-	self.Parent=o
-	table.insert(o.Mainloop,n,self)
+	self.Parent=processor
+	print("Moving task to new processor!")
+	if index then
+		table.insert(processor.Mainloop, index, self)
+	else
+		table.insert(processor.Mainloop, self)
+	end
 	self.Active=true
 	return self
 end
@@ -2200,18 +2183,28 @@ end
 
 function multi.print(...)
 	if multi.defaultSettings.print then
-		print("INFO:", table.concat({...}, " "))
+		local t = {}
+		for i,v in pairs({...}) do t[#t+1] = tostring(v) end
+		io.write("\x1b[94mINFO:\x1b[0m " .. table.concat(t," ") .. "\n")
 	end
 end
 
 function multi.warn(...)
 	if multi.defaultSettings.warn then
-		print("WARNING:", table.concat({...}, " "))
+		local t = {}
+		for i,v in pairs({...}) do t[#t+1] = tostring(v) end
+		io.write("\x1b[93mWARNING:\x1b[0m " .. table.concat(t," ") .. "\n")
 	end
 end
 
-function multi.error(err)
-	error("ERROR: " .. err)
+function multi.error(self, err)
+	if type(err) == "bool" then crash = err end
+	if type(self) == "string" then err = self end
+	io.write("\x1b[91mERROR:\x1b[0m " .. err .. "\n")
+	error("^^^")
+	if multi.defaultSettings.error then
+		os.exit(1)
+	end
 end
 
 multi.GetType		=	multi.getType

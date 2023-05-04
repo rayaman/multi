@@ -1,7 +1,7 @@
 # Changelog
 Table of contents
 ---
-[Update 16.0.0 - Connecting the dots](#update-1600---connecting-the-dots)</br>
+[Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
 [Update 15.2.1 - Bug fix](#update-1521---bug-fix)</br>
@@ -58,15 +58,30 @@ Table of contents
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
-# Update 16.0.0 - Connecting the dots
+# Update 16.0.0 - Getting the priorities straight
 Added
 ---
+### New Integration - priorityManager
+
+Allows the user to have multi auto set priorities. Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed these features will still work!
+
+- multi:setCurrentTask() -- Used to set the current processor. Used in custom processors.
 - multi:setCurrentProcess() -- Used to set the current processor. It should only be called on a processor object
-- multi.warn(...) -- Sends a warning. 
-- multi.error(err) -- When called this function will gracefully kill multi, cleaning things up.
+- multi.warn(...) -- Sends a warning. Yellow `WARNING`
+- multi.error(err) -- When called this function will gracefully kill multi, cleaning things up. Red `ERROR`
+	
+	**Note:** If you want to have multi.print, multi.warn and multi.error to work you need to enable them in settings 
+	```lua
+	multi, thread = require("multi"):init {
+		print=true,
+		warn=true,
+		error=true -- Errors will throw regardless. Setting to true will
+		-- cause the library to force hard crash itself!
+	}
+	```
 - THREAD.setENV(table) -- Set a simple table that will be merged into the global namespace
 	
-	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only
+	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only.
 	```lua
 	THREAD.setENV({
 		shared_function = function()
@@ -204,8 +219,18 @@ Added
 
 Changed
 ---
+- multi errors now internally call `multi.error` instead of `multi.print`
+- Actors Act() method now returns true when the main event is fired. Steps/Loops always return true. Nil is returned otherwise.
+- Connection:Connect(func, name) Now you can supply a name and name the connection.
+- Connection:getConnection(name) This will return the connection function which you can do what you will with it.
+- Fast connections are the only connections. Legacy connections have been removed completely. Not much should change on the users end. Perhaps some minor changes.
+- conn:Lock(conn) When supplied with a connection reference (What is returned by Connect(func)) it will only lock that connection Reference and not the entire connection. Calling without any arguments will lock the entire connection.
+- connUnlock(conn) When supplied with a connection reference it restores that reference and it can be fired again. When no arguments are supplied it unlocks the entire connection.
+
+	**Note:** Lock and Unlock when supplied with arguments and not supplied with arguments operate on different objects. If you unlock an entire connection. Individual connection refs will not unlock. The same applies with locking. The entire connection and references are treated differently.
+
 - multi.OnObjectCreated is only called when an object is created in a particular process. Proc.OnObjectCreated is needed to detect when an object is created within a process.
-- multi.print shows "INFO" before it's message.
+- multi.print shows "INFO" before it's message. Blue `INFO`
 - Connections internals changed, not too much changed on the surface.
 - newConnection(protect, func, kill)
 	- `protect` disables fastmode, but protects the connection
@@ -221,8 +246,9 @@ Removed
 
 Fixed
 ---
+- multi:reallocate(processor, index) has been fixed to work with the current changes of the library.
 - Issue with lanes not handling errors properly. This is now resolved
-- Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events
+- Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events. Changes made and this works now!
 	```lua
 	func = thread:newFunction(function()
 		for i=1,10 do
