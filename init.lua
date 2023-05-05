@@ -138,6 +138,10 @@ end
 
 --Helpers
 
+function multi.setClock(c)
+	clock = c
+end
+
 function multi.ForEach(tab,func)
 	for i=1,#tab do func(tab[i]) end
 end
@@ -156,11 +160,11 @@ local ignoreconn = true
 local empty_func = function() end
 function multi:newConnection(protect,func,kill)
 	local c={}
-	local call_funcs = {}
 	local lock = false
-	local locked = {}
 	local fast = {}
-	c.Parent=self
+	c.__connectionAdded = function() end
+	c.rawadd = false
+	c.Parent = self
 
 	setmetatable(c,{__call=function(self,...)
 		local t = ...
@@ -180,6 +184,49 @@ function multi:newConnection(protect,func,kill)
 			return self:Connect(...)
 		end
 	end,
+	__mod = function(obj1, obj2) -- %
+		local cn = multi:newConnection()
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				cn:Fire(obj1(...))
+			end)
+		else
+			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+		end
+		return cn
+	end,
+	__concat = function(obj1, obj2) -- ..
+		local cn = multi:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			cn(function(...)
+				if obj1(...) then
+					obj2:Fire(...)
+				end
+			end)
+			cn.__connectionAdded = function(conn, func)
+				cn:Unconnect(conn)
+				obj2:Connect(func)
+			end
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			ref = cn(function(...)
+				obj1:Fire(...)
+				obj2(...)
+			end)
+			cn.__connectionAdded = function()
+				cn.rawadd = true
+				cn:Unconnect(ref)
+				ref = cn(function(...)
+					if obj2(...) then
+						obj1:Fire(...)
+					end
+				end)
+			end
+		else
+			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
+		end
+		return cn
+	end,
 	__add = function(c1,c2) -- Or
 		local cn = multi:newConnection()
 		c1(function(...)
@@ -192,6 +239,7 @@ function multi:newConnection(protect,func,kill)
 	end,
 	__mul = function(c1,c2) -- And
 		local cn = multi:newConnection()
+		local ref1, ref2
 		if c1.__hasInstances == nil then
 			cn.__hasInstances = {2}
 			cn.__count = {0}
@@ -201,25 +249,25 @@ function multi:newConnection(protect,func,kill)
 			cn.__count = c1.__count
 		end
 
-		c1(function(...)
+		ref1 = c1(function(...)
 			cn.__count[1] = cn.__count[1] + 1
-			c1:Lock()
+			c1:Lock(ref1)
 			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
-				c1:Unlock()
-				c2:Unlock()
+				c1:Unlock(ref1)
+				c2:Unlock(ref2)
 			end
 		end)
 
-		c2(function(...)
+		ref2 = c2(function(...)
 			cn.__count[1] = cn.__count[1] + 1
-			c2:Lock()
+			c2:Lock(ref2)
 			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
-				c1:Unlock()
-				c2:Unlock()
+				c1:Unlock(ref1)
+				c2:Unlock(ref2)
 			end
 		end)
 		return cn
@@ -330,6 +378,17 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Connect(func, name)
+		local th 
+		if thread.getRunningThread then
+			th = thread.getRunningThread()
+		end
+		if th then
+			local fref = func
+			func = function(...)
+				__CurrentConnectionThread = th
+				fref(...)
+			end
+		end
 		table.insert(fast, func)
 		if name then 
 			fast[name] = func 
@@ -356,6 +415,11 @@ function multi:newConnection(protect,func,kill)
 		})
 		temp.ref = func
 		temp.name = name
+		if self.rawadd then
+			self.rawadd = false
+		else
+			self.__connectionAdded(temp, func)
+		end
 		return temp
 	end
 
@@ -376,7 +440,12 @@ function multi:newConnection(protect,func,kill)
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
 
+	if func then
+		c = c .. func
+	end
+
 	if not(ignoreconn) then
+		if not self then return c end
 		self:create(c)
 	end
 
@@ -567,7 +636,7 @@ function multi:newBase(ins)
 	c.TID = _tid
 	c.Act=function() end
 	c.Parent=self
-	c.creationTime = os.clock()
+	c.creationTime = clock()
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -593,7 +662,7 @@ function multi:newTimer()
 	local count=0
 	local paused=false
 	function c:Start()
-		time=os.clock()
+		time=clock()
 		return self
 	end
 	function c:Get()
@@ -611,7 +680,7 @@ function multi:newTimer()
 	end
 	function c:Resume()
 		paused=false
-		time=os.clock()-time
+		time=clock()-time
 		return self
 	end
 	self:create(c)
@@ -1443,7 +1512,7 @@ function thread:newThread(name, func, ...)
 	globalThreads[c] = multi
 	threadid = threadid + 1
 	multi:getCurrentProcess():create(c)
-	c.creationTime = os.clock()
+	c.creationTime = clock()
 	return c
 end
 
@@ -1970,7 +2039,7 @@ function multi:enableLoadDetection()
 	if multi.maxSpd then return end
 	-- here we are going to run a quick benchMark solo
 	local temp = self:newProcessor()
-	local t = os.clock()
+	local t = clock()
 	local stop = false
 	temp:benchMark(.01):OnBench(function(time,steps)
 		stop = steps
@@ -2205,6 +2274,12 @@ function multi.error(self, err)
 	if multi.defaultSettings.error then
 		os.exit(1)
 	end
+end
+
+function multi.success(...)
+	local t = {}
+	for i,v in pairs({...}) do t[#t+1] = tostring(v) end
+	io.write("\x1b[92mSUCCESS:\x1b[0m " .. table.concat(t," ") .. "\n")
 end
 
 multi.GetType		=	multi.getType

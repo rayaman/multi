@@ -59,14 +59,19 @@ Table of contents
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
 # Update 16.0.0 - Getting the priorities straight
-Added
----
-### New Integration - priorityManager
+
+## Added New Integration: **priorityManager**
 
 Allows the user to have multi auto set priorities. Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed these features will still work!
+- Allows the creation of custom priorityManagers for example:
 
+
+Added
+---
+- multi.setClock(clock_func) -- If you have access to a clock function that works like os.clock() you can set it using this function. The priorityManager if chronos is installed sets the clock to it's current version.
 - multi:setCurrentTask() -- Used to set the current processor. Used in custom processors.
 - multi:setCurrentProcess() -- Used to set the current processor. It should only be called on a processor object
+- multi.success(...) -- Sends a success. Green `SUCCESS` mainly used for tests
 - multi.warn(...) -- Sends a warning. Yellow `WARNING`
 - multi.error(err) -- When called this function will gracefully kill multi, cleaning things up. Red `ERROR`
 	
@@ -145,7 +150,7 @@ Allows the user to have multi auto set priorities. Also adds the functionality t
 	end)
 
 	function test(a,b,c)
-		print("I run before all and control if things go!")
+		print("I run before all and control if execution should continue!")
 		return a>b
 	end
 
@@ -246,6 +251,7 @@ Removed
 
 Fixed
 ---
+- connections being multiplied together would block the entire connection object from pushing events! This is not the desired effect I wanted. Now only the connection reference involved in the multiplication is locked!
 - multi:reallocate(processor, index) has been fixed to work with the current changes of the library.
 - Issue with lanes not handling errors properly. This is now resolved
 - Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events. Changes made and this works now!
@@ -292,7 +298,7 @@ conn2:Fire()
 -- Looks like this is triggering a response. It shouldn't. We need to account for this
 conn1:Fire()
 conn1:Fire()
--- Triggering conn1 twice counted as a valid way to trigger the phantom connection (conn1 * conn2)
+-- Triggering conn1 twice counted as a valid way to trigger the virtual connection (conn1 * conn2)
 
 -- Now in 15.3.1, this works properly and the above doesn't do anything. Internally connections are locked until the conditions are met.
 conn2:Fire()

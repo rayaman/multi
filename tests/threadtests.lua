@@ -1,8 +1,8 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
-multi, thread = require("multi"):init{}--{priority=true}
+multi, thread = require("multi"):init{print=true,warn=true,error=false}--{priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3
-local env
+local env, we_good
 
 if love then
     GLOBAL, THREAD = require("multi.integration.loveManager"):init()
@@ -27,11 +27,11 @@ else
     end
 end
 
-print("Testing THREAD.setENV() if the multi_assert is not found then there is a problem")
+multi.print("Testing THREAD.setENV() if the multi_assert is not found then there is a problem")
 THREAD.setENV({
     multi_assert = function(expected, actual, s)
         if expected ~= actual then
-            error(s .. " Expected: '".. expected .."' Actual: '".. actual .."'")
+            multi.error(s .. " Expected: '".. expected .."' Actual: '".. actual .."'")
         end
     end
 })
@@ -47,7 +47,7 @@ multi:newThread("Scheduler Thread",function()
         multi_assert("table", type(f), "Argument f is not a table!")
         queue:push("done")
     end,"Passing some args", 1, 2, 3, true, {"Table"}).OnError(function(self,err)
-        print("Error:", err)
+        multi.error(err)
         os.exit()
     end)
 
@@ -57,7 +57,7 @@ multi:newThread("Scheduler Thread",function()
         thread.kill()
     end
 
-    print("Thread Spawning, THREAD namaspace in threads, global's working, and queues for passing data: Ok")
+    multi.success("Thread Spawning, THREAD namaspace in threads, global's working, and queues for passing data: Ok")
 
     func = THREAD:newFunction(function(a,b,c)
         assert(a == 3, "First argument expected '3' got '".. a .."'!")
@@ -73,7 +73,7 @@ multi:newThread("Scheduler Thread",function()
     assert(c == 3, "Third return was not '3'!")
     assert(d[1] == "a table", "Fourth return is not table, or doesn't contain 'a table'!")
 
-    print("Threaded Functions, arg passing, return passing, holding: Ok")
+    multi.success("Threaded Functions, arg passing, return passing, holding: Ok")
 
     test=multi:newSystemThreadedTable("YO"):init()
     test["test1"]="tabletest"
@@ -84,7 +84,7 @@ multi:newThread("Scheduler Thread",function()
         THREAD.hold(function() return tab["test1"] end)
         THREAD.sleep(.1)
         tab["test2"] = "Whats so funny?"
-    end).OnError(print)
+    end).OnError(multi.error)
 
     multi:newThread("test2",function()
         thread.hold(function() return test["test2"] end)
@@ -96,11 +96,11 @@ multi:newThread("Scheduler Thread",function()
     end,{sleep=1})
 
     if val == multi.TIMEOUT then
-        print("SystemThreadedTables: Failed")
+        multi.error("SystemThreadedTables: Failed")
         os.exit()
     end
 
-    print("SystemThreadedTables: Ok")
+    multi.success("SystemThreadedTables: Ok")
 
     local ready = false
 
@@ -123,11 +123,11 @@ multi:newThread("Scheduler Thread",function()
     end,{sleep=2})
 
     if val == multi.TIMEOUT then
-        print("SystemThreadedJobQueues: Failed")
+        multi.error("SystemThreadedJobQueues: Failed")
         os.exit()
     end
 
-    print("SystemThreadedJobQueues: Ok")
+    multi.success("SystemThreadedJobQueues: Ok")
 
     queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
     multi:newSystemThread("Test_Thread_2",function()
@@ -137,7 +137,7 @@ multi:newThread("Scheduler Thread",function()
             queue2:push("Test_Thread_2")
         end)
         multi:mainloop()
-    end).OnError(print)
+    end).OnError(multi.error)
 
     multi:newSystemThread("Test_Thread_3",function()
         queue2 = THREAD.waitFor("Test_Queue2"):init()
@@ -146,7 +146,7 @@ multi:newThread("Scheduler Thread",function()
             queue2:push("Test_Thread_3")
         end)
         multi:mainloop()
-    end).OnError(print)
+    end).OnError(multi.error)
     connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
     a=0
     connOut(function(arg)
@@ -164,21 +164,26 @@ multi:newThread("Scheduler Thread",function()
                 count = count + 1
             end
         end
-    end).OnError(print)
+    end).OnError(multi.error)
 
     _, err = thread.hold(function() return count == 9 end,{sleep=.3})
 
     if err == multi.TIMEOUT then
-        print("SystemThreadedConnections: Failed")
-        os.exit()
+        multi.error("SystemThreadedConnections: Failed")
     end
 
-    print("SystemThreadedConnections: Ok")
+    multi.success("SystemThreadedConnections: Ok")
 
-    print("Tests complete!")
+    we_good = true
     os.exit()
-end).OnError(print)
+end).OnError(multi.error)
 
-
+multi.OnExit(function(err)
+    if not we_good then
+        multi.error("There was an error running some tests!")
+    else
+        multi.success("Tests complete!")
+    end
+end)
 
 multi:mainloop()

@@ -139,7 +139,7 @@ function multi:newSystemThreadedJobQueue(n)
 end
 
 function multi:newSystemThreadedConnection(name)
-	local conn = multi.newConnection()
+	local conn = multi:newConnection()
 	conn.init = function(self) return self end
 	GLOBAL[name or "_"] = conn
 	return conn

@@ -133,11 +133,11 @@ local function init()
 	end
 
 	function multi:isRegistredScheme(scheme)
-		--
+		return registry[name] ~= nil
 	end
 
 	function multi:getRegisteredScheme(scheme)
-		--
+		return registry[name].mainloop, registry[name].umanager, registry[name].condition
 	end
 
 	local empty_func = function() return true end
@@ -163,6 +163,9 @@ local function init()
 			condition = condition,
 			static = options.static or false
 		}
+
+		multi.priorityScheme[name] = name
+
 		return true
 	end
 
@@ -200,6 +203,8 @@ local function init()
 end
 
 local function init_chronos()
+	-- Let's implement a higher precision clock
+	multi.setClock(chronos.nanotime) -- This is also in .000 format. So a plug and play works.
 	thread:newThread("System Priority Manager", function()
 		while true do
 			thread.yield()
