@@ -323,9 +323,10 @@ function multi:newConnection(protect,func,kill)
 					print(err)
 				end
 				if kill then
-					table.remove(kills,i)
+					table.insert(kills,i)
 					multi:newTask(function()
-						for _,k in pairs(kills) do
+						for _, k in pairs(kills) do
+                            table.remove(kills, _)
 							table.remove(fast, k)
 						end
 					end)
@@ -360,9 +361,9 @@ function multi:newConnection(protect,func,kill)
 				if kill then
 					table.insert(kills,i)
 					multi:newTask(function()
-						for k = #kills, 1, -1 do
+						for _, k in pairs(kills) do
+                            table.remove(kills, _)
 							table.remove(fast, k)
-							table.remove(kills,i)
 						end
 					end)
 				end
@@ -1420,7 +1421,8 @@ end
 function thread:newProcessor(name)
 	-- Inactive proxy proc
 	local proc = multi:getCurrentProcess():newProcessor(name, true)
-	local thread_proc = multi:getCurrentProcess():newProcessor(name, true)
+	local thread_proc = multi:getCurrentProcess():newProcessor(name).Start()
+	local Active = true
 
 	local handler = thread_proc:getHandler()
 	
@@ -1428,24 +1430,54 @@ function thread:newProcessor(name)
 		return thread_proc.threads
 	end
 
+	function proc:getFullName()
+		return thread_proc.parent:getFullName() .. "." .. c.Name
+	end
+
+	function proc:getName()
+		return thread_proc.Name
+	end
+
+	function proc:isActive()
+		return Active
+	end
+
 	function proc:newThread(name, func,...)
 		return thread.newThread(thread_proc, name, func, ...)
 	end
 
-	function c:newFunction(func, holdme)
+	function proc:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
 			return thread_proc:newThread("Threaded Function Handler", func, ...)
 		end, holdme)()
 	end
+
+	function proc.Start()
+		Active = true
+		return c
+	end
+
+	function proc.Stop()
+		Active = false
+		return c
+	end
+
+	function proc:Destroy()
+		Active = false
+		thread_proc:Destroy()
+	end
 	
 	proc.OnObjectCreated(function(obj)
+		if not obj.Act then return end
 		thread_proc:newThread(function()
+			obj.reallocate = empty_func
 			while true do
-				thread.yield()
-				--
+				thread.hold(function() return Active end)
+				obj:Act()
 			end
 		end)
 	end)
+	
 	return proc
 end
 

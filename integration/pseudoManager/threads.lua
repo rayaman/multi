@@ -96,12 +96,23 @@ local function INIT(thread)
 
     THREAD.hold = thread.hold
 	
-	function THREAD.setENV(env)
-        GLOBAL["__env"] = env
+	function THREAD.setENV(env, name)
+        name = name or "__env"
+        GLOBAL[name] = env
     end
 
-    function THREAD.getENV()
-        return GLOBAL["__env"]
+    function THREAD.getENV(name)
+        name = name or "__env"
+        return GLOBAL[name]
+    end
+
+    function THREAD.exposeENV(name)
+        name = name or "__env"
+        local env = THREAD.getENV(name)
+        for i,v in pairs(env) do
+            -- This may need to be reworked!
+            _G[i] = v
+        end
     end
 
     return GLOBAL, THREAD

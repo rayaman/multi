@@ -167,12 +167,23 @@ function threads.unpackENV(env)
     return e
 end
 
-function threads.setENV(env)
-    (threads.getGlobal())["__env"] = threads.packENV(env)
+
+function threads.setENV(env, name)
+    name = name or "__env"
+    (threads.getGlobal())[name] = threads.packENV(env)
 end
 
-function threads.getENV()
-    return threads.unpackENV((threads.getGlobal())["__env"])
+function threads.getENV(name)
+    name = name or "__env"
+    return threads.unpackENV((threads.getGlobal())[name])
+end
+
+function threads.exposeENV(name)
+    name = name or "__env"
+    local env = threads.getENV(name)
+    for i,v in pairs(env) do
+        _G[i] = v
+    end
 end
 
 function threads.createTable(n)

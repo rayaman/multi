@@ -11,49 +11,64 @@ require("multi.integration.priorityManager")
 
 -- print("Running...")
 
-local conn1, conn2 = multi:newConnection(), multi:newConnection()
-conn3 = conn1 + conn2
+-- local conn1, conn2 = multi:newConnection(), multi:newConnection()
+-- conn3 = conn1 + conn2
 
-conn1(function()
-	print("Hi 1")
+-- conn1(function()
+-- 	print("Hi 1")
+-- end)
+
+-- conn2(function()
+-- 	print("Hi 2")
+-- end)
+
+-- conn3(function()
+-- 	print("Hi 3")
+-- end)
+
+-- function test(a,b,c)
+-- 	print("I run before all and control if execution should continue!")
+-- 	return a>b
+-- end
+
+-- conn4 = test .. conn1
+
+-- conn5 = conn2 .. function() print("I run after it all!") end
+
+-- conn4:Fire(3,2,3)
+-- -- This second one won't trigger the Hi's
+-- conn4:Fire(1,2,3)
+
+-- conn5(function()
+-- 	print("Test 1")
+-- end)
+
+-- conn5(function()
+-- 	print("Test 2")
+-- end)
+
+-- conn5(function()
+-- 	print("Test 3")
+-- end)
+
+-- conn5:Fire()
+multi.print("Testing thread:newProcessor()")
+
+proc = thread:newProcessor("Test")
+
+proc:newLoop(function()
+	multi.print("Running...")
+	thread.sleep(1)
 end)
 
-conn2(function()
-	print("Hi 2")
+proc:newThread(function()
+	while true do
+		multi.warn("Everything is a thread in this proc!")
+		thread.sleep(1)
+	end
 end)
 
-conn3(function()
-	print("Hi 3")
-end)
-
-function test(a,b,c)
-	print("I run before all and control if execution should continue!")
-	return a>b
-end
-
-conn4 = test .. conn1
-
-conn5 = conn2 .. function() print("I run after it all!") end
-
-conn4:Fire(3,2,3)
--- This second one won't trigger the Hi's
-conn4:Fire(1,2,3)
-
-conn5(function()
-	print("Test 1")
-end)
-
-conn5(function()
-	print("Test 2")
-end)
-
-conn5(function()
-	print("Test 3")
-end)
-
-conn5:Fire()
-
---multi:mainloop()
+multi:mainloop()
 
 
 -- local conn1, conn2, conn3 = multi:newConnection(nil,nil,true), multi:newConnection(), multi:newConnection()

@@ -67,6 +67,7 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
 - multi.Processors:getHandler() -- returns the thread handler for a process
 - multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!
 - multi.setClock(clock_func) -- If you have access to a clock function that works like os.clock() you can set it using this function. The priorityManager if chronos is installed sets the clock to it's current version.
@@ -85,7 +86,8 @@ Added
 		-- cause the library to force hard crash itself!
 	}
 	```
-- THREAD.setENV(table) -- Set a simple table that will be merged into the global namespace
+- THREAD.exposeEnv(name) -- Merges set env into the global namespace of the system thread it was called in.
+- THREAD.setENV(table [, name]) -- Set a simple table that will be merged into the global namespace. If a name is supplied the global namespace will not be merged. Call THREAD.exposeEnv(name) to expose that namespace within a thread. 
 	
 	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only.
 	```lua
@@ -284,6 +286,7 @@ Fixed
 
 ToDo
 ---
+- N/A
 
 # Update 15.3.1 - Bug fix
 Fixed
@@ -1984,7 +1987,7 @@ L: 2120906
 I: 2120506
 ```
 
-Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting.
+Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting. This is nolonger the case in version 16.0.0 multi has evolved ;)
 
 **Improved:**
 - Performance at the base level has been doubled! On my machine benchmark went from ~9mil to ~20 mil steps/s.

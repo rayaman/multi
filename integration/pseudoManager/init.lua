@@ -59,13 +59,14 @@ function multi:newSystemThread(name,func,...)
 	GLOBAL["$__THREADNAME__"] = name
 	GLOBAL["$THREAD_ID"] = id
 	GLOBAL["$thread"] = thread
+
 	local env = {
 		GLOBAL = GLOBAL,
 		THREAD = THREAD,
 		THREAD_NAME = name,
 		__THREADNAME__ = name,
 		THREAD_ID = id,
-		thread = thread
+		thread = thread,
 	}
 
 	if GLOBAL["__env"] then
