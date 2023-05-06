@@ -2,19 +2,58 @@ package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,error=true}
 require("multi.integration.priorityManager")
 
-test = multi:newProcessor("Test")
-test:setPriorityScheme(multi.priorityScheme.TimeBased)
-multi.OnObjectCreated(function(proc, obj)
-	print("MULTI",proc.Type,obj.Type)
-end)
-local a = 0
-test:newUpdater(100000):OnUpdate(function()
-	print("Print is slowish")
+-- test = multi:newProcessor("Test")
+-- test:setPriorityScheme(multi.priorityScheme.TimeBased)
+
+-- test:newUpdater(10000000):OnUpdate(function()
+-- 	print("Print is slowish")
+-- end)
+
+-- print("Running...")
+
+local conn1, conn2 = multi:newConnection(), multi:newConnection()
+conn3 = conn1 + conn2
+
+conn1(function()
+	print("Hi 1")
 end)
 
-print("Running...")
+conn2(function()
+	print("Hi 2")
+end)
 
-multi:mainloop()
+conn3(function()
+	print("Hi 3")
+end)
+
+function test(a,b,c)
+	print("I run before all and control if execution should continue!")
+	return a>b
+end
+
+conn4 = test .. conn1
+
+conn5 = conn2 .. function() print("I run after it all!") end
+
+conn4:Fire(3,2,3)
+-- This second one won't trigger the Hi's
+conn4:Fire(1,2,3)
+
+conn5(function()
+	print("Test 1")
+end)
+
+conn5(function()
+	print("Test 2")
+end)
+
+conn5(function()
+	print("Test 3")
+end)
+
+conn5:Fire()
+
+--multi:mainloop()
 
 
 -- local conn1, conn2, conn3 = multi:newConnection(nil,nil,true), multi:newConnection(), multi:newConnection()

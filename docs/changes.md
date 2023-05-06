@@ -62,12 +62,13 @@ Table of contents
 
 ## Added New Integration: **priorityManager**
 
-Allows the user to have multi auto set priorities. Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed these features will still work!
+Allows the user to have multi auto set priorities (Requires chronos). Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed all other features will still work!
 - Allows the creation of custom priorityManagers for example:
-
 
 Added
 ---
+- multi.Processors:getHandler() -- returns the thread handler for a process
+- multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!
 - multi.setClock(clock_func) -- If you have access to a clock function that works like os.clock() you can set it using this function. The priorityManager if chronos is installed sets the clock to it's current version.
 - multi:setCurrentTask() -- Used to set the current processor. Used in custom processors.
 - multi:setCurrentProcess() -- Used to set the current processor. It should only be called on a processor object
@@ -159,6 +160,9 @@ Added
 	conn5 = conn2 .. function() print("I run after it all!") end
 
 	conn4:Fire(3,2,3)
+
+	-- This second one won't trigger the Hi's	
+	conn4:Fire(1,2,3)
 
 	conn5(function()
 		print("Test 1")

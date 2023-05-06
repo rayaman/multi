@@ -633,6 +633,7 @@ function multi:newBase(ins)
 	c.funcTM={}
 	c.funcTMR={}
 	c.OnBreak = multi:newConnection()
+	c.OnPriorityChanged = multi:newConnection()
 	c.TID = _tid
 	c.Act=function() end
 	c.Parent=self
@@ -1061,6 +1062,10 @@ function multi:newProcessor(name, nothread)
 
 	c.OnError(multi.error)
 
+	function c:getHandler()
+		return handler
+	end
+
 	function c:getThreads()
 		return c.threads
 	end
@@ -1410,6 +1415,38 @@ function thread:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
 		return thread:newThread("Threaded Function Handler", func, ...)
 	end, holdme)()
+end
+
+function thread:newProcessor(name)
+	-- Inactive proxy proc
+	local proc = multi:getCurrentProcess():newProcessor(name, true)
+	local thread_proc = multi:getCurrentProcess():newProcessor(name, true)
+
+	local handler = thread_proc:getHandler()
+	
+	function proc:getThreads()
+		return thread_proc.threads
+	end
+
+	function proc:newThread(name, func,...)
+		return thread.newThread(thread_proc, name, func, ...)
+	end
+
+	function c:newFunction(func, holdme)
+		return thread:newFunctionBase(function(...)
+			return thread_proc:newThread("Threaded Function Handler", func, ...)
+		end, holdme)()
+	end
+	
+	proc.OnObjectCreated(function(obj)
+		thread_proc:newThread(function()
+			while true do
+				thread.yield()
+				--
+			end
+		end)
+	end)
+	return proc
 end
 
 -- A cross version way to set enviroments, not the same as fenv though
@@ -2102,6 +2139,7 @@ function multi:setPriority(s)
 		elseif s:lower()=='idle' or s:lower()=='i' then
 			self.Priority=self.Priority_Idle
 		end
+		self.OnPriorityChanged:Fire(self, self.Priority)
 	end
 	if not self.PrioritySet then
 		self.defPriority = self.Priority
@@ -2225,7 +2263,6 @@ function multi:reallocate(processor, index)
 	index=index or #processor.Mainloop+1
 	local int=self.Parent
 	self.Parent=processor
-	print("Moving task to new processor!")
 	if index then
 		table.insert(processor.Mainloop, index, self)
 	else
