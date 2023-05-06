@@ -60,6 +60,13 @@ Table of contents
 
 # Update 16.0.0 - Getting the priorities straight
 
+Full Update Showcase
+---
+```lua
+multi, thread = require("multi"):init{print=true}
+GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
+```
+
 ## Added New Integration: **priorityManager**
 
 Allows the user to have multi auto set priorities (Requires chronos). Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed all other features will still work!
