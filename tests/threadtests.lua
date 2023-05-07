@@ -1,4 +1,4 @@
---package.path = "../?/init.lua;../?.lua;"..package.path
+package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,error=false}--{priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3

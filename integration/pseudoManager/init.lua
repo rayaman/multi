@@ -100,7 +100,7 @@ multi.print("Integrated Pesudo Threading!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
-require("multi.integration.pesudoManager.extensions")
+require("multi.integration.pseudoManager.extensions")
 return {
 	init = function()
 		return GLOBAL, THREAD
