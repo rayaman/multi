@@ -107,6 +107,7 @@ local function INIT(thread)
     end
 
     function THREAD.exposeENV(name)
+        print("env",__env)
         name = name or "__env"
         local env = THREAD.getENV(name)
         for i,v in pairs(env) do

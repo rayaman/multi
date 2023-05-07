@@ -54,6 +54,7 @@ local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getf
 tab = split(tab)
 
 local id = 0
+
 function multi:newSystemThread(name,func,...)
 	GLOBAL["$THREAD_NAME"] = name
 	GLOBAL["$__THREADNAME__"] = name
@@ -68,6 +69,8 @@ function multi:newSystemThread(name,func,...)
 		THREAD_ID = id,
 		thread = thread,
 	}
+
+	env.__env = env
 
 	if GLOBAL["__env"] then
 		for i,v in pairs(GLOBAL["__env"]) do

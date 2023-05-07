@@ -472,15 +472,15 @@ function multi:isFindingOptimizing()
 end
 
 -- Used with ISO Threads
-local function isolateFunction(func,env)
+local function isolateFunction(func, env)
 	local dmp = string.dump(func)
 	local env = env or {}
 	if setfenv then
-		local f = loadstring(dmp,"IsolatedThread_PesudoThreading")
-		setfenv(f,env)
+		local f = loadstring(dmp, "IsolatedThread_PesudoThreading")
+		setfenv(f, env)
 		return f
 	else
-		return load(dmp,"IsolatedThread_PesudoThreading","bt",env)
+		return load(dmp,"IsolatedThread_PesudoThreading", "bt", env)
 	end
 end
 
