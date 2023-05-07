@@ -1442,7 +1442,7 @@ function thread:newProcessor(name)
 		return Active
 	end
 
-	function proc:newThread(name, func,...)
+	function proc:newThread(name, func, ...)
 		return thread.newThread(thread_proc, name, func, ...)
 	end
 
@@ -2149,6 +2149,7 @@ function multi:getLoad()
 end
 
 function multi:setPriority(s)
+	if not self.IsAnActor or self.Type == multi.PROCESS then return end
 	if type(s)=="number" then
 		self.Priority=s
 	elseif type(s)=='string' then

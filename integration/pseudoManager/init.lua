@@ -32,7 +32,7 @@ if multi.integration then
 	}
 end
 
-local GLOBAL, THREAD = require("multi.integration.pesudoManager.threads").init(thread)
+local GLOBAL, THREAD = require("multi.integration.pseudoManager.threads").init(thread)
 
 function multi:canSystemThread() -- We are emulating system threading
 	return true

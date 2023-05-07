@@ -1,4 +1,4 @@
-package.path = "../?/init.lua;../?.lua;"..package.path
+--package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,error=false}--{priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3
@@ -34,13 +34,14 @@ THREAD.setENV({
             multi.error(s .. " Expected: '".. expected .."' Actual: '".. actual .."'")
         end
     end
-})
+},"Test_ENV")
 
 multi:newThread("Scheduler Thread",function()
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
     
     th1 = multi:newSystemThread("Test_Thread_1", function(a,b,c,d,e,f)
         queue = THREAD.waitFor("Test_Queue"):init()
+        THREAD.exposeENV("Test_ENV")
         multi_assert("Test_Thread_1", THREAD.getName(), "Thread name does not match!")
         multi_assert("Passing some args", a, "First argument is not as expected 'Passing some args'")
         multi_assert(true, e, "Argument e is not true!")
