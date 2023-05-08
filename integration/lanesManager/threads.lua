@@ -88,14 +88,6 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     function THREAD.kill() -- trigger the lane destruction
         error("Thread was killed!\1")
     end
-
-    function THREAD.getName()
-        return THREAD_NAME
-    end
-
-    function THREAD.getID()
-        return THREAD_ID
-    end
 	
     function THREAD.pushStatus(...)
         local args = {...}

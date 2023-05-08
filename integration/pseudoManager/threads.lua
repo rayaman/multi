@@ -33,6 +33,7 @@ end
 local function INIT(thread)
     local THREAD = {}
     local GLOBAL = {}
+
     THREAD.Priority_Core = 3
     THREAD.Priority_High = 2
     THREAD.Priority_Above_Normal = 1
@@ -84,14 +85,6 @@ local function INIT(thread)
         error("Thread was killed!")
     end
 
-    function THREAD.getName()
-        return GLOBAL["$THREAD_NAME"]
-    end
-
-    function THREAD.getID()
-        return GLOBAL["$THREAD_ID"]
-    end
-
     THREAD.sleep = thread.sleep
 
     THREAD.hold = thread.hold
@@ -107,18 +100,17 @@ local function INIT(thread)
     end
 
     function THREAD.exposeENV(name)
-        print("env",__env)
         name = name or "__env"
         local env = THREAD.getENV(name)
         for i,v in pairs(env) do
             -- This may need to be reworked!
-            _G[i] = v
+            local_global[i] = v
         end
     end
 
     return GLOBAL, THREAD
 end
 
-return {init = function(thread)
-    return INIT(thread)
+return {init = function(thread, global)
+    return INIT(thread, global)
 end}

@@ -259,6 +259,8 @@ Changed
 
 Removed
 ---
+- THREAD.getName() use THREAD_NAME instead
+- THREAD.getID() use THREAD_ID instead
 - conn:SetHelper(func) -- With the removal of old Connect this function is no longer needed
 - connection events can no longer can be chained with connect. Connect only takes a function that you want to connect
 

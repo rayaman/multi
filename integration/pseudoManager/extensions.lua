@@ -50,6 +50,7 @@ function multi:newSystemThreadedQueue(name)
 	GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
     local c = {}
     function c:init()
@@ -58,6 +59,7 @@ function multi:newSystemThreadedTable(name)
     GLOBAL[name or "_"] = c
 	return c
 end
+
 local setfenv = setfenv
 if not setfenv then
     if not debug then
@@ -68,6 +70,7 @@ if not setfenv then
         end
     end
 end
+
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
@@ -76,26 +79,32 @@ function multi:newSystemThreadedJobQueue(n)
     local ID=1
     local jid = 1
     local env = {}
+
     setmetatable(env,{
         __index = _G
     })
+
     local funcs = {}
     function c:doToAll(func)
         setfenv(func,env)()
         return self
     end
+
     function c:registerFunction(name,func)
         funcs[name] = setfenv(func,env)
         return self
     end
+
     function c:pushJob(name,...)
         table.insert(jobs,{name,jid,{...}})
         jid = jid + 1
         return jid-1
     end
+
     function c:isEmpty()
         return #jobs == 0
     end
+
     local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
         local func = stripUpValues(func)
@@ -120,7 +129,7 @@ function multi:newSystemThreadedJobQueue(n)
                     return unpack(rets) or multi.NIL
                 end
             end)
-        end,holup),name
+        end, holup), name
     end
     for i=1,c.cores do
         thread:newThread("PesudoThreadedJobQueue_"..i,function()
@@ -133,7 +142,7 @@ function multi:newSystemThreadedJobQueue(n)
                     thread.sleep(.05)
                 end
             end
-        end).OnError(print)
+        end).OnError(multi.error)
     end
     return c
 end

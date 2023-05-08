@@ -114,14 +114,6 @@ function threads.getThread(n)
     return GLOBAL["__THREAD_"..n]
 end
 
-function threads.getName()
-    return __THREADNAME__
-end
-
-function threads.getID()
-    return __THREADID__
-end
-
 function threads.sleep(n)
     love.timer.sleep(n)
 end

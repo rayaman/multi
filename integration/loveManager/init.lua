@@ -34,6 +34,8 @@ __IMPORTS = {...}
 __FUNC__=table.remove(__IMPORTS,1)
 __THREADID__=table.remove(__IMPORTS,1)
 __THREADNAME__=table.remove(__IMPORTS,1)
+THREAD_NAME = __THREADNAME__
+THREAD_ID = __THREADID__
 math.randomseed(__THREADID__)
 math.random()
 math.random()

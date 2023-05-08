@@ -1,5 +1,5 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
-multi, thread = require("multi"):init{print=true,warn=true,error=false}--{priority=true}
+multi, thread = require("multi"):init{}--{priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3
 local env, we_good
@@ -31,18 +31,21 @@ multi.print("Testing THREAD.setENV() if the multi_assert is not found then there
 THREAD.setENV({
     multi_assert = function(expected, actual, s)
         if expected ~= actual then
-            multi.error(s .. " Expected: '".. expected .."' Actual: '".. actual .."'")
+            multi.error(s .. " Expected: '".. tostring(expected) .."' Actual: '".. tostring(actual) .."'")
         end
     end
-},"Test_ENV")
+})
 
 multi:newThread("Scheduler Thread",function()
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
+
+    multi:newSystemThread("Test_Thread_0", function()
+        print("The name should be Test_Thread_0",THREAD_NAME,THREAD_NAME,_G.THREAD_NAME)
+    end)
     
     th1 = multi:newSystemThread("Test_Thread_1", function(a,b,c,d,e,f)
         queue = THREAD.waitFor("Test_Queue"):init()
-        THREAD.exposeENV("Test_ENV")
-        multi_assert("Test_Thread_1", THREAD.getName(), "Thread name does not match!")
+        multi_assert("Test_Thread_1", THREAD_NAME, "Thread name does not match!")
         multi_assert("Passing some args", a, "First argument is not as expected 'Passing some args'")
         multi_assert(true, e, "Argument e is not true!")
         multi_assert("table", type(f), "Argument f is not a table!")

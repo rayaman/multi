@@ -473,15 +473,13 @@ end
 
 -- Used with ISO Threads
 local function isolateFunction(func, env)
-	local dmp = string.dump(func)
-	local env = env or {}
-	if setfenv then
-		local f = loadstring(dmp, "IsolatedThread_PesudoThreading")
-		setfenv(f, env)
-		return f
-	else
-		return load(dmp,"IsolatedThread_PesudoThreading", "bt", env)
-	end
+    if setfenv then
+        return setfenv(func, env)
+    else
+        local env = env or {}
+        local dmp = string.dump(func)
+        return load(dmp,"IsolatedThread_PesudoThreading", "bt", env)
+    end
 end
 
 function multi:Break()
@@ -1585,9 +1583,9 @@ function thread:newThread(name, func, ...)
 	return c
 end
 
-function thread:newISOThread(name, func, _env, ...)
+function thread:newISOThread(name, func, env, ...)
 	local func = func or name
-	local env = _env or {}
+	local env = env or {}
 	if not env.thread then
 		env.thread = thread
 	end
@@ -2340,7 +2338,7 @@ function multi.error(self, err)
 	if type(err) == "bool" then crash = err end
 	if type(self) == "string" then err = self end
 	io.write("\x1b[91mERROR:\x1b[0m " .. err .. "\n")
-	error("^^^")
+	error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type)
 	if multi.defaultSettings.error then
 		os.exit(1)
 	end

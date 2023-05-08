@@ -196,7 +196,7 @@ function multi:newSystemThreadedConnection(name)
 		end
 		return r
 	end
-	c.CID = THREAD.getID()
+	c.CID = THREAD_ID
 	c.subscribe = multi:newSystemThreadedQueue("SUB_STC_"..self.Name):init()
 	c.Name = name
 	c.links = {} -- All triggers sent from main connection. When a connection is triggered on another thread, they speak to the main then send stuff out.
@@ -262,7 +262,7 @@ function multi:newSystemThreadedConnection(name)
 
 	function c:Fire(...)
 		local args = {...}
-		if self.CID == THREAD.getID() then -- Host Call
+		if self.CID == THREAD_ID then -- Host Call
 			for _, link in pairs(self.links) do
 				link:push {self.TRIG, args}
 			end
@@ -284,7 +284,7 @@ function multi:newSystemThreadedConnection(name)
 		tempMT.__index = self.proxy_conn
 		tempMT.__call = function(t,func) self.proxy_conn(func) end
 		setmetatable(self, tempMT)
-		if self.CID == THREAD.getID() then return self end
+		if self.CID == THREAD_ID then return self end
 		thread:newThread("STC_CONN_MAN"..name,function()
 			local item
 			local link_self_ref = multi:newSystemThreadedQueue()

@@ -31,8 +31,8 @@ if multi.integration then
 		end
 	}
 end
-
-local GLOBAL, THREAD = require("multi.integration.pseudoManager.threads").init(thread)
+local activator = require("multi.integration.pseudoManager.threads")
+local GLOBAL, THREAD = activator.init(thread)
 
 function multi:canSystemThread() -- We are emulating system threading
 	return true
@@ -55,22 +55,28 @@ tab = split(tab)
 
 local id = 0
 
-function multi:newSystemThread(name,func,...)
-	GLOBAL["$THREAD_NAME"] = name
-	GLOBAL["$__THREADNAME__"] = name
-	GLOBAL["$THREAD_ID"] = id
-	GLOBAL["$thread"] = thread
+print("Outerglobal",_G)
 
-	local env = {
+function multi:newSystemThread(name, func, ...)
+	local env
+	env = {
 		GLOBAL = GLOBAL,
 		THREAD = THREAD,
-		THREAD_NAME = name,
-		__THREADNAME__ = name,
+		THREAD_NAME = tostring(name),
+		__THREADNAME__ = tostring(name),
+		test = "testing",
 		THREAD_ID = id,
 		thread = thread,
+		multi = multi,
 	}
 
-	env.__env = env
+	for i, v in pairs(_G) do
+		if not(env[i]) and not(i == "_G") and not(i == "local_global") then
+			env[i] = v
+		else
+			multi.warn("skipping:",i)
+		end
+	end
 
 	if GLOBAL["__env"] then
 		for i,v in pairs(GLOBAL["__env"]) do
@@ -78,11 +84,11 @@ function multi:newSystemThread(name,func,...)
 		end
 	end
 	
-	for i = 1,#tab do
-		env[tab[i]] = _G[tab[i]]
-	end
+	env._G = env
+	
+	local GLOBAL, THREAD = activator.init(thread, env)
 
-	local th = thread:newISOThread(name,func,env,...)
+	local th = thread:newISOThread(name, func, env, ...)
 	
 	id = id + 1
 
