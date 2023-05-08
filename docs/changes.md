@@ -266,6 +266,7 @@ Removed
 
 Fixed
 ---
+- Issue with pseudo threading env's being messed up. Required removal of getName and getID!
 - connections being multiplied together would block the entire connection object from pushing events! This is not the desired effect I wanted. Now only the connection reference involved in the multiplication is locked!
 - multi:reallocate(processor, index) has been fixed to work with the current changes of the library.
 - Issue with lanes not handling errors properly. This is now resolved
