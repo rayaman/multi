@@ -184,12 +184,14 @@ function multi:newSystemThreadedJobQueue(n)
 					end
 					local dat = queue:performAtomic(atomic)
 					if dat then
-						lastProc = os.clock()
-						local name = table.remove(dat,1)
-						local id = table.remove(dat,1)
-						local tab = {funcs[name](unpack(dat))}
-						table.insert(tab,1,id)
-						queueReturn:push(tab)
+						multi:newThread("Test",function()
+							lastProc = os.clock()
+							local name = table.remove(dat,1)
+							local id = table.remove(dat,1)
+							local tab = {funcs[name](unpack(dat))}
+							table.insert(tab,1,id)
+							queueReturn:push(tab)
+						end)
 					end
 				end
 			end):OnError(function(...)

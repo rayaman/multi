@@ -22,8 +22,9 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
+
 if not (GLOBAL and THREAD) then
-	local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+	GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
 else
 	lanes = require("lanes")
 end
@@ -54,17 +55,24 @@ function multi:newSystemThreadedTable(name)
     local c = {}
     c.link = lanes.linda()
 	c.Name = name
-    setmetatable(c,{
+
+	-- function c:getIndex()
+	-- 	return c.link:dump()
+	-- end
+
+    function c:init()
+        return self
+    end
+	
+	setmetatable(c,{
         __index = function(t,k)
             return c.link:get(k)
         end,
         __newindex = function(t,k,v)
-            c.link:set(k,v)
+            c.link:set(k, v)
         end
     })
-    function c:init()
-        return self
-    end
+
     GLOBAL[name or "_"] = c
 	return c
 end
@@ -134,7 +142,7 @@ function multi:newSystemThreadedJobQueue(n)
     end)
     for i=1,c.cores do
         multi:newSystemThread("SystemThreadedJobQueue",function(queue)
-            local multi,thread = require("multi"):init()
+            local multi, thread = require("multi"):init()
             local idle = os.clock()
             local clock = os.clock
             local ref = 0
@@ -145,12 +153,14 @@ function multi:newSystemThreadedJobQueue(n)
                         return queueJob:pop()
                     end)
                     idle = clock()
-                    local name = table.remove(dat,1)
-                    local jid = table.remove(dat,1)
-                    local args = table.remove(dat,1)
-                    queueReturn:push{jid, funcs[name](unpack(args)),queue}
+					thread:newThread("test",function()
+						local name = table.remove(dat, 1)
+						local jid = table.remove(dat, 1)
+						local args = table.remove(dat, 1)
+						queueReturn:push{jid, funcs[name](unpack(args)), queue}
+					end)
                 end
-            end)
+            end).OnError(multi.error)
             thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()

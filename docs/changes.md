@@ -237,6 +237,7 @@ Added
 
 Changed
 ---
+- multi:newUpdater(skip, func) -- Now accepts func as the second argument. So you don't need to call OnUpdate(func) after creation. 
 - multi errors now internally call `multi.error` instead of `multi.print`
 - Actors Act() method now returns true when the main event is fired. Steps/Loops always return true. Nil is returned otherwise.
 - Connection:Connect(func, name) Now you can supply a name and name the connection.
@@ -296,7 +297,7 @@ Fixed
 
 ToDo
 ---
-- N/A
+- Network Manager, I know I said it will be in this release, but I'm still planning it out.
 
 # Update 15.3.1 - Bug fix
 Fixed

@@ -32,6 +32,51 @@ local find_optimization = false
 local threadManager
 local __CurrentConnectionThread
 
+-- Types
+
+multi.DestroyedObj = {
+	Type = "DESTROYED",
+}
+
+local function uni()
+	return multi.DestroyedObj
+end
+
+local function uniN() end
+function multi.setType(obj,t)
+	if t == multi.DestroyedObj then
+		for i,v in pairs(obj) do
+			obj[i] = nil
+		end
+		setmetatable(obj, {
+			__index = function(t,k)
+				return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
+			end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
+		})
+	end
+end
+setmetatable(multi.DestroyedObj, {
+	__index = function(t,k)
+		return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
+	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
+})
+
+multi.DESTROYED			= multi.DestroyedObj
+multi.ROOTPROCESS		= "rootprocess"
+multi.CONNECTOR			= "connector"
+multi.TIMEMASTER		= "timemaster"
+multi.PROCESS			= "process"
+multi.TIMER				= "timer"
+multi.EVENT				= "event"
+multi.UPDATER			= "updater"
+multi.ALARM				= "alarm"
+multi.LOOP				= "loop"
+multi.TLOOP				= "tloop"
+multi.STEP				= "step"
+multi.TSTEP				= "tstep"
+multi.THREAD			= "thread"
+multi.SERVICE			= "service"
+
 if not _G["$multi"] then
 	_G["$multi"] = {multi = multi, thread = thread}
 end
@@ -43,7 +88,7 @@ local NIL = multi.NIL
 multi.Mainloop = {}
 multi.Children = {}
 multi.Active = true
-multi.Type = "rootprocess"
+multi.Type = multi.ROOTPROCESS
 multi.LinkedPath = multi
 multi.TIMEOUT = "TIMEOUT"
 multi.TID = 0
@@ -86,24 +131,6 @@ end
 local function pack(...)
 	return {...}
 end
-
--- Types
-multi.DESTROYED			= multi.DestroyedObj
-multi.ROOTPROCESS		= "rootprocess"
-multi.CONNECTOR			= "connector"
-multi.CONNECTOR_LINK	= "connector_link"
-multi.TIMEMASTER		= "timemaster"
-multi.PROCESS			= "process"
-multi.TIMER				= "timer"
-multi.EVENT				= "event"
-multi.UPDATER			= "updater"
-multi.ALARM				= "alarm"
-multi.LOOP				= "loop"
-multi.TLOOP				= "tloop"
-multi.STEP				= "step"
-multi.TSTEP				= "tstep"
-multi.THREAD			= "thread"
-multi.SERVICE			= "service"
 
 --Processor
 local priorityTable = {[false]="Disabled",[true]="Enabled"}
@@ -273,7 +300,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end})
 
-	c.Type='connector'
+	c.Type=multi.CONNECTOR
 	c.func={}
 	c.ID=0
 	local protect=protect or false
@@ -504,7 +531,7 @@ end
 function multi:SetTime(n)
 	if not n then n=3 end
 	local c=self:newBase()
-	c.Type='timemaster'
+	c.Type=multi.TIMEMASTER
 	c.timer=self:newTimer()
 	c.timer:Start()
 	c.set=n
@@ -533,7 +560,7 @@ end
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
-	if self.Type=='rootprocess' then
+	if self.Type==multi.ROOTPROCESS then
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
@@ -550,7 +577,7 @@ function multi:Pause()
 end
 
 function multi:Resume()
-	if self.Type=='process' or self.Type=='rootprocess' then
+	if self.Type==multi.PROCESS or self.Type==multi.ROOTPROCESS then
 		self.Active=true
 		local c=self:getChildren()
 		for i=1,#c do
@@ -567,7 +594,7 @@ function multi:Resume()
 end
 
 function multi:Destroy()
-	if self.Type=='process' or self.Type=='rootprocess' then
+	if self.Type==multi.PROCESS or self.Type==multi.ROOTPROCESS then
 		local c=self:getChildren()
 		for i=1,#c do
 			self.OnObjectDestroyed:Fire(c[i])
@@ -620,9 +647,9 @@ end
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
-	if not(self.Type=='rootprocess' or self.Type=='process') then multi.error('Can only create an object on multi or an interface obj') return false end
+	if not(self.Type==multi.ROOTPROCESS or self.Type==multi.PROCESS) then multi.error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
-	if self.Type=='process' then
+	if self.Type==multi.PROCESS then
 		setmetatable(c, {__index = multi})
 	else
 		setmetatable(c, {__index = multi})
@@ -646,18 +673,13 @@ function multi:newBase(ins)
 	return c
 end
 
-function multi:newConnector()
-	local c = {Type = "connector"}
-	return c
-end
-
 multi.OnObjectCreated=multi:newConnection()
 multi.OnObjectDestroyed=multi:newConnection()
 multi.OnLoad = multi:newConnection(nil,nil,true)
 ignoreconn = false
 function multi:newTimer()
 	local c={}
-	c.Type='timer'
+	c.Type=multi.TIMER
 	local time=0
 	local count=0
 	local paused=false
@@ -690,7 +712,7 @@ end
 --Core Actors
 function multi:newEvent(task)
 	local c=self:newBase()
-	c.Type='event'
+	c.Type=multi.EVENT
 	local task = task or function() end
 	function c:Act()
 		local t = task(self)
@@ -712,9 +734,9 @@ function multi:newEvent(task)
 	return c
 end
 
-function multi:newUpdater(skip)
+function multi:newUpdater(skip, func)
 	local c=self:newBase()
-	c.Type='updater'
+	c.Type=multi.UPDATER
 	local pos = 1
 	local skip = skip or 1
 	function c:Act()
@@ -731,13 +753,16 @@ function multi:newUpdater(skip)
 	end
 	c.OnUpdate = self:newConnection():fastMode()
 	c:setName(c.Type)
+	if func then
+		c.OnUpdate(func)
+	end
 	self:create(c)
 	return c
 end
 
 function multi:newAlarm(set)
 	local c=self:newBase()
-	c.Type='alarm'
+	c.Type=multi.ALARM
 	c:setPriority("Low")
 	c.set=set or 0
 	local count = 0
@@ -773,9 +798,9 @@ function multi:newAlarm(set)
 	return c
 end
 
-function multi:newLoop(func,notime)
+function multi:newLoop(func, notime)
 	local c=self:newBase()
-	c.Type='loop'
+	c.Type=multi.LOOP
 	local start=clock()
 	if notime then
 		function c:Act()
@@ -802,7 +827,7 @@ end
 function multi:newStep(start,reset,count,skip)
 	local c=self:newBase()
 	think=1
-	c.Type='step'
+	c.Type=multi.STEP
 	c.pos=start or 1
 	c.endAt=reset or math.huge
 	c.skip=skip or 0
@@ -861,7 +886,7 @@ end
 
 function multi:newTLoop(func,set)
 	local c=self:newBase()
-	c.Type='tloop'
+	c.Type=multi.TLOOP
 	c.set=set or 0
 	c.timer=self:newTimer()
 	c.life=0
@@ -902,7 +927,7 @@ end
 
 function multi:newTStep(start,reset,count,set)
 	local c=self:newStep(start,reset,count)
-	c.Type='tstep'
+	c.Type=multi.TSTEP
 	c:setPriority("Low")
 	local reset = reset or math.huge
 	c.timer=clock()
@@ -1034,7 +1059,7 @@ function multi:newProcessor(name, nothread)
 	local name = name or "Processor_" .. sandcount
 	sandcount = sandcount + 1
 	c.Mainloop = {}
-	c.Type = "process"
+	c.Type = multi.PROCESS
 	local Active =  nothread or false
 	c.Name = name or ""
 	c.threads = {}
@@ -1248,7 +1273,7 @@ function thread.hold(n,opt)
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
-	elseif type(n) == "table" and n.Type == "connector" then
+	elseif type(n) == "table" and n.Type == multi.CONNECTOR then
 		return yield(CMD, t_hold, conn_test(n), nil, interval)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n or dFunc, nil, interval)
@@ -1499,7 +1524,7 @@ function thread:newThread(name, func, ...)
 	c.Name=name
 	c.thread=create(func)
 	c.sleep=1
-	c.Type = "thread"
+	c.Type = multi.THREAD
 	c.TID = threadid
 	c.firstRunDone=false
 	c._isPaused = false
@@ -1561,7 +1586,7 @@ function thread:newThread(name, func, ...)
 	c.Destroy = c.Kill
 	if thread.isThread() then
 		multi:newLoop(function(loop)
-			if self.Type == "process" then
+			if self.Type == multi.PROCESS then
 				table.insert(self.startme, c)
 			else
 				table.insert(threadManager.startme, c)
@@ -1569,7 +1594,7 @@ function thread:newThread(name, func, ...)
 			loop:Break()
 		end)
 	else
-		if self.Type == "process" then
+		if self.Type == multi.PROCESS then
 			table.insert(self.startme, c)
 		else
 			table.insert(threadManager.startme, c)
@@ -1782,7 +1807,7 @@ end
 
 function multi:newService(func) -- Priority managed threads
 	local c = {}
-	c.Type = "service"
+	c.Type = multi.SERVICE
 	c.OnStopped = self:newConnection()
 	c.OnStarted = self:newConnection()
 	local Service_Data = {}
@@ -1957,7 +1982,7 @@ local function doOpt()
 		if type(n) == "number" then
 			thread.getRunningThread().lastSleep = clock()
 			return yield(CMD, t_sleep, n or 0, nil, interval)
-		elseif type(n) == "table" and n.Type == "connector" then
+		elseif type(n) == "table" and n.Type == multi.CONNECTOR then
 			local rdy = function()
 				return false
 			end
@@ -2074,32 +2099,6 @@ if table.unpack and not unpack then
 	unpack=table.unpack
 end
 
-multi.DestroyedObj = {
-	Type = "destroyed",
-}
-
-local function uni()
-	return multi.DestroyedObj
-end
-
-local function uniN() end
-function multi.setType(obj,t)
-	if t == multi.DestroyedObj then
-		for i,v in pairs(obj) do
-			obj[i] = nil
-		end
-		setmetatable(obj, {
-			__index = function(t,k)
-				return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
-			end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
-		})
-	end
-end
-setmetatable(multi.DestroyedObj, {
-	__index = function(t,k)
-		return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
-	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
-})
 math.randomseed(os.time())
 
 function multi:enableLoadDetection()

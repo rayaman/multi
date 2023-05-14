@@ -122,13 +122,11 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
 	})
 
     function THREAD.setENV(env, name)
-        name = name or "__env"
-        GLOBAL[name] = env
+        GLOBAL[name or "__env"] = env
     end
 
     function THREAD.getENV(name)
-        name = name or "__env"
-        return GLOBAL[name]
+        return GLOBAL[name or "__env"]
     end
 
     function THREAD.exposeENV(name)

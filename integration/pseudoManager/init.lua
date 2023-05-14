@@ -110,6 +110,7 @@ multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.pseudoManager.extensions")
+require("multi.integration.sharedExtensions")
 return {
 	init = function()
 		return GLOBAL, THREAD

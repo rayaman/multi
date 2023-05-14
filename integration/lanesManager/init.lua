@@ -97,6 +97,7 @@ function multi:newSystemThread(name, func, ...)
 	},function(...)
 		multi, thread = require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
+		require("multi.integration.sharedExtensions")
 		local has_error = true
 		returns = {pcall(func, ...)}
 		return_linda:set("returns", returns)
@@ -179,6 +180,7 @@ multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.lanesManager.extensions")
+require("multi.integration.sharedExtensions")
 return {
 	init = function()
 		return GLOBAL, THREAD

@@ -53,6 +53,7 @@ multi.integration={}
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 pcall(require,"multi.integration.loveManager.extensions")
+pcall(require,"multi.integration.sharedExtensions")
 stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
 ]]
 
@@ -121,5 +122,6 @@ end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.loveManager.extensions")
+require("multi.integration.sharedExtensions")
 multi.print("Integrated Love Threading!")
 return {init = function() return GLOBAL, THREAD end}
