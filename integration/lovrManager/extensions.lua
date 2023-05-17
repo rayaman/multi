@@ -124,7 +124,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets) or multi.NIL
+                    return multi.unpack(rets) or multi.NIL
                 end
             end)
         end,holup),name
@@ -134,7 +134,7 @@ function multi:newSystemThreadedJobQueue(n)
 			thread.yield()
 			local dat = c.queueReturn:pop()
 			if dat then
-				c.OnJobCompleted:Fire(unpack(dat))
+				c.OnJobCompleted:Fire(multi.unpack(dat))
 			end
 		end
 	end)
@@ -177,7 +177,7 @@ function multi:newSystemThreadedJobQueue(n)
 						lastProc = os.clock()
 						local name = table.remove(dat,1)
 						local id = table.remove(dat,1)
-						local tab = {funcs[name](unpack(dat))}
+						local tab = {funcs[name](multi.unpack(dat))}
 						table.insert(tab,1,id)
 						queueReturn:push(tab)
 					end

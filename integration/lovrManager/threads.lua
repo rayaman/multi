@@ -174,7 +174,7 @@ if not ISTHREAD then
             dat = queue:pop()
             if dat then
                 lastproc = clock()
-                print(unpack(dat))
+                print(multi.unpack(dat))
             end
             if clock()-lastproc>2 then
                 thread.sleep(.1)

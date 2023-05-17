@@ -1,7 +1,7 @@
 --[[
 MIT License
 
-Copyright (c) 2022 Ryan Ward
+Copyright (c) 2023 Ryan Ward
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -31,6 +31,10 @@ local processes = {}
 local find_optimization = false
 local threadManager
 local __CurrentConnectionThread
+
+multi.unpack = table.unpack or unpack
+
+if table.unpack then unpack = table.unpack end
 
 -- Types
 
@@ -1171,7 +1175,7 @@ function multi.hold(func,opt)
 			multi:uManager()
 		end
 		proc:Resume()
-		return unpack(rets)
+		return multi.unpack(rets)
 	end
 end
 
@@ -1224,7 +1228,7 @@ function thread._Requests()
 	if t then
 		thread.requests[running()] = nil
 		local cmd,args = t[1],t[2]
-		thread[cmd](unpack(args))
+		thread[cmd](multi.unpack(args))
 	end
 end
 
@@ -1244,7 +1248,7 @@ local function conn_test(conn)
 	conn(func)
 	return function()
 		if ready then
-			return unpack(args) or multi.NIL
+			return multi.unpack(args) or multi.NIL
 		end
 	end
 end
@@ -1343,15 +1347,13 @@ local function cleanReturns(...)
 			break
 		end
 	end
-	return unpack(returns,1,ind)
+	return multi.unpack(returns,1,ind)
 end
 
 function thread.pushStatus(...)
 	local t = thread.getRunningThread() or __CurrentConnectionThread
 	t.statusconnector:Fire(...)
 end
-
-local handler
 
 function thread:newFunctionBase(generator, holdme)
 	return function()
@@ -1381,7 +1383,7 @@ function thread:newFunctionBase(generator, holdme)
 				end)
 			else
 				while not rets and not err do
-					handler()
+					multi:getCurrentProcess():getHandler()()
 				end
 				if err then
 					return nil,err
@@ -1415,7 +1417,7 @@ function thread:newFunctionBase(generator, holdme)
 				isTFunc = true,
 				wait = wait,
 				getReturns = function()
-					return unpack(rets)
+					return multi.unpack(rets)
 				end,
 				connect = function(f)
 					local tempConn = multi:newConnection(true)
@@ -1785,7 +1787,7 @@ function multi:createHandler()
 			for start = #startme, 1, -1 do
 				temp_start = startme[start]
 				table.remove(startme)
-				_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, unpack(temp_start.startArgs))
+				_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, multi.unpack(temp_start.startArgs))
 				co_status[status(temp_start.thread)](temp_start.thread, temp_start, t_none, nil, threads)
 				table.insert(threads, temp_start)
 				yield()
@@ -2095,10 +2097,6 @@ function table.merge(t1, t2)
 	return t1
 end
 
-if table.unpack and not unpack then
-	unpack=table.unpack
-end
-
 math.randomseed(os.time())
 
 function multi:enableLoadDetection()
@@ -2308,7 +2306,7 @@ function multi.timer(func,...)
 	args={func(...)}
 	local t = timer:Get()
 	timer = nil
-	return t,unpack(args)
+	return t,multi.unpack(args)
 end
 
 if os.getOS()=="windows" then
@@ -2379,5 +2377,9 @@ else
 end
 
 threadManager = multi:newProcessor("Global_Thread_Manager").Start()
+
+function multi:getHandler()
+	return threadManager:getHandler()
+end
 
 return multi

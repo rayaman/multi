@@ -50,7 +50,7 @@ local function split(str)
 	return tab
 end
 
-local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,unpack,xpcall,math,coroutine,string,table]]
+local tab = [[_VERSION,io,os,require,load,debug,assert,collectgarbage,error,getfenv,getmetatable,ipairs,loadstring,module,next,pairs,pcall,print,rawequal,rawget,rawset,select,setfenv,setmetatable,tonumber,tostring,type,xpcall,math,coroutine,string,table]]
 tab = split(tab)
 
 local id = 0

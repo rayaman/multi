@@ -134,7 +134,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets) or multi.NIL
+                    return multi.unpack(rets) or multi.NIL
                 end
             end)
         end,holup),name
@@ -144,7 +144,7 @@ function multi:newSystemThreadedJobQueue(n)
 			thread.yield()
 			local dat = c.queueReturn:pop()
 			if dat then
-				c.OnJobCompleted:Fire(unpack(dat))
+				c.OnJobCompleted:Fire(multi.unpack(dat))
 			end
 		end
 	end)
@@ -188,7 +188,7 @@ function multi:newSystemThreadedJobQueue(n)
 							lastProc = os.clock()
 							local name = table.remove(dat,1)
 							local id = table.remove(dat,1)
-							local tab = {funcs[name](unpack(dat))}
+							local tab = {funcs[name](multi.unpack(dat))}
 							table.insert(tab,1,id)
 							queueReturn:push(tab)
 						end)
@@ -264,7 +264,7 @@ function multi:newSystemThreadedConnection(name)
 					end
 					link_self_ref:pop()
 				elseif item[1] == self.TRIG then
-					self.proxy_conn:Fire(unpack(item[2]))
+					self.proxy_conn:Fire(multi.unpack(item[2]))
 					link_self_ref:pop()
 				else
 					-- This shouldn't be the case
@@ -341,8 +341,8 @@ function multi:newSystemThreadedConnection(name)
 				c.links[#c.links+1] = item[2]
 
 			elseif item[1] == c.TRIG then
-				fire(unpack(item[2]))
-				c.proxy_conn:Fire(unpack(item[2]))
+				fire(multi.unpack(item[2]))
+				c.proxy_conn:Fire(multi.unpack(item[2]))
 			end
 		end
 	end).OnError(print)

@@ -131,13 +131,12 @@ function multi.InitSystemThreadErrorHandler()
 		while true do
 			thread.yield()
 			_,data = __ConsoleLinda:receive(0, "Q")
-			if data then print(unpack(data)) end
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status
 				push = __StatusLinda:get(temp.Id)
 				if push then
-					temp.statusconnector:Fire(unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
+					temp.statusconnector:Fire(multi.unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
 				end
 				if status == "done" or temp.returns:get("returns") then
 					returns = ({temp.returns:receive(0, "returns")})[2]
@@ -147,7 +146,7 @@ function multi.InitSystemThreadErrorHandler()
 						temp.OnError:Fire(temp, returns[2])
 					else
 						table.remove(returns,1)
-						temp.OnDeath:Fire(unpack(returns))
+						temp.OnDeath:Fire(multi.unpack(returns))
 					end
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)

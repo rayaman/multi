@@ -116,6 +116,7 @@ function multi:newSystemThreadedJobQueue(n)
         nFunc = nFunc + 1
         c:registerFunction(name,func)
         return thread:newFunction(function(...)
+			print("Called!")
             local id = c:pushJob(name,...)
             local link
             local rets
@@ -126,10 +127,10 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets) or multi.NIL
+                    return multi.unpack(rets) or multi.NIL
                 end
             end)
-        end,holup),name
+        end,holup), name
     end
     thread:newThread("JobQueueManager",function()
         while true do
@@ -137,7 +138,7 @@ function multi:newSystemThreadedJobQueue(n)
                 return queueReturn:pop()
             end)
             local id = table.remove(job,1)
-            c.OnJobCompleted:Fire(id,unpack(job))
+            c.OnJobCompleted:Fire(id,multi.unpack(job))
         end
     end)
     for i=1,c.cores do
@@ -157,10 +158,10 @@ function multi:newSystemThreadedJobQueue(n)
 						local name = table.remove(dat, 1)
 						local jid = table.remove(dat, 1)
 						local args = table.remove(dat, 1)
-						queueReturn:push{jid, funcs[name](unpack(args)), queue}
+						queueReturn:push{jid, funcs[name](multi.unpack(args)), queue}
 					end)
                 end
-            end).OnError(multi.error)
+            end).OnError(print)
             thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()
@@ -263,8 +264,8 @@ function multi:newSystemThreadedConnection(name)
 				end)
 				c.links[#c.links+1] = item[2]
 			elseif item[1] == c.TRIG then
-				fire(unpack(item[2]))
-				c.proxy_conn:Fire(unpack(item[2]))
+				fire(multi.unpack(item[2]))
+				c.proxy_conn:Fire(multi.unpack(item[2]))
 			end
 		end
 	end)
@@ -312,7 +313,7 @@ function multi:newSystemThreadedConnection(name)
 					end
 					link_self_ref:pop()
 				elseif item[1] == self.TRIG then
-					self.proxy_conn:Fire(unpack(item[2]))
+					self.proxy_conn:Fire(multi.unpack(item[2]))
 					link_self_ref:pop()
 				else
 					-- This shouldn't be the case

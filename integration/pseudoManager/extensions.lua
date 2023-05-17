@@ -126,7 +126,7 @@ function multi:newSystemThreadedJobQueue(n)
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets) or multi.NIL
+                    return multi.unpack(rets) or multi.NIL
                 end
             end)
         end, holup), name
@@ -137,7 +137,7 @@ function multi:newSystemThreadedJobQueue(n)
                 thread.yield()
                 if #jobs>0 then
                     local j = table.remove(jobs,1)
-                    c.OnJobCompleted:Fire(j[2],funcs[j[1]](unpack(j[3])))
+                    c.OnJobCompleted:Fire(j[2],funcs[j[1]](multi.unpack(j[3])))
                 else
                     thread.sleep(.05)
                 end

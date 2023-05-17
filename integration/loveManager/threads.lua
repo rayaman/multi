@@ -223,7 +223,7 @@ if not ISTHREAD then
     multi:newLoop(function(loop)
         dat = queue:pop()
         if dat then
-            print(unpack(dat))
+            print(multi.unpack(dat))
         end
     end)
 end

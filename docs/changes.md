@@ -237,6 +237,7 @@ Added
 
 Changed
 ---
+- changed how multi adds unpack to the global namespace. Instead we capture that value into multi.unpack.
 - multi:newUpdater(skip, func) -- Now accepts func as the second argument. So you don't need to call OnUpdate(func) after creation. 
 - multi errors now internally call `multi.error` instead of `multi.print`
 - Actors Act() method now returns true when the main event is fired. Steps/Loops always return true. Nil is returned otherwise.
@@ -260,6 +261,8 @@ Changed
 
 Removed
 ---
+- multi.CONNECTOR_LINK -- No longer used
+- multi:newConnector() -- No longer used
 - THREAD.getName() use THREAD_NAME instead
 - THREAD.getID() use THREAD_ID instead
 - conn:SetHelper(func) -- With the removal of old Connect this function is no longer needed

@@ -54,7 +54,7 @@ multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 pcall(require,"multi.integration.loveManager.extensions")
 pcall(require,"multi.integration.sharedExtensions")
-stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
+stab["returns"] = {THREAD.loadDump(__FUNC__)(multi.unpack(__IMPORTS))}
 ]]
 
 local multi, thread = require("multi"):init()
@@ -86,7 +86,7 @@ function multi:newSystemThread(name, func, ...)
             thread.hold(function()
                 -- While the thread is running we might as well do something in the loop
                 if status_channel:peek() ~= nil then
-                    c.statusconnector:Fire(unpack(status_channel:pop()))
+                    c.statusconnector:Fire(multi.unpack(status_channel:pop()))
                 end
                 return not c.thread:isRunning()
             end)
@@ -100,7 +100,7 @@ function multi:newSystemThread(name, func, ...)
         elseif thread_err then
             c.OnError:Fire(c, thread_err)
         elseif c.stab.returns then
-            c.OnDeath:Fire(unpack(c.stab.returns))
+            c.OnDeath:Fire(multi.unpack(c.stab.returns))
             c.stab.returns = nil
         end
     end)

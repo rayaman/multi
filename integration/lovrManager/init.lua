@@ -36,7 +36,7 @@ __THREADNAME__=table.remove(__IMPORTS,1)
 stab = THREAD.createStaticTable(__THREADNAME__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
-stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
+stab["returns"] = {THREAD.loadDump(__FUNC__)(multi.unpack(__IMPORTS))}
 ]]
 local multi, thread = require("multi.compat.lovr2d"):init()
 local THREAD = {}
@@ -58,7 +58,7 @@ function THREAD:newFunction(func,holup)
                 if t.stab["returns"] then
                     local dat = t.stab.returns
                     t.stab.returns = nil
-                    return unpack(dat)
+                    return multi.unpack(dat)
                 end
 			end)
 		end,holup)()
