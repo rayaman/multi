@@ -26,52 +26,84 @@ local multi, thread = require("multi"):init()
 
 -- Returns a handler that allows a user to interact with an object on another thread!
 -- Create on the thread that you want to interact with, send over the handle
-function multi:newProxy(obj)
+
+function multi:chop(obj)
+	local multi, thread = require("multi"):init()
+	list = {[0] = multi.randomString(12)}
+	_G[list[0]] = obj
+	for i,v in pairs(obj) do
+		if type(v) == "function" then
+			list[#list+1] = i
+		end
+	end
+	return list
+end
+
+function multi:newProxy(list)
 	
+	local c = {}
+
 	c.name = multi.randomString(12)
 	
 	function c:init()
-		if not multi.isMainThread then
+		local multi, thread = nil, nil
+		if THREAD_NAME then
 			local multi, thread = require("multi"):init()
 			local function check()
 				return self.send:pop()
 			end
 			self.send = multi:newSystemThreadedQueue(self.name.."_S"):init()
 			self.recv = multi:newSystemThreadedQueue(self.name.."_R"):init()
-			self.ref = obj
-			self.funcs = {}
-			for i, v in pairs(obj) do
-				if type(v) == "function" then
-					self.funcs[#self.funcs] = i
-				end
-			end
+			self.funcs = list
 			thread:newThread(function()
 				while true do
 					local data = thread.hold(check)
 					local func = table.remove(data, 1)
-					local ret = {self.ref[func](multi.unpack(data))}
+					local sref = table.remove(data, 1)
+					local ret
+					if sref then
+						ret = {_G[list[0]][func](_G[list[0]], multi.unpack(data))}
+					else
+						ret = {_G[list[0]][func](multi.unpack(data))}
+					end 
+					if ret[1] == _G[list[0]] then
+						-- We cannot return itself, that return can contain bad values.
+						ret[1] = {_self_ref_ = true}
+					end
 					table.insert(ret, 1, func)
 					self.recv:push(ret)
 				end
-			end)
+			end).OnError(print)
+			return self
 		else
+			local multi, thread = require("multi"):init()
+			local me = self
 			GLOBAL = multi.integration.GLOBAL
 			THREAD = multi.integration.THREAD
 			self.send = THREAD.waitFor(self.name.."_S")
 			self.recv = THREAD.waitFor(self.name.."_R")
 			for _,v in pairs(self.funcs) do
-				self[v] = thread:newFunction(function(...)
-					self.send:push({v, ...})
+				self[v] = thread:newFunction(function(self,...)
+					if self == me then
+						me.send:push({v, true, ...})
+					else
+						me.send:push({v, false, ...})
+					end
 					return thread.hold(function()
-						local data = self.recv:peek()
-						if data[1] == v then
-							self.recv:pop()
-							thread.remove(data, 1)
+						local data = me.recv:peek()
+						if data and data[1] == v then
+							me.recv:pop()
+							table.remove(data, 1)
+							if type(data[1]) == "table" and data[1]._self_ref_ then
+								-- So if we get a self return as a return, we should return the proxy!
+								data[1] = me
+							end
 							return multi.unpack(data)
 						end
 					end)
 				end, true)
 			end
+			return self
 		end
 	end
 
@@ -80,7 +112,7 @@ end
 
 function multi:newSystemThreadedProcessor(name, cores)
 
-	local name = name or "STP_"multi.randomString(4) -- set a random name if none was given.
+	local name = name or "STP_"..multi.randomString(4) -- set a random name if none was given.
 
 	local autoscale = autoscale or false -- Will scale up the number of cores that the process uses.
 	local c = {}
@@ -97,32 +129,30 @@ function multi:newSystemThreadedProcessor(name, cores)
 	c.parent = self
 	c.jobqueue = multi:newSystemThreadedJobQueue(c.cores)
 	
-	local spawnThread = c.jobqueue:newFunction(function(name, func, ...)
+	c.spawnThread = c.jobqueue:newFunction("__spawnThread__", function(name, func, ...)
 		local multi, thread = require("multi"):init()
-		print("hmm")
-		local proxy = multi:newProxy(thread:newThread(name, func, ...))
-		multi:newTask(function()
-			proxy:init()
-		end)
+		local proxy = multi:newProxy(multi:chop(thread:newThread(name, func, ...))):init()
 		return proxy
 	end, true)
 
-	local spawnTask = c.jobqueue:newFunction(function(name, func, ...)
+	c.spawnTask = c.jobqueue:newFunction("__spawnTask__", function(obj, func, ...)
 		local multi, thread = require("multi"):init()
-		local proxy = multi:newProxy(multi[obj](multi, func))
-		multi:newTask(function()
-			proxy:init()
-		end)
+		local obj = multi[obj](multi, func, ...)
+		local proxy = multi:newProxy(multi:chop(obj)):init()
 		return proxy
 	end, true)
 
-	c.newLoop = thread:newFunction(function(self, func, notime)
-		return spawnTask("newLoop", func, notime):init()
-	end, true)
+	function c:newLoop(func, notime)
+		return self.spawnTask("newLoop", func, notime):init()
+	end
 
-	c.newUpdater = thread:newFunction(function(self, skip, func)
-		return spawnTask("newUpdater", func, notime):init()
-	end, true)
+	function c:newTLoop(func, time)
+		return self.spawnTask("newTLoop", func, time):init()
+	end
+
+	function c:newUpdater(skip, func)
+		return self.spawnTask("newUpdater", func, notime):init()
+	end
 
 	c.OnObjectCreated(function(proc, obj)
 		if not(obj.Type == multi.UPDATER or obj.Type == multi.LOOP) then
@@ -146,9 +176,9 @@ function multi:newSystemThreadedProcessor(name, cores)
 		return self.Name
 	end
 
-	c.newThread = thread:newFunction(function(self, name, func, ...)
-		return spawnThread(name, func, ...):init()
-	end, true)
+	function c:newThread(name, func, ...)
+		return self.spawnThread(name, func, ...):init()
+	end
 
 	function c:newFunction(func, holdme)
 		return c.jobqueue:newFunction(func, holdme)

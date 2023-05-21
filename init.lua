@@ -568,14 +568,8 @@ function multi:Pause()
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
-		local loop = self.Parent.Mainloop
-		for i=1,#loop do
-			if loop[i] == self then
-				multi.PausedObjects[self] = true
-				table.remove(loop,i)
-				break
-			end
-		end
+		self._Act = self.Act
+		self.Act = empty_func
 	end
 	return self
 end
@@ -589,8 +583,7 @@ function multi:Resume()
 		end
 	else
 		if self.Active==false then
-			table.insert(self.Parent.Mainloop,self)
-			multi.PausedObjects[self] = nil
+			self.Act = self._Act
 			self.Active=true
 		end
 	end
@@ -668,6 +661,17 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.creationTime = clock()
+
+	function c:Pause()
+		c.Parent.Pause(self)
+		return self
+	end
+
+	function c:Resume()
+		c.Parent.Resume(self)
+		return self
+	end
+	
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
@@ -817,6 +821,7 @@ function multi:newLoop(func, notime)
 			return true
 		end
 	end
+	
 	c.OnLoop = self:newConnection():fastMode()
 
 	if func then
@@ -1230,6 +1235,10 @@ function thread._Requests()
 		local cmd,args = t[1],t[2]
 		thread[cmd](multi.unpack(args))
 	end
+end
+
+function thread.exec(func)
+	func()
 end
 
 function thread.sleep(n)
@@ -1755,8 +1764,8 @@ co_status = {
 		end
 		r1=nil r2=nil r3=nil r4=nil r5=nil
 	end,
-	["normal"] = function(thd,ref)  end,
-	["running"] = function(thd,ref)  end,
+	["normal"] = function(thd,ref) end,
+	["running"] = function(thd,ref) end,
 	["dead"] = function(thd,ref,task,i,th)
 		if ref.__processed then return end
 		if _ then
@@ -1929,7 +1938,7 @@ function multi:mainloopRef()
 			for _D=#Loop,1,-1 do
 				__CurrentTask = Loop[_D]
 				ctask = __CurrentTask
-				ctask:Act()
+				if ctask then ctask:Act() end
 				__CurrentProcess = self
 			end
 		end

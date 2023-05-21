@@ -107,7 +107,7 @@ function multi:newSystemThreadedJobQueue(n)
         return jid-1
     end
     local nFunc = 0
-    function c:newFunction(name,func,holup) -- This registers with the queue
+    function c:newFunction(name, func, holup) -- This registers with the queue
         if type(name)=="function" then
             holup = func
             func = name
@@ -116,7 +116,6 @@ function multi:newSystemThreadedJobQueue(n)
         nFunc = nFunc + 1
         c:registerFunction(name,func)
         return thread:newFunction(function(...)
-			print("Called!")
             local id = c:pushJob(name,...)
             local link
             local rets
@@ -130,19 +129,21 @@ function multi:newSystemThreadedJobQueue(n)
                     return multi.unpack(rets) or multi.NIL
                 end
             end)
-        end,holup), name
+        end, holup), name
     end
     thread:newThread("JobQueueManager",function()
         while true do
             local job = thread.hold(function()
                 return queueReturn:pop()
             end)
-            local id = table.remove(job,1)
-            c.OnJobCompleted:Fire(id,multi.unpack(job))
+			if job then
+				local id = table.remove(job,1)
+				c.OnJobCompleted:Fire(id,multi.unpack(job))
+			end
         end
     end)
     for i=1,c.cores do
-        multi:newSystemThread("SystemThreadedJobQueue",function(queue)
+        multi:newSystemThread("SystemThreadedJobQueue_"..multi.randomString(4),function(queue)
             local multi, thread = require("multi"):init()
             local idle = os.clock()
             local clock = os.clock
@@ -176,7 +177,7 @@ function multi:newSystemThreadedJobQueue(n)
                         end
                     end
                 end
-            end)
+            end).OnError(print)
             thread:newThread("IdleHandler",function()
                 while true do
                     thread.hold(function()
@@ -184,9 +185,9 @@ function multi:newSystemThreadedJobQueue(n)
                     end)
                     THREAD.sleep(.01)
                 end
-            end)
+            end).OnError(print)
             multi:mainloop()
-        end,i).priority = thread.Priority_Core
+        end,i).OnError(print)
     end
     return c
 end
