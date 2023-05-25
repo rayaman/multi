@@ -101,6 +101,21 @@ Added
 
 	There are currently limitations to proxies. Connection proxy do not receive events on the non thread side. So connection metamethods do not work! Also you cannot use the proxy holds. For full features develop using a systemThreadedConnection() which does support all connection features. I planned on using STCs originally, but decided not to because I didn't want proxy objects to affect the non thread side of things! Subscribing to an event that isn't on the thread being proxied would cause the object to no longer be a proxy.
 
+	This event is subscribed to on the proxy threads side of things!
+
+	Currently supporting:
+	- STP:newLoop(...)
+	- STP:newTLoop(...)
+	- STP:newUpdater(...)
+	- STP:newEvent(...)
+	- STP:newAlarm(...)
+	- STP:newStep(...)
+	- STP:newTStep(...)
+	- STP:newThread(...)
+	- STP:newFunction(...)
+
+	If you would like to connect to a "STP Connection" object you can do so in a STP Function using hold and connect to the function OnReturn event or have the function wait (When in a coroutine it will only pause execution for that coroutine(multi:newThread(...))). The function is still runs on the Thread that the STP is running on. There is no guarantee that the function will run on the same thread each time, unlike with the multi objects/cothreads. Those stay on the systhread they are created on.
+
 - thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
 - multi.Processors:getHandler() -- returns the thread handler for a process
 - multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!

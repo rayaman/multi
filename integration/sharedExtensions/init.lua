@@ -192,6 +192,10 @@ function multi:newSystemThreadedProcessor(name, cores)
 		return self.spawnTask("newStep", start, reset, count, skip):init()
 	end
 
+	function c:newTStep(start ,reset, count, set)
+		return self.spawnTask("newTStep", start, reset, count, set):init()
+	end
+
 	c.OnObjectCreated(function(proc, obj)
 		if not(obj.Type == multi.UPDATER or obj.Type == multi.LOOP) then
 			return multi.error("Invalid type!")
