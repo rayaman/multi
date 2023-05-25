@@ -319,7 +319,7 @@ function multi:newConnection(protect,func,kill)
 		if conn and not conn.lock then
 			conn.lock = function() end
 			for i = 1, #fast do
-				if conn.ref == fast[i] then
+				if fast[conn.ref] == fast[i] then
 					fast[i] = conn.lock
 					return self
 				end
@@ -334,7 +334,7 @@ function multi:newConnection(protect,func,kill)
 		if conn and conn.lock then
 			for i = 1, #fast do
 				if conn.lock == fast[i] then
-					fast[i] = conn.ref
+					fast[i] = fast[conn.ref]
 					return self
 				end
 			end
@@ -376,7 +376,7 @@ function multi:newConnection(protect,func,kill)
 
 	function c:Unconnect(conn)
 		for i = 1, #fast do
-			if conn.ref == fast[i] then
+			if fast[conn.ref] == fast[i] then
 				return table.remove(fast, i), i
 			end
 		end
@@ -445,7 +445,8 @@ function multi:newConnection(protect,func,kill)
 				rawset(t,k,v)
 			end,
 		})
-		temp.ref = func
+		temp.ref = multi.randomString(24)
+		fast[temp.ref] = func
 		temp.name = name
 		if self.rawadd then
 			self.rawadd = false
@@ -718,7 +719,7 @@ function multi:newTimer()
 end
 
 --Core Actors
-function multi:newEvent(task)
+function multi:newEvent(task, func)
 	local c=self:newBase()
 	c.Type=multi.EVENT
 	local task = task or function() end
@@ -736,6 +737,9 @@ function multi:newEvent(task)
 		return self
 	end
 	c.OnEvent = self:newConnection():fastMode()
+	if func then
+		c.OnEvent(func)
+	end
 	self:setPriority("core")
 	c:setName(c.Type)
 	self:create(c)
@@ -768,7 +772,7 @@ function multi:newUpdater(skip, func)
 	return c
 end
 
-function multi:newAlarm(set)
+function multi:newAlarm(set, func)
 	local c=self:newBase()
 	c.Type=multi.ALARM
 	c:setPriority("Low")
@@ -800,6 +804,9 @@ function multi:newAlarm(set)
 		count = clock()
 		self.Parent.Pause(self)
 		return self
+	end
+	if func then
+		c.OnRing(func)
 	end
 	c:setName(c.Type)
 	self:create(c)

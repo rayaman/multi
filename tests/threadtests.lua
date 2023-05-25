@@ -151,6 +151,7 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end).OnError(multi.error)
+    
     connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
     a=0
     connOut(function(arg)

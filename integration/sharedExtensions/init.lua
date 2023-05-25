@@ -29,11 +29,20 @@ local multi, thread = require("multi"):init()
 
 function multi:chop(obj)
 	local multi, thread = require("multi"):init()
-	list = {[0] = multi.randomString(12)}
+	local list = {[0] = multi.randomString(12)}
 	_G[list[0]] = obj
 	for i,v in pairs(obj) do
 		if type(v) == "function" then
-			list[#list+1] = i
+			table.insert(list, i)
+		elseif type(v) == "table" and v.Type == multi.CONNECTOR then
+			table.insert(list, {i, multi:newProxy(multi:chop(v)):init()})
+			-- local stc = "stc_"..list[0].."_"..i
+			-- list[-1][#list[-1] + 1] = {i, stc}
+			-- list[#list+1] = i
+			-- obj[stc] = multi:newSystemThreadedConnection(stc):init()
+			-- obj["_"..i.."_"] = function(...)
+			-- 	return obj[stc](...)
+			-- end
 		end
 	end
 	return list
@@ -55,6 +64,7 @@ function multi:newProxy(list)
 			self.send = multi:newSystemThreadedQueue(self.name.."_S"):init()
 			self.recv = multi:newSystemThreadedQueue(self.name.."_R"):init()
 			self.funcs = list
+			self.conns = list[-1]
 			thread:newThread(function()
 				while true do
 					local data = thread.hold(check)
@@ -65,10 +75,15 @@ function multi:newProxy(list)
 						ret = {_G[list[0]][func](_G[list[0]], multi.unpack(data))}
 					else
 						ret = {_G[list[0]][func](multi.unpack(data))}
-					end 
-					if ret[1] == _G[list[0]] then
-						-- We cannot return itself, that return can contain bad values.
-						ret[1] = {_self_ref_ = true}
+					end
+					for i = 1,#ret do
+						if type(ret[i]) == "table" and getmetatable(ret[i]) then
+							setmetatable(ret[i],{}) -- remove that metatable, we do not need it on the other side!
+						end
+						if ret[i] == _G[list[0]] then
+							-- We cannot return itself, that return can contain bad values.
+							ret[i] = {_self_ref_ = true}
+						end
 					end
 					table.insert(ret, 1, func)
 					self.recv:push(ret)
@@ -83,25 +98,36 @@ function multi:newProxy(list)
 			self.send = THREAD.waitFor(self.name.."_S")
 			self.recv = THREAD.waitFor(self.name.."_R")
 			for _,v in pairs(self.funcs) do
-				self[v] = thread:newFunction(function(self,...)
-					if self == me then
-						me.send:push({v, true, ...})
-					else
-						me.send:push({v, false, ...})
-					end
-					return thread.hold(function()
-						local data = me.recv:peek()
-						if data and data[1] == v then
-							me.recv:pop()
-							table.remove(data, 1)
-							if type(data[1]) == "table" and data[1]._self_ref_ then
-								-- So if we get a self return as a return, we should return the proxy!
-								data[1] = me
-							end
-							return multi.unpack(data)
+				if type(v) == "table" then
+					-- We got a connection
+					v[2]:init()
+
+					--setmetatable(v[2],getmetatable(multi:newConnection()))
+					
+					self[v[1]] = v[2]
+				else
+					self[v] = thread:newFunction(function(self,...)
+						if self == me then
+							me.send:push({v, true, ...})
+						else
+							me.send:push({v, false, ...})
 						end
-					end)
-				end, true)
+						return thread.hold(function()
+							local data = me.recv:peek()
+							if data and data[1] == v then
+								me.recv:pop()
+								table.remove(data, 1)
+								for i=1,#data do
+									if type(data[i]) == "table" and data[i]._self_ref_ then
+										-- So if we get a self return as a return, we should return the proxy!
+										data[i] = me
+									end
+								end
+								return multi.unpack(data)
+							end
+						end)
+					end, true)
+				end
 			end
 			return self
 		end
@@ -152,6 +178,18 @@ function multi:newSystemThreadedProcessor(name, cores)
 
 	function c:newUpdater(skip, func)
 		return self.spawnTask("newUpdater", func, notime):init()
+	end
+
+	function c:newEvent(task, func)
+		return self.spawnTask("newEvent", task, func):init()
+	end
+
+	function c:newAlarm(set, func)
+		return self.spawnTask("newAlarm", set, func):init()
+	end
+
+	function c:newStep(start, reset, count, skip)
+		return self.spawnTask("newStep", start, reset, count, skip):init()
 	end
 
 	c.OnObjectCreated(function(proc, obj)

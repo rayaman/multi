@@ -74,6 +74,33 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- multi:chop(obj) -- We cannot directly interact with a local object on lanes, so we chop the object and set some globals on the thread side. Should use like: `mulit:newProxy(multi:chop(multi:newThread(function() ...  end)))`
+- multi:newProxy(ChoppedObject) -- Creates a proxy object that allows you to interact with an object on a thread
+	
+	**Note:** Objects with __index=table do not work with the proxy object! The object must have that function in it's own table for proxy to pick it up and have it work properly. Connections on a proxy allow you to subscribe to an event on the thread side of things. The function that is being connected to happens on the thread!
+- multi:newSystemThreadedProcessor(name) -- Works like newProcessor(name) each object created returns a proxy object that you can use to interact with the objects on the system thread
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor("Test STP")
+
+	alarm = stp:newAlarm(3)
+
+	alarm.OnRing:Connect(function(alarm)
+		print("Hmm...", THREAD_NAME)
+	end)
+	```
+	Output:
+	```
+	Hmm...  SystemThreadedJobQueue_A5tp
+	```
+	Internally the SystemThreadedProcessor uses a JobQueue to handle things. The proxy function allows you to interact with these objects as if they were on the main thread, though there actions are carried out on the main thread.
+
+	There are currently limitations to proxies. Connection proxy do not receive events on the non thread side. So connection metamethods do not work! Also you cannot use the proxy holds. For full features develop using a systemThreadedConnection() which does support all connection features. I planned on using STCs originally, but decided not to because I didn't want proxy objects to affect the non thread side of things! Subscribing to an event that isn't on the thread being proxied would cause the object to no longer be a proxy.
+
 - thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
 - multi.Processors:getHandler() -- returns the thread handler for a process
 - multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!
