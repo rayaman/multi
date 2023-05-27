@@ -131,6 +131,9 @@ function multi.InitSystemThreadErrorHandler()
 		while true do
 			thread.yield()
 			_,data = __ConsoleLinda:receive(0, "Q")
+			if data then
+				print(data[1])
+			end
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status

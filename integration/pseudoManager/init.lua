@@ -31,6 +31,7 @@ if multi.integration then
 		end
 	}
 end
+multi.isMainThread = true
 local activator = require("multi.integration.pseudoManager.threads")
 local GLOBAL, THREAD = activator.init(thread)
 

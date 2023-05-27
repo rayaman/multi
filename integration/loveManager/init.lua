@@ -66,6 +66,7 @@ multi.integration = {}
 local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
 local THREAD_ID = 1
+multi.isMainThread = true
 
 function multi:newSystemThread(name, func, ...)
     local c = {}

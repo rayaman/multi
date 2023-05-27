@@ -24,7 +24,7 @@ SOFTWARE.
 local multi, thread = require("multi"):init()
 
 if not (GLOBAL and THREAD) then
-	GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+	GLOBAL, THREAD = multi.integration.GLOBAL, multi.integration.THREAD
 else
 	lanes = require("lanes")
 end
@@ -34,19 +34,29 @@ function multi:newSystemThreadedQueue(name)
 	local c = {}
 	c.Name = name
 	c.linda = lanes.linda()
+
 	function c:push(v)
 		self.linda:send("Q", v)
 	end
+
 	function c:pop()
 		return ({self.linda:receive(0, "Q")})[2]
 	end
+
 	function c:peek()
 		return self.linda:get("Q")
 	end
+
 	function c:init()
 		return self
 	end
-	GLOBAL[name or "_"] = c
+
+	if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
+
 	return c
 end
 
@@ -55,10 +65,6 @@ function multi:newSystemThreadedTable(name)
     local c = {}
     c.link = lanes.linda()
 	c.Name = name
-
-	-- function c:getIndex()
-	-- 	return c.link:dump()
-	-- end
 
     function c:init()
         return self
@@ -73,7 +79,12 @@ function multi:newSystemThreadedTable(name)
         end
     })
 
-    GLOBAL[name or "_"] = c
+    if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
+
 	return c
 end
 
@@ -90,9 +101,9 @@ function multi:newSystemThreadedJobQueue(n)
     function c:isEmpty()
         return queueJob:peek()==nil
     end
-    function c:doToAll(func)
+    function c:doToAll(func,...)
         for i=1,c.cores do
-            doAll:push{ID,func}
+            doAll:push{ID,func,...}
         end
         ID = ID + 1
         return self
@@ -143,11 +154,12 @@ function multi:newSystemThreadedJobQueue(n)
         end
     end)
     for i=1,c.cores do
-        multi:newSystemThread("SystemThreadedJobQueue_"..multi.randomString(4),function(queue)
+        multi:newSystemThread("STJQ_"..multi.randomString(8),function(queue)
             local multi, thread = require("multi"):init()
             local idle = os.clock()
             local clock = os.clock
             local ref = 0
+			_G["__QR"] = queueReturn
             setmetatable(_G,{__index = funcs})
             thread:newThread("JobHandler",function()
                 while true do
@@ -170,9 +182,10 @@ function multi:newSystemThreadedJobQueue(n)
                     end)
                     if dat then
                         if dat[1]>ref then
+							ref = table.remove(dat, 1)
+							func = table.remove(dat, 1)
                             idle = clock()
-                            ref = dat[1]
-                            dat[2]()
+                            func(unpack(dat))
                             doAll:pop()
                         end
                     end
@@ -324,7 +337,11 @@ function multi:newSystemThreadedConnection(name)
 		return self
 	end
 
-	GLOBAL[name] = c
+	if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
 
 	return c
 end

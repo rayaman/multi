@@ -74,6 +74,9 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- multi:newTargetedFunction(ID, proc, name, func, holup) -- This is used internally to handle thread.hold(proxy.conn)
+- proxy.getThreadID() -- Returns the threadID of the thread that the proxy is running in
+- proxy:getUniqueName() -- Gets the special name that identifies the object on the thread the proxy refers to
 - multi:chop(obj) -- We cannot directly interact with a local object on lanes, so we chop the object and set some globals on the thread side. Should use like: `mulit:newProxy(multi:chop(multi:newThread(function() ...  end)))`
 - multi:newProxy(ChoppedObject) -- Creates a proxy object that allows you to interact with an object on a thread
 	
@@ -99,7 +102,7 @@ Added
 	```
 	Internally the SystemThreadedProcessor uses a JobQueue to handle things. The proxy function allows you to interact with these objects as if they were on the main thread, though there actions are carried out on the main thread.
 
-	There are currently limitations to proxies. Connection proxy do not receive events on the non thread side. So connection metamethods do not work! Also you cannot use the proxy holds. For full features develop using a systemThreadedConnection() which does support all connection features. I planned on using STCs originally, but decided not to because I didn't want proxy objects to affect the non thread side of things! Subscribing to an event that isn't on the thread being proxied would cause the object to no longer be a proxy.
+	There are currently limitations to proxies. Connection proxy do not receive events on the non thread side. So connection metamethods do not work! thread.hold(proxy.conn) does work! The backend to get this to work was annoying :P
 
 	This event is subscribed to on the proxy threads side of things!
 
@@ -114,7 +117,28 @@ Added
 	- STP:newThread(...)
 	- STP:newFunction(...)
 
-	If you would like to connect to a "STP Connection" object you can do so in a STP Function using hold and connect to the function OnReturn event or have the function wait (When in a coroutine it will only pause execution for that coroutine(multi:newThread(...))). The function is still runs on the Thread that the STP is running on. There is no guarantee that the function will run on the same thread each time, unlike with the multi objects/cothreads. Those stay on the systhread they are created on.
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor()
+
+	alarm = stp:newAlarm(3)
+
+	alarm.OnRing:Connect(function(alarm)
+		print("Hmm...", THREAD_NAME)
+	end)
+
+	thread:newThread(function()
+		print("Holding...")
+		local a = thread.hold(alarm.OnRing) -- it works :D
+		print("We work!")
+	end)
+
+	multi:mainloop()
+	```
 
 - thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
 - multi.Processors:getHandler() -- returns the thread handler for a process
@@ -312,6 +336,7 @@ Removed
 
 Fixed
 ---
+- multi.isMainThread was not properly handled in each integration. This has been resolved.
 - Issue with pseudo threading env's being messed up. Required removal of getName and getID!
 - connections being multiplied together would block the entire connection object from pushing events! This is not the desired effect I wanted. Now only the connection reference involved in the multiplication is locked!
 - multi:reallocate(processor, index) has been fixed to work with the current changes of the library.

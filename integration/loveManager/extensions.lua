@@ -162,6 +162,7 @@ function multi:newSystemThreadedJobQueue(n)
 			local lastProc = clock()
 			local queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
+			_G["__QR"] = queueReturn
 			setmetatable(_G,{__index = funcs})
 			thread:newThread("startUp",function()
 				while true do
