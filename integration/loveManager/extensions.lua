@@ -231,7 +231,7 @@ function multi:newSystemThreadedConnection(name)
 
 		function self:Fire(...)
 			local args = {...}
-			if self.CID == THREAD.getID() then -- Host Call
+			if self.CID == THREAD_ID then -- Host Call
 				for _, link in pairs(self.links) do
 					love.thread.getChannel(link):push{self.TRIG, args}
 				end
@@ -246,7 +246,7 @@ function multi:newSystemThreadedConnection(name)
 		self.proxy_conn = multi:newConnection()
 		local mt = getmetatable(self.proxy_conn)
 		setmetatable(self, {__index = self.proxy_conn, __call = function(t,func) self.proxy_conn(func) end, __add = mt.__add})
-		if self.CID == THREAD.getID() then return self end
+		if self.CID == THREAD_ID then return self end
 		thread:newThread("STC_CONN_MAN" .. self.Name,function()
 			local item
 			local string_self_ref = "LSF_" .. multi.randomString(16)
@@ -284,7 +284,7 @@ function multi:newSystemThreadedConnection(name)
 		end
 		return r
 	end
-	c.CID = THREAD.getID()
+	c.CID = THREAD_ID
 	c.Name = name
 	c.links = {} -- All triggers sent from main connection. When a connection is triggered on another thread, they speak to the main then send stuff out.
 	-- Locals will only live in the thread that creates the original object

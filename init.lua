@@ -1261,9 +1261,11 @@ local function conn_test(conn)
 		ready = true
 		args = {...}
 	end
-	conn(func)
+
+	local ref = conn(func)
 	return function()
 		if ready then
+			conn:Unconnect(ref)
 			return multi.unpack(args) or multi.NIL
 		end
 	end
