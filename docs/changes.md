@@ -74,6 +74,7 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- STP:getLoad(type) -- returns a table where the index is the threadID and the value is the number of objects[type] running on that thread. `type`: "threads" for coroutines running or nil for all other objects running. 
 - multi:newTargetedFunction(ID, proc, name, func, holup) -- This is used internally to handle thread.hold(proxy.conn)
 - proxy.getThreadID() -- Returns the threadID of the thread that the proxy is running in
 - proxy:getUniqueName() -- Gets the special name that identifies the object on the thread the proxy refers to

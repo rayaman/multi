@@ -374,7 +374,7 @@ function multi:newSystemThreadedProcessor(cores)
 	end
 
 	-- Special functions
-	c.getLeastLoaded = thread:newFunction(function(self, tp)
+	c.getLoad = thread:newFunction(function(self, tp)
 		local loads = {}
 		local func
 
@@ -390,7 +390,7 @@ function multi:newSystemThreadedProcessor(cores)
 
 			conn = c.jobqueue.OnJobCompleted(function(id, data)
 				if id == jid then
-					table.insert(loads, {v, data})
+					loads[v] = data
 					multi:newAlarm(1):OnRing(function(alarm)
 						c.jobqueue.OnJobCompleted:Unconnect(conn)
 						alarm:Destroy()
@@ -400,14 +400,8 @@ function multi:newSystemThreadedProcessor(cores)
 		end
 
 		thread.hold(function() return #loads == c.cores end)
-		if tp then
-			multi.print("Threads\n-------")
-		else
-			multi.print("Tasks\n-----")
-		end
-		for i,v in pairs(loads) do
-			print(v[1], v[2])
-		end
+
+		return loads
 	end)
 
 	return c
