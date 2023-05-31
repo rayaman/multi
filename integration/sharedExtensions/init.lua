@@ -211,7 +211,7 @@ function multi:newSystemThreadedProcessor(cores)
 					return tjq:pop()
 				end)
 				if dat then
-					thread:newThread("test",function()
+					thread:newThread("JQ-TargetThread",function()
 						local name = table.remove(dat, 1)
 						local jid = table.remove(dat, 1)
 						local args = table.remove(dat, 1)
@@ -387,22 +387,20 @@ function multi:newSystemThreadedProcessor(cores)
 		for i,v in pairs(self.proc_list) do
 			local conn
 			local jid = self:pushJob(v, func)
-
-			conn = c.jobqueue.OnJobCompleted(function(id, data)
+			
+			conn = self.jobqueue.OnJobCompleted(function(id, data)
 				if id == jid then
-					loads[v] = data
-					multi:newAlarm(1):OnRing(function(alarm)
-						c.jobqueue.OnJobCompleted:Unconnect(conn)
-						alarm:Destroy()
+					table.insert(loads, {v, data})
+					multi:newTask(function()
+						self.jobqueue.OnJobCompleted:Unconnect(conn)
 					end)
 				end
 			end)
 		end
 
 		thread.hold(function() return #loads == c.cores end)
-
 		return loads
-	end)
+	end, true)
 
 	return c
 end

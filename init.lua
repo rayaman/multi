@@ -728,7 +728,7 @@ function multi:newEvent(task, func)
 		if t then
 			self:Pause()
 			self.returns = t
-			c.OnEvent:Fire(self)
+			self.OnEvent:Fire(self)
 			return true
 		end
 	end
@@ -989,24 +989,9 @@ function multi:newTStep(start,reset,count,set)
 end
 
 local tasks = {}
-local _tasks = 0
-
-local function _task_handler(self, func)
-	tasks[#tasks + 1] = func
-	_tasks = _tasks + 1
-end
 
 function multi:newTask(func)
-	multi:newLoop(function(loop)
-		for i=1,_tasks do
-			tasks[i]()
-		end
-		_tasks = 0
-	end):setName("Task Handler")
-	-- Re bind this method to use the one that doesn't init a thread!
-	multi.newTask = _task_handler
 	tasks[#tasks + 1] = func
-	_tasks = _tasks + 1
 end
 
 local scheduledjobs = {}
@@ -1396,17 +1381,22 @@ function thread:newFunctionBase(generator, holdme)
 					if err then
 						return multi.NIL, err
 					elseif rets then
-						return cleanReturns((rets[1] or multi.NIL),rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
+						local g = rets
+						rets = nil
+						return cleanReturns((g[1] or multi.NIL),g[2],g[3],g[4],g[5],g[6],g[7],g[8],g[9],g[10],g[11],g[12],g[13],g[14],g[15],g[16])
 					end
 				end)
 			else
 				while not rets and not err do
 					multi:getCurrentProcess():getHandler()()
+					multi:getHandler()()
 				end
+				local g = rets
+				rets = nil
 				if err then
 					return nil,err
 				end
-				return cleanReturns(rets[1],rets[2],rets[3],rets[4],rets[5],rets[6],rets[7],rets[8],rets[9],rets[10],rets[11],rets[12],rets[13],rets[14],rets[15],rets[16])
+				return cleanReturns(g[1],g[2],g[3],g[4],g[5],g[6],g[7],g[8],g[9],g[10],g[11],g[12],g[13],g[14],g[15],g[16])
 			end
 		end
 		tfunc.__call = function(th,...)
@@ -1776,7 +1766,7 @@ co_status = {
 	["normal"] = function(thd,ref) end,
 	["running"] = function(thd,ref) end,
 	["dead"] = function(thd,ref,task,i,th)
-		if ref.__processed then return end
+		if ref.__processed then table.remove(th,i) return end
 		if _ then
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
@@ -1792,7 +1782,7 @@ co_status = {
 				end
 			end
 		end
-		_=nil r1=nil r2=nil r3=nil r4=nil r5=nil
+		_=nil r1=nil r2=nil r3=nil r4=nil r5=nil r6=nil r7=nil r8=nil r9=nil r10=nil r11=nil r12=nil r13=nil r14=nil r15=nil r16=nil
 		ref.__processed = true
 	end,
 }
@@ -2399,5 +2389,14 @@ threadManager = multi:newProcessor("Global_Thread_Manager").Start()
 function multi:getHandler()
 	return threadManager:getHandler()
 end
+
+multi:newThread("Task Handler", function()
+	local check = function()
+		return table.remove(tasks)
+	end
+	while true do
+		thread.hold(check)()
+	end
+end).OnError(multi.error)
 
 return multi

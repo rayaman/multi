@@ -337,6 +337,8 @@ Removed
 
 Fixed
 ---
+- Issue with thread:newFunction() where a threaded function will keep a record of their returns and pass them to future calls of the function.
+- Issue with multi:newTask(func) not properly handling tasks to be removed. Now uses a thread internally to manage things.
 - multi.isMainThread was not properly handled in each integration. This has been resolved.
 - Issue with pseudo threading env's being messed up. Required removal of getName and getID!
 - connections being multiplied together would block the entire connection object from pushing events! This is not the desired effect I wanted. Now only the connection reference involved in the multiplication is locked!

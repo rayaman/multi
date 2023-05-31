@@ -110,7 +110,7 @@ multi:newThread("Scheduler Thread",function()
 
     jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
 
-    func = jq:newFunction("test",function(a,b)
+    func = jq:newFunction("test-thread",function(a,b)
         THREAD.sleep(.2)
         return a+b
     end)
