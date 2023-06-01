@@ -74,6 +74,51 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- shared_table = STP:newSharedTable(tbl_name) -- Allows you to create a shared table that all system threads in a process have access to. Returns a reference to that table for use on the main thread. Sets `_G[tbl_name]` on the system threads so you can access it there.
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor(8)
+
+	local shared = stp:newSharedTable("shared")
+
+	shared["test"] = "We work!"
+
+	for i=1,5 do
+		-- There is a bit of overhead when creating threads on a process. Takes some time, mainly because we are creating a proxy.
+		stp:newThread(function()
+			local multi, thread = require("multi"):init()
+			local shared = _G["shared"]
+			print(THREAD_NAME, shared.test, shared.test2)
+			multi:newAlarm(.5):OnRing(function() -- Play around with the time. System threads do not create instantly. They take quite a bit of time to get spawned.
+				print(THREAD_NAME, shared.test, shared.test2)
+			end)
+		end)
+	end
+
+	shared["test2"] = "We work!!!"
+
+	multi:mainloop()
+	```
+
+	Output:
+	```
+	INFO: Integrated Lanes Threading!
+	STJQ_cPXT8GOx   We work!        nil
+	STJQ_hmzdYDVr   We work!        nil
+	STJQ_3lwMhnfX   We work!        nil
+	STJQ_hmzdYDVr   We work!        nil
+	STJQ_cPXT8GOx   We work!        nil
+	STJQ_cPXT8GOx   We work!        We work!!!
+	STJQ_hmzdYDVr   We work!        We work!!!
+	STJQ_3lwMhnfX   We work!        We work!!!
+	STJQ_hmzdYDVr   We work!        We work!!!
+	STJQ_cPXT8GOx   We work!        We work!!!
+	```
+
 - STP:getLoad(type) -- returns a table where the index is the threadID and the value is the number of objects[type] running on that thread. `type`: "threads" for coroutines running or nil for all other objects running. 
 - multi:newTargetedFunction(ID, proc, name, func, holup) -- This is used internally to handle thread.hold(proxy.conn)
 - proxy.getThreadID() -- Returns the threadID of the thread that the proxy is running in
@@ -108,16 +153,22 @@ Added
 	This event is subscribed to on the proxy threads side of things!
 
 	Currently supporting:
-	- STP:newLoop(...)
-	- STP:newTLoop(...)
-	- STP:newUpdater(...)
-	- STP:newEvent(...)
-	- STP:newAlarm(...)
-	- STP:newStep(...)
-	- STP:newTStep(...)
-	- STP:newThread(...)
-	- STP:newFunction(...)
+	- proxyLoop = STP:newLoop(...)
+	- proxyTLoop = STP:newTLoop(...)
+	- proxyUpdater = STP:newUpdater(...)
+	- proxyEvent = STP:newEvent(...)
+	- proxyAlarm = STP:newAlarm(...)
+	- proxyStep = STP:newStep(...)
+	- proxyTStep = STP:newTStep(...)
+	- proxyThread = STP:newThread(...)
+	- threadedFunction = STP:newFunction(...)
 
+	Unique:
+	- STP:newSharedTable(name)
+	
+	</br>
+
+	**STP** functions (The ones above) cannot be called within coroutine based thread when using lanes. This causes thread.hold to break. Objects(proxies) returned by these functions are ok to use in coroutine based threads!
 	```lua
 	package.path = "?/init.lua;?.lua;"..package.path
 

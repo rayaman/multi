@@ -312,7 +312,7 @@ function multi:newConnection(protect,func,kill)
 	c.FC=0
 
 	function c:hasConnections()
-		return #call_funcs~=0
+		return #fast~=0
 	end
 
 	function c:Lock(conn)
@@ -367,7 +367,7 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:getConnections()
-		return call_funcs
+		return fast
 	end
 
 	function c:getConnection(name, ignore)
@@ -383,6 +383,7 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:fastMode() return self end
+	
 	if kill then
 		local kills = {}
 		function c:Fire(...)
@@ -457,14 +458,14 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Bind(t)
-		local temp = call_funcs
-		call_funcs=t
+		local temp = fast
+		fast=t
 		return temp
 	end
 
 	function c:Remove()
-		local temp = call_funcs
-		call_funcs={}
+		local temp = fast
+		fast={}
 		return temp
 	end
 

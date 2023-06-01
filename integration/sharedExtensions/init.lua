@@ -353,6 +353,15 @@ function multi:newSystemThreadedProcessor(cores)
 		return c.jobqueue:newFunction(func, holdme)
 	end
 
+	function c:newSharedTable(name)
+		if not name then multi.error("You must provide a name when creating a table!") end
+		local tbl_name = "TABLE_"..multi.randomString(8)
+		c.jobqueue:doToAll(function(tbl_name, interaction)
+			_G[interaction] = THREAD.waitFor(tbl_name):init()
+		end, tbl_name, name)
+		return multi:newSystemThreadedTable(tbl_name):init()
+	end
+
 	function c.run()
 		return self
 	end
@@ -373,7 +382,6 @@ function multi:newSystemThreadedProcessor(cores)
 		return false
 	end
 
-	-- Special functions
 	c.getLoad = thread:newFunction(function(self, tp)
 		local loads = {}
 		local func
