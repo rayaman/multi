@@ -36,6 +36,9 @@ lanes = require("lanes").configure()
 multi.SystemThreads = {}
 multi.isMainThread = true
 
+_G.THREAD_NAME = "MAIN_THREAD"
+_G.THREAD_ID = 0
+
 function multi:canSystemThread()
 	return true
 end

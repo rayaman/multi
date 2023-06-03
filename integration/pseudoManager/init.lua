@@ -35,6 +35,9 @@ multi.isMainThread = true
 local activator = require("multi.integration.pseudoManager.threads")
 local GLOBAL, THREAD = activator.init(thread)
 
+_G.THREAD_NAME = "MAIN_THREAD"
+_G.THREAD_ID = 0
+
 function multi:canSystemThread() -- We are emulating system threading
 	return true
 end

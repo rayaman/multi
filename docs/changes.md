@@ -138,7 +138,7 @@ Added
 
 	alarm = stp:newAlarm(3)
 
-	alarm.OnRing:Connect(function(alarm)
+	alarm._OnRing:Connect(function(alarm)
 		print("Hmm...", THREAD_NAME)
 	end)
 	```
@@ -148,9 +148,70 @@ Added
 	```
 	Internally the SystemThreadedProcessor uses a JobQueue to handle things. The proxy function allows you to interact with these objects as if they were on the main thread, though there actions are carried out on the main thread.
 
-	There are currently limitations to proxies. Connection proxy do not receive events on the non thread side. So connection metamethods do not work! thread.hold(proxy.conn) does work! The backend to get this to work was annoying :P
+	Connection proxies break the rules a bit. Normally methods should always work on the thread side, however for connections in order to have actions work on the thread side you would call the connection using `obj._connName` instead of calling `obj.connName`. This allows you to have more control over connection events. See example below:
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
 
-	This event is subscribed to on the proxy threads side of things!
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor(8)
+
+	alarm = stp:newAlarm(3)
+
+	-- This doesn't work since this event has already been subscribed to internally on the thread to get thread.hold(alarm.OnRing) to work. But as many events to alarm.OnRing can be made!
+	thread:newThread(function()
+		print("Hold on proxied connection", thread.hold(alarm._OnRing))
+	end)
+
+	alarm.OnRing(function(a)
+		print("OnRing",a, THREAD_NAME, THREAD_ID)
+	end)
+
+	print("alarm.OnRing", alarm.OnRing.Type)
+	print("alarm._OnRing", alarm._OnRing.Type)
+
+	thread:newThread(function()
+		print("Hold on proxied no proxy connection", thread.hold(alarm.OnRing))
+	end)
+
+	thread:newThread(function()
+		print("Hold on proxied no proxy connection", thread.hold(alarm.OnRing))
+	end)
+
+	-- This doesn't work since this event has already been subscribed to internally on the thread to get thread.hold(alarm.OnRing) to work. But as many events to alarm.OnRing can be made!
+	thread:newThread(function()
+		print("Hold on proxied connection", thread.hold(alarm._OnRing))
+	end)
+
+	alarm._OnRing(function(a)
+		print("_OnRing",a, THREAD_NAME, THREAD_ID)
+		a:Reset(1)
+	end)
+
+	multi:mainloop()
+	```
+	Output:
+	```
+	INFO: Integrated Lanes Threading!
+	alarm.OnRing    connector
+	alarm._OnRing   proxy
+	_OnRing table: 025EB128 STJQ_cjKsEZHg   1 <-- This can change each time you run this example!
+	OnRing  table: 018BC0C0 MAIN_THREAD     0
+	Hold on proxied no proxy connection     table: 018BC0C0 nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
+	Hold on proxied no proxy connection     table: 018BC0C0 nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
+	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
+	OnRing  table: 018BC0C0 MAIN_THREAD     0
+	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
+	OnRing  table: 018BC0C0 MAIN_THREAD     0
+
+	... (Will repeat ever second now)
+	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
+
+	OnRing  table: 018BC0C0 MAIN_THREAD     0
+	```
+
+	The proxy version can only subscribe to events on the proxy thread, which means that connection metamethods will not work with the proxy version (`_OnRing` on the non proxy thread side), but the (`OnRing`) version will work. Cleverly handling the proxy thread and the non proxy thread will allow powerful connection logic. Also this is not a full system threaded connection. **Proxies should only be used between 2 threads!** To keep things fast I'm using simple queues to transfer data. There is no guarantee that things will work!
 
 	Currently supporting:
 	- proxyLoop = STP:newLoop(...)

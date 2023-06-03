@@ -80,6 +80,7 @@ multi.STEP				= "step"
 multi.TSTEP				= "tstep"
 multi.THREAD			= "thread"
 multi.SERVICE			= "service"
+multi.PROXY 			= "proxy"
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi = multi, thread = thread}

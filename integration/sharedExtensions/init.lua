@@ -67,7 +67,7 @@ function multi:newProxy(list)
 	
 	function c:init()
 		local multi, thread = nil, nil
-		if THREAD_NAME then
+		if THREAD_ID>0 then
 			local multi, thread = require("multi"):init()
 			local function check()
 				return self.send:pop()
@@ -113,11 +113,19 @@ function multi:newProxy(list)
 			self.Type = multi.PROXY
 			for _,v in pairs(self.funcs) do
 				if type(v) == "table" then
+					-- We have a connection
 					v[2]:init()
-					self[v[1]] = v[2]
+					self["_"..v[1]] = v[2]
 					v[2].Parent = self
+					setmetatable(v[2],getmetatable(multi:newConnection()))
+					self[v[1]] = multi:newConnection()
+					
+					thread:newThread(function()
+						while true do
+							self[v[1]]:Fire(thread.hold(alarm["_"..v[1]]))
+						end
+					end)
 				else
-					lastObj = self
 					self[v] = thread:newFunction(function(self,...)
 						if self == me then
 							me.send:push({v, true, ...})
@@ -145,8 +153,6 @@ function multi:newProxy(list)
 	end
 	return c
 end
-
-multi.PROXY = "proxy"
 
 local targets = {}
 
@@ -416,6 +422,7 @@ end
 -- Modify thread.hold to handle proxies
 local thread_ref = thread.hold
 function thread.hold(n, opt)
+	--if type(n) == "table" then print(n.Type, n.isConnection()) end
 	if type(n) == "table" and n.Type == multi.PROXY and n.isConnection() then
 		local ready = false
 		local args

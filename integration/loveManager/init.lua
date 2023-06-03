@@ -32,15 +32,13 @@ THREAD = require("multi.integration.loveManager.threads")
 sThread = THREAD
 __IMPORTS = {...}
 __FUNC__=table.remove(__IMPORTS,1)
-__THREADID__=table.remove(__IMPORTS,1)
-__THREADNAME__=table.remove(__IMPORTS,1)
-THREAD_NAME = __THREADNAME__
-THREAD_ID = __THREADID__
-math.randomseed(__THREADID__)
+THREAD_ID=table.remove(__IMPORTS,1)
+THREAD_NAME=table.remove(__IMPORTS,1)
+math.randomseed(THREAD_ID)
 math.random()
 math.random()
 math.random()
-stab = THREAD.createStaticTable(__THREADNAME__ .. __THREADID__)
+stab = THREAD.createStaticTable(THREAD_NAME .. THREAD_ID)
 GLOBAL = THREAD.getGlobal()
 if GLOBAL["__env"] then
     local env = THREAD.unpackENV(GLOBAL["__env"])
@@ -60,15 +58,15 @@ stab["returns"] = {THREAD.loadDump(__FUNC__)(multi.unpack(__IMPORTS))}
 local multi, thread = require("multi"):init()
 
 local THREAD = {}
-__THREADID__ = 0
-__THREADNAME__ = "MainThread"
+_G.THREAD_NAME = "MAIN_THREAD"
+_G.THREAD_ID = 0
 multi.integration = {}
 local THREAD = require("multi.integration.loveManager.threads")
 local GLOBAL = THREAD.getGlobal()
-local THREAD_ID = 1
 multi.isMainThread = true
 
 function multi:newSystemThread(name, func, ...)
+    THREAD_ID = THREAD_ID + 1
     local c = {}
     c.name = name
     c.ID = THREAD_ID
@@ -79,7 +77,7 @@ function multi:newSystemThread(name, func, ...)
     c.OnError = multi:newConnection()
     GLOBAL["__THREAD_" .. c.ID] = {ID = c.ID, Name = c.name, Thread = c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
-    THREAD_ID = THREAD_ID + 1
+    
     function c:getName() return c.name end
     thread:newThread(name .. "_System_Thread_Handler",function()
         if name == "SystemThreaded Function Handler" then
