@@ -516,6 +516,8 @@ local function isolateFunction(func, env)
     end
 end
 
+multi.isolateFunction = isolateFunction
+
 function multi:Break()
 	self:Pause()
 	self.Active=nil
