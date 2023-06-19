@@ -1113,7 +1113,7 @@ function multi:newProcessor(name, nothread)
 
 	function c:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
-			return c:newThread("Threaded Function Handler", func, ...)
+			return c:newThread("Process Threaded Function Handler", func, ...)
 		end, holdme)()
 	end
 
@@ -1451,7 +1451,9 @@ end
 
 function thread:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
-		return thread:newThread("Threaded Function Handler", func, ...)
+		local th = thread:newThread("Free Threaded Function Handler", func, ...)
+		th.creator = debug.getinfo(2).name
+		return th
 	end, holdme)()
 end
 
@@ -1485,7 +1487,7 @@ function thread:newProcessor(name)
 
 	function proc:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
-			return thread_proc:newThread("Threaded Function Handler", func, ...)
+			return thread_proc:newThread("TProc Threaded Function Handler", func, ...)
 		end, holdme)()
 	end
 
@@ -1774,6 +1776,7 @@ co_status = {
 		if _ then
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
+			print("Thread: ", ref.Name, ref.creator, THREAD_NAME)
 			ref.OnError:Fire(ref,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		end
 		if i then
@@ -2346,8 +2349,8 @@ end
 function multi.error(self, err)
 	if type(err) == "bool" then crash = err end
 	if type(self) == "string" then err = self end
-	io.write("\x1b[91mERROR:\x1b[0m " .. err .. "\n")
-	error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type)
+	io.write("\x1b[91mERROR:\x1b[0m " .. err .. " " .. debug.getinfo(2).name .."\n")
+	error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
 	if multi.defaultSettings.error then
 		os.exit(1)
 	end

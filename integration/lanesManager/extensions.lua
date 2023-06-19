@@ -174,7 +174,7 @@ function multi:newSystemThreadedJobQueue(n)
 						queueReturn:push{jid, funcs[name](multi.unpack(args)), queue}
 					end).OnError(multi.error)
                 end
-            end).OnError(print)
+            end).OnError(multi.error)
             thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()
@@ -190,7 +190,7 @@ function multi:newSystemThreadedJobQueue(n)
                         end
                     end
                 end
-            end).OnError(print)
+            end).OnError(multi.error)
             thread:newThread("IdleHandler",function()
                 while true do
                     thread.hold(function()
@@ -198,9 +198,9 @@ function multi:newSystemThreadedJobQueue(n)
                     end)
                     THREAD.sleep(.01)
                 end
-            end).OnError(print)
+            end).OnError(multi.error)
             multi:mainloop()
-        end,i).OnError(print)
+        end,i).OnError(multi.error)
     end
     return c
 end

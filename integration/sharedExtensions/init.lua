@@ -125,7 +125,7 @@ function multi:newProxy(list)
 						self.recv:push(ret)
 					end
 				end
-			end).OnError(print)
+			end).OnError(multi.error)
 			return self
 		else
 			local multi, thread = require("multi"):init()
@@ -300,10 +300,13 @@ function multi:newSystemThreadedProcessor(cores)
 					return tjq:pop()
 				end)
 				if dat then
+					for i,v in pairs(dat) do
+						print(i,v)
+					end
 					th = thread:newThread("JQ-TargetThread",function()
 						local name = table.remove(dat, 1)
 						local jid = table.remove(dat, 1)
-						local func = table.remove(dat, 1)
+						local func = _G[name]
 						local args = table.remove(dat, 1)
 						th.OnError(function(self,err)
 							-- We want to pass this to the other calling thread incase
@@ -313,7 +316,7 @@ function multi:newSystemThreadedProcessor(cores)
 					end)
 				end
 			end
-		end).OnError(print)
+		end).OnError(multi.error)
 	end)
 
 	c.jobqueue:registerFunction("STP_GetThreadCount",function()

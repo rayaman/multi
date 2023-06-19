@@ -271,7 +271,7 @@ function multi:newSystemThreadedConnection(name)
 					-- This shouldn't be the case
 				end
 			end
-		end).OnError(print)
+		end).OnError(multi.error)
 		return self
 	end
 
@@ -346,7 +346,7 @@ function multi:newSystemThreadedConnection(name)
 				c.proxy_conn:Fire(multi.unpack(item[2]))
 			end
 		end
-	end).OnError(print)
+	end).OnError(multi.error)
 	--- ^^^ This will only exist in the init thread
 
 	THREAD.package(name,c)

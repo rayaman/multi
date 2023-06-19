@@ -177,7 +177,7 @@ function multi.InitSystemThreadErrorHandler()
 				end
 			end
 		end
-	end).OnError(print)
+	end).OnError(multi.error)
 end
 
 multi.print("Integrated Lanes Threading!")
