@@ -352,7 +352,7 @@ function multi:newConnection(protect,func,kill)
 			for i=1,#fast do
 				local suc, err = pcall(fast[i], ...)
 				if not suc then
-					print(err)
+					multi.error(err)
 				end
 				if kill then
 					table.insert(kills,i)
@@ -1393,7 +1393,6 @@ function thread:newFunctionBase(generator, holdme)
 			else
 				while not rets and not err do
 					multi:getCurrentProcess():getHandler()()
-					multi:getHandler()()
 				end
 				local g = rets
 				rets = nil
@@ -1529,9 +1528,9 @@ end
 
 function thread:newThread(name, func, ...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
-	local func = func or name
-	if func == name then
-		name = name or multi.randomString(16)
+	if type(name) == "function" then
+		func = name
+		name = "UnnamedThread_"..multi.randomString(16)
 	end
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
@@ -1776,7 +1775,6 @@ co_status = {
 		if _ then
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
-			print("Thread: ", ref.Name, ref.creator, THREAD_NAME)
 			ref.OnError:Fire(ref,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		end
 		if i then
@@ -1799,9 +1797,16 @@ function multi:createHandler()
 	return coroutine.wrap(function()
 		local temp_start
 		while true do
-			for start = #startme, 1, -1 do
-				temp_start = startme[start]
-				table.remove(startme)
+			-- for start = #startme, 1, -1 do
+			-- 	temp_start = startme[start]
+			-- 	table.remove(startme)
+			-- 	_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, multi.unpack(temp_start.startArgs))
+			-- 	co_status[status(temp_start.thread)](temp_start.thread, temp_start, t_none, nil, threads)
+			-- 	table.insert(threads, temp_start)
+			-- 	yield()
+			-- end
+			while #startme>0 do
+				temp_start = table.remove(startme)
 				_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, multi.unpack(temp_start.startArgs))
 				co_status[status(temp_start.thread)](temp_start.thread, temp_start, t_none, nil, threads)
 				table.insert(threads, temp_start)

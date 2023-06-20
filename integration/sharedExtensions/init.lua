@@ -180,7 +180,7 @@ function multi:newProxy(list)
 		end
 	end
 	function c:getTransferable()
-		local multi, thread = require("multi"):init()
+		local multi, thread = nil, nil
 		local cp = {}
 		cp.name = self.name
 		cp.funcs = copy(self._funcs)
@@ -216,11 +216,7 @@ function multi:newTargetedFunction(ID, proxy, name, func, holup) -- This registe
 			local tjq = THREAD.get(proc.Name .. "_target_rtq_" .. ID):init()
 			return thread.hold(function()
 				local data = tjq:peek()
-				if data then
-					print(data)
-				end
 				if data and data[1] == id then
-					print("Got it sigh")
 					tjq:pop()
 					table.remove(data, 1)
 					return multi.unpack(data) or multi.NIL
@@ -300,9 +296,6 @@ function multi:newSystemThreadedProcessor(cores)
 					return tjq:pop()
 				end)
 				if dat then
-					for i,v in pairs(dat) do
-						print(i,v)
-					end
 					th = thread:newThread("JQ-TargetThread",function()
 						local name = table.remove(dat, 1)
 						local jid = table.remove(dat, 1)
@@ -328,9 +321,7 @@ function multi:newSystemThreadedProcessor(cores)
 	end)
 
 	function c:pushJob(ID, name, ...)
-		print("pushing")
 		local tq = THREAD.waitFor(self.Name .. "_target_tq_" .. ID):init()
-        --targets[ID]:push{name, jid, {...}}
 		tq:push{name, jid, {...}}
         jid = jid - 1
         return jid + 1
@@ -492,7 +483,6 @@ function multi:newSystemThreadedProcessor(cores)
 			end
 		end
 	end).OnError(multi.error)
-
 	return c
 end
 
@@ -504,31 +494,26 @@ function thread.hold(n, opt)
 		local args
 		local id = n.getThreadID()
 		local name = n:getUniqueName()
-		print(id, name)
 		local func = multi:newTargetedFunction(id, n, "conn_"..multi.randomString(8), function(_name)
 			local multi, thread = require("multi"):init()
 			local obj = _G[_name]
-			print("Start")
 			local rets = {thread.hold(obj)}
-			print("Ring ;)")
 			for i,v in pairs(rets) do
 				if v.Type then
 					rets[i] = {_self_ref_ = "parent"}
 				end
 			end
 			return multi.unpack(rets)
-		end, true)
+		end)
 
 		local conn
-		local args = {func(name)}
-		-- conn = handle.OnReturn(function(...)
-		-- 	ready = true
-		-- 	args = {...}
-		-- 	for i,v in pairs(args) do
-		-- 		print("DATA",i,v)
-		-- 	end
-		-- 	handle.OnReturn:Unconnect(conn)
-		-- end)
+		local args 
+		handle = func(name)
+		conn = handle.OnReturn(function(...)
+			ready = true
+			args = {...}
+			handle.OnReturn:Unconnect(conn)
+		end)
 
 		local ret = {thread_ref(function()
 			if ready then
@@ -537,13 +522,10 @@ function thread.hold(n, opt)
 		end, opt)}
 
 		for i,v in pairs(ret) do
-			print("OBJECT",v.Type)
 			if type(v) == "table" and v._self_ref_ == "parent" then
-				print("assign")
 				ret[i] = n.Parent
 			end
 		end
-
 		return multi.unpack(ret)
 	else
 		return thread_ref(n, opt)

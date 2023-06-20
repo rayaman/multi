@@ -449,6 +449,7 @@ Removed
 
 Fixed
 ---
+- Issue with coroutine based threads where they weren't all being scheduled due to a bad for loop. Replaced with a while to ensure all threads are consumed properly. If a thread created a thread that created a thread that may or may not be on the same process, things got messed up due to the original function not being built with these abstractions in mind.
 - Issue with thread:newFunction() where a threaded function will keep a record of their returns and pass them to future calls of the function.
 - Issue with multi:newTask(func) not properly handling tasks to be removed. Now uses a thread internally to manage things.
 - multi.isMainThread was not properly handled in each integration. This has been resolved.
