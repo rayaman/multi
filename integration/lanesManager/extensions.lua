@@ -113,7 +113,7 @@ function multi:newSystemThreadedJobQueue(n)
         return self
     end
     function c:pushJob(name,...)
-        queueJob:push{name,jid,{...}}
+        queueJob:push{name,jid,multi.pack(...)}
         jid = jid + 1
         return jid-1
     end
@@ -132,12 +132,16 @@ function multi:newSystemThreadedJobQueue(n)
             local rets
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
-                    rets = {...}
+                    rets = multi.pack(...)
                 end
             end)
             return thread.hold(function()
                 if rets then
-                    return multi.unpack(rets) or multi.NIL
+					if #rets == 0 then
+						return multi.NIL
+					else
+                    	return multi.unpack(rets)
+					end
                 end
             end)
         end, holup), name
@@ -171,7 +175,7 @@ function multi:newSystemThreadedJobQueue(n)
 						local name = table.remove(dat, 1)
 						local jid = table.remove(dat, 1)
 						local args = table.remove(dat, 1)
-						queueReturn:push{jid, funcs[name](multi.unpack(args)), queue}
+						queueReturn:push{jid, funcs[name](args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8]), queue}
 					end).OnError(multi.error)
                 end
             end).OnError(multi.error)
@@ -258,7 +262,7 @@ function multi:newSystemThreadedConnection(name)
 
 	local function fire(...)
 		for _, link in pairs(c.links) do
-			link:push {c.TRIG, {...}}
+			link:push {c.TRIG, multi.pack(...)}
 		end
 	end
 
@@ -286,7 +290,7 @@ function multi:newSystemThreadedConnection(name)
 	--- ^^^ This will only exist in the init thread
 
 	function c:Fire(...)
-		local args = {...}
+		local args = multi.pack(...)
 		if self.CID == THREAD_ID then -- Host Call
 			for _, link in pairs(self.links) do
 				link:push {self.TRIG, args}

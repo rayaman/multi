@@ -66,7 +66,7 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         local c = {}
         c.queue = __Console
         function c.print(...)
-            c.queue:send("Q", {...})
+            c.queue:send("Q", multi.pack(...))
         end
         function c.error(err)
             c.queue:push("Q",{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__})
@@ -90,7 +90,7 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     end
 	
     function THREAD.pushStatus(...)
-        local args = {...}
+        local args = multi.pack(...)
         __StatusLinda:send(nil,THREAD_ID, args)
     end
 

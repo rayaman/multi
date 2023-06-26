@@ -74,6 +74,7 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- thread.hold will now use a custom hold method for objects with a `Hold` method. This is called like `obj:Hold(opt)`. The only argument passed is the optional options table that thread.hold can pass. There is an exception for connection objects. While they do contain a Hold method, the Hold method isn't used and is there for proxy objects, though they can be used in non proxy/thread situations. Hold returns all the arguments that the connection object was fired with.
 - shared_table = STP:newSharedTable(tbl_name) -- Allows you to create a shared table that all system threads in a process have access to. Returns a reference to that table for use on the main thread. Sets `_G[tbl_name]` on the system threads so you can access it there.
 	```lua
 	package.path = "?/init.lua;?.lua;"..package.path
@@ -119,10 +120,6 @@ Added
 	STJQ_cPXT8GOx   We work!        We work!!!
 	```
 
-- STP:getLoad(type) -- returns a table where the index is the threadID and the value is the number of objects[type] running on that thread. `type`: "threads" for coroutines running or nil for all other objects running. 
-- multi:newTargetedFunction(ID, proc, name, func, holup) -- This is used internally to handle thread.hold(proxy.conn)
-- proxy.getThreadID() -- Returns the threadID of the thread that the proxy is running in
-- proxy:getUniqueName() -- Gets the special name that identifies the object on the thread the proxy refers to
 - multi:chop(obj) -- We cannot directly interact with a local object on lanes, so we chop the object and set some globals on the thread side. Should use like: `mulit:newProxy(multi:chop(multi:newThread(function() ...  end)))`
 - multi:newProxy(ChoppedObject) -- Creates a proxy object that allows you to interact with an object on a thread
 	
@@ -148,67 +145,105 @@ Added
 	```
 	Internally the SystemThreadedProcessor uses a JobQueue to handle things. The proxy function allows you to interact with these objects as if they were on the main thread, though there actions are carried out on the main thread.
 
-	Connection proxies break the rules a bit. Normally methods should always work on the thread side, however for connections in order to have actions work on the thread side you would call the connection using `obj._connName` instead of calling `obj.connName`. This allows you to have more control over connection events. See example below:
+	Proxies can also be shared between threads, just remember to use proxy:getTransferable() before transferring and proxy:init() on the other end. (We need to avoid copying over coroutines)
+
+	The work done with proxies negates the usage of multi:newSystemThreadedConnection(), the only difference is you lose the metatables from connections.
+
+	You cannot connect directly to a proxy connection on the non proxy thread, you can however use proxy_conn:Hold() or thread.hold(proxy_conn) to emulate this, see below.
+
 	```lua
 	package.path = "?/init.lua;?.lua;"..package.path
 
-	multi, thread = require("multi"):init({print=true})
+	multi, thread = require("multi"):init({print=true, warn=true, error=true})
 	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
 
 	stp = multi:newSystemThreadedProcessor(8)
 
-	alarm = stp:newAlarm(3)
+	tloop = stp:newTLoop(nil, 1)
 
-	-- This doesn't work since this event has already been subscribed to internally on the thread to get thread.hold(alarm.OnRing) to work. But as many events to alarm.OnRing can be made!
+	multi:newSystemThread("Testing proxy copy",function(tloop)
+		local function tprint (tbl, indent)
+			if not indent then indent = 0 end
+			for k, v in pairs(tbl) do
+				formatting = string.rep("  ", indent) .. k .. ": "
+				if type(v) == "table" then
+					print(formatting)
+					tprint(v, indent+1)
+				else
+					print(formatting .. tostring(v))      
+				end
+			end
+		end
+		local multi, thread = require("multi"):init()
+		tloop = tloop:init()
+		print("tloop type:",tloop.Type)
+		print("Testing proxies on other threads")
+		thread:newThread(function()
+			while true do
+				thread.hold(tloop.OnLoop)
+				print(THREAD_NAME,"Loopy")
+			end
+		end)
+		tloop.OnLoop(function(a)
+			print(THREAD_NAME, "Got loop...")
+		end)
+		multi:mainloop()
+	end, tloop:getTransferable()).OnError(multi.error)
+
+	print("tloop", tloop.Type)
+
 	thread:newThread(function()
-		print("Hold on proxied connection", thread.hold(alarm._OnRing))
-	end)
-
-	alarm.OnRing(function(a)
-		print("OnRing",a, THREAD_NAME, THREAD_ID)
-	end)
-
-	print("alarm.OnRing", alarm.OnRing.Type)
-	print("alarm._OnRing", alarm._OnRing.Type)
+		print("Holding...")
+		thread.hold(tloop.OnLoop)
+		print("Held on proxied no proxy connection 1")
+	end).OnError(print)
 
 	thread:newThread(function()
-		print("Hold on proxied no proxy connection", thread.hold(alarm.OnRing))
+		tloop.OnLoop:Hold()
+		print("held on proxied no proxy connection 2")
+	end)
+
+	tloop.OnLoop(function()
+		print("OnLoop",THREAD_NAME)
 	end)
 
 	thread:newThread(function()
-		print("Hold on proxied no proxy connection", thread.hold(alarm.OnRing))
-	end)
-
-	-- This doesn't work since this event has already been subscribed to internally on the thread to get thread.hold(alarm.OnRing) to work. But as many events to alarm.OnRing can be made!
-	thread:newThread(function()
-		print("Hold on proxied connection", thread.hold(alarm._OnRing))
-	end)
-
-	alarm._OnRing(function(a)
-		print("_OnRing",a, THREAD_NAME, THREAD_ID)
-		a:Reset(1)
-	end)
+		while true do
+			tloop.OnLoop:Hold()
+			print("OnLoop",THREAD_NAME)
+		end
+	end).OnError(multi.error)
 
 	multi:mainloop()
 	```
 	Output:
 	```
-	INFO: Integrated Lanes Threading!
-	alarm.OnRing    connector
-	alarm._OnRing   proxy
-	_OnRing table: 025EB128 STJQ_cjKsEZHg   1 <-- This can change each time you run this example!
-	OnRing  table: 018BC0C0 MAIN_THREAD     0
-	Hold on proxied no proxy connection     table: 018BC0C0 nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
-	Hold on proxied no proxy connection     table: 018BC0C0 nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil     nil
-	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
-	OnRing  table: 018BC0C0 MAIN_THREAD     0
-	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
-	OnRing  table: 018BC0C0 MAIN_THREAD     0
+	INFO: Integrated Lanes Threading! 1
+	tloop   proxy
+	Holding...
+	tloop type:     proxy
+	Testing proxies on other threads
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+	OnLoop  MAIN_THREAD
+	Testing proxy copy      Loopy
+	Held on proxied no proxy connection 1
+	held on proxied no proxy connection 2
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+	Testing proxy copy      Loopy
+	OnLoop  MAIN_THREAD
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
 
-	... (Will repeat ever second now)
-	_OnRing table: 025EB128 STJQ_cjKsEZHg   1
+	... (Will repeat every second)
 
-	OnRing  table: 018BC0C0 MAIN_THREAD     0
+	Testing proxy copy      Loopy
+	OnLoop  MAIN_THREAD
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+
+	...
 	```
 
 	The proxy version can only subscribe to events on the proxy thread, which means that connection metamethods will not work with the proxy version (`_OnRing` on the non proxy thread side), but the (`OnRing`) version will work. Cleverly handling the proxy thread and the non proxy thread will allow powerful connection logic. Also this is not a full system threaded connection. **Proxies should only be used between 2 threads!** To keep things fast I'm using simple queues to transfer data. There is no guarantee that things will work!
@@ -222,6 +257,7 @@ Added
 	- proxyStep = STP:newStep(...)
 	- proxyTStep = STP:newTStep(...)
 	- proxyThread = STP:newThread(...)
+	- proxyService = STP:newService(...)
 	- threadedFunction = STP:newFunction(...)
 
 	Unique:
@@ -449,6 +485,7 @@ Removed
 
 Fixed
 ---
+- Issue with luajit w/5.2 compat breaking with coroutine.running(), fixed the script to properly handle so thread.isThread() returns as expected!
 - Issue with coroutine based threads where they weren't all being scheduled due to a bad for loop. Replaced with a while to ensure all threads are consumed properly. If a thread created a thread that created a thread that may or may not be on the same process, things got messed up due to the original function not being built with these abstractions in mind.
 - Issue with thread:newFunction() where a threaded function will keep a record of their returns and pass them to future calls of the function.
 - Issue with multi:newTask(func) not properly handling tasks to be removed. Now uses a thread internally to manage things.

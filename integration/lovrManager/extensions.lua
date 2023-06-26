@@ -118,7 +118,7 @@ function multi:newSystemThreadedJobQueue(n)
             local rets
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
-                    rets = {...}
+                    rets = multi.pack(...)
                     link:Destroy()
                 end
             end)

@@ -129,7 +129,7 @@ function multi:newSystemThreadedJobQueue(n)
             local rets
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
-                    rets = {...}
+                    rets = multi.pack(...)
                 end
             end)
             return thread.hold(function()
@@ -230,7 +230,7 @@ function multi:newSystemThreadedConnection(name)
 		self.subscribe = love.thread.getChannel("SUB_STC_" .. self.Name)
 
 		function self:Fire(...)
-			local args = {...}
+			local args = multi.pack(...)
 			if self.CID == THREAD_ID then -- Host Call
 				for _, link in pairs(self.links) do
 					love.thread.getChannel(link):push{self.TRIG, args}
@@ -321,7 +321,7 @@ function multi:newSystemThreadedConnection(name)
 
 	local function fire(...)
 		for _, link in pairs(c.links) do
-			love.thread.getChannel(link):push {c.TRIG, {...}}
+			love.thread.getChannel(link):push {c.TRIG, multi.pack(...)}
 		end
 	end
 
