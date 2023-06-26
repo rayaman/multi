@@ -76,6 +76,13 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID+1
+    	
+	if self.isActor then
+		self:create(c)
+	else
+		multi.create(multi, c)
+	end
+
     return c
 end
 THREAD.newSystemThread = multi.newSystemThread

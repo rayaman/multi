@@ -96,7 +96,7 @@ function multi:newSystemThreadedJobQueue(n)
     end
 
     function c:pushJob(name,...)
-        table.insert(jobs,{name,jid,{...}})
+        table.insert(jobs,{name,jid,multi.pack(...)})
         jid = jid + 1
         return jid-1
     end
@@ -121,7 +121,7 @@ function multi:newSystemThreadedJobQueue(n)
             local rets
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
-                    rets = {...}
+                    rets = multi.pack(...)
                 end
             end)
             return thread.hold(function()

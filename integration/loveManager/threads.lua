@@ -98,7 +98,7 @@ end
 
 function threads.pushStatus(...)
     local status_channel = love.thread.getChannel("STATCHAN_" ..__THREADID__)
-    local args = {...}
+    local args = multi.pack(...)
     status_channel:push(args)
 end
 
@@ -209,7 +209,7 @@ function threads.getConsole()
     local c = {}
     c.queue = love.thread.getChannel("__CONSOLE__")
     function c.print(...)
-        c.queue:push{...}
+        c.queue:push(multi.pack(...))
     end
     function c.error(err)
         c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}

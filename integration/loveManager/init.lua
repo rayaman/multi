@@ -103,6 +103,13 @@ function multi:newSystemThread(name, func, ...)
             c.stab.returns = nil
         end
     end)
+    	
+	if self.isActor then
+		self:create(c)
+	else
+		multi.create(multi, c)
+	end
+
     return c
 end
 

@@ -98,6 +98,13 @@ function multi:newSystemThread(name, func, ...)
 		globals = globe,
 		priority = c.priority
 	},function(...)
+		local profi
+
+		if multi_settings.debug then
+			profi = require("proFI")
+			profi:start()
+		end
+
 		multi, thread = require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
 		require("multi.integration.sharedExtensions")
@@ -105,6 +112,12 @@ function multi:newSystemThread(name, func, ...)
 		returns = {pcall(func, ...)}
 		return_linda:set("returns", returns)
 		has_error = false
+		if profi then
+			multi.OnExit(function(...)
+				profi:stop()
+				profi:writeReport("Profiling Report [".. THREAD_NAME .."].txt")
+			end)
+		end
 	end)(...)
 	count = count + 1
 	function c:getName()
@@ -118,6 +131,13 @@ function multi:newSystemThread(name, func, ...)
 	c.OnDeath = multi:newConnection()
 	c.OnError = multi:newConnection()
 	GLOBAL["__THREADS__"] = livingThreads
+
+	if self.isActor then
+		self:create(c)
+	else
+		multi.create(multi, c)
+	end
+
 	return c
 end
 
@@ -177,7 +197,7 @@ function multi.InitSystemThreadErrorHandler()
 				end
 			end
 		end
-	end).OnError(print)
+	end).OnError(multi.error)
 end
 
 multi.print("Integrated Lanes Threading!")
@@ -185,7 +205,6 @@ multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.lanesManager.extensions")
-require("multi.integration.sharedExtensions")
 return {
 	init = function()
 		return GLOBAL, THREAD
