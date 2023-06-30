@@ -133,6 +133,7 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = multi.pack(...)
+					c.OnJobCompleted:Unconnect(link)
                 end
             end)
             return thread.hold(function()

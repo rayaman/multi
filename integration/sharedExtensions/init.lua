@@ -329,33 +329,5 @@ function multi:newSystemThreadedProcessor(cores)
 		return false
 	end
 
-	c.getLoad = thread:newFunction(function(self, tp)
-		local loads = {}
-		local func
-
-		if tp then
-			func = "STP_GetThreadCount"
-		else
-			func = "STP_GetTaskCount"
-		end
-
-		for i,v in pairs(self.proc_list) do
-			local conn
-			local jid = self:pushJob(v, func)
-			
-			conn = self.jobqueue.OnJobCompleted(function(id, data)
-				if id == jid then
-					table.insert(loads, {v, data})
-					multi:newTask(function()
-						self.jobqueue.OnJobCompleted:Unconnect(conn)
-					end)
-				end
-			end)
-		end
-
-		thread.hold(function() return #loads == c.cores end)
-		return loads
-	end, true)
-
 	return c
 end

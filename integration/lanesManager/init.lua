@@ -32,7 +32,9 @@ if multi.integration then -- This allows us to call the lanes manager from suppo
 	}
 end
 -- Step 1 get lanes
-lanes = require("lanes").configure()
+lanes = require("lanes").configure{
+	nb_keepers = 4,
+}
 multi.SystemThreads = {}
 multi.isMainThread = true
 

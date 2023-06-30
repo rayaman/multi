@@ -217,7 +217,7 @@ function multi:newConnection(protect,func,kill)
 		end
 	end,
 	__mod = function(obj1, obj2) -- %
-		local cn = multi:newConnection()
+		local cn = self:newConnection()
 		if type(obj1) == "function" and type(obj2) == "table" then
 			obj2(function(...)
 				cn:Fire(obj1(...))
@@ -228,7 +228,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end,
 	__concat = function(obj1, obj2) -- ..
-		local cn = multi:newConnection()
+		local cn = self:newConnection()
 		local ref
 		if type(obj1) == "function" and type(obj2) == "table" then
 			cn(function(...)
@@ -260,7 +260,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end,
 	__add = function(c1,c2) -- Or
-		local cn = multi:newConnection()
+		local cn = self:newConnection()
 		c1(function(...)
 			cn:Fire(...)
 		end)
@@ -270,7 +270,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end,
 	__mul = function(c1,c2) -- And
-		local cn = multi:newConnection()
+		local cn = self:newConnection()
 		local ref1, ref2
 		if c1.__hasInstances == nil then
 			cn.__hasInstances = {2}
@@ -531,8 +531,8 @@ function multi:SetTime(n)
 	c.timer:Start()
 	c.set=n
 	c.link=self
-	c.OnTimedOut = multi:newConnection()
-	c.OnTimerResolved = multi:newConnection()
+	c.OnTimedOut = self:newConnection()
+	c.OnTimerResolved = self:newConnection()
 	self._timer=c.timer
 	function c:Act()
 		if self.timer:Get()>=self.set then
@@ -647,8 +647,8 @@ function multi:newBase(ins)
 	c.func={}
 	c.funcTM={}
 	c.funcTMR={}
-	c.OnBreak = multi:newConnection()
-	c.OnPriorityChanged = multi:newConnection()
+	c.OnBreak = self:newConnection()
+	c.OnPriorityChanged = self:newConnection()
 	c.TID = _tid
 	c.Act=function() end
 	c.Parent=self
@@ -1050,7 +1050,7 @@ end
 
 local sandcount = 1
 
-function multi:newProcessor(name, nothread)
+function multi:newProcessor(name, nothread, priority)
 	local c = {}
 	setmetatable(c,{__index = multi})
 	local name = name or "Processor_" .. sandcount
@@ -1062,9 +1062,14 @@ function multi:newProcessor(name, nothread)
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
-	c.OnObjectCreated = multi:newConnection()
+	c.OnObjectCreated = self:newConnection()
 
-	local handler = c:createHandler(c)
+	local handler
+	if priority then
+		handler = c:createPriorityHandler(c)
+	else
+		handler = c:createHandler(c)
+	end
 
 	if not nothread then -- Don't create a loop if we are triggering this manually
 		c.process = self:newLoop(function()
@@ -1078,7 +1083,7 @@ function multi:newProcessor(name, nothread)
 		c.process.PID = sandcount
 		c.OnError = c.process.OnError
 	else
-		c.OnError = multi:newConnection()
+		c.OnError = self:newConnection()
 	end
 
 	c.OnError(multi.error)
@@ -1422,16 +1427,16 @@ function thread:newFunctionBase(generator, holdme)
 				return wait()
 			end
 			local temp = {
-				OnStatus = multi:newConnection(true),
-				OnError = multi:newConnection(true),
-				OnReturn = multi:newConnection(true),
+				OnStatus = multi:getCurrentProcess():newConnection(true),
+				OnError = multi:getCurrentProcess():newConnection(true),
+				OnReturn = multi:getCurrentProcess():newConnection(true),
 				isTFunc = true,
 				wait = wait,
 				getReturns = function()
 					return multi.unpack(rets)
 				end,
 				connect = function(f)
-					local tempConn = multi:newConnection(true)
+					local tempConn = multi:getCurrentProcess():newConnection(true)
 					t.OnDeath(function(...) if f then f(...) else tempConn:Fire(...) end end) 
 					t.OnError(function(self,err) if f then f(nil,err) else tempConn:Fire(nil,err) end end)
 					return tempConn
@@ -1455,13 +1460,18 @@ function thread:newFunction(func, holdme)
 	end, holdme)()
 end
 
-function thread:newProcessor(name)
+function thread:newProcessor(name, nothread, priority)
 	-- Inactive proxy proc
 	local proc = multi:getCurrentProcess():newProcessor(name, true)
 	local thread_proc = multi:getCurrentProcess():newProcessor(name).Start()
 	local Active = true
 
-	local handler = thread_proc:getHandler()
+	local handler
+	if priority then
+		handler = thread_proc:createPriorityHandler(c)
+	else
+		handler = thread_proc:createHandler(c)
+	end
 	
 	function proc:getThreads()
 		return thread_proc.threads
@@ -1545,9 +1555,16 @@ function thread:newThread(name, func, ...)
 	c.firstRunDone=false
 	c._isPaused = false
 	c.returns = {}
-	c.isError = false 
-	c.OnError = multi:newConnection(true,nil,true)
-	c.OnDeath = multi:newConnection(true,nil,true)
+	c.isError = false
+
+	if self.Type == multi.PROCESS then
+		c.OnError = self:newConnection(true,nil,true)
+		c.OnDeath = self:newConnection(true,nil,true)
+	else
+		c.OnError = threadManager:newConnection(true,nil,true)
+		c.OnDeath = threadManager:newConnection(true,nil,true)
+	end
+
 	c.OnError(multi.error)
 
 	function c:getName()
@@ -1619,7 +1636,11 @@ function thread:newThread(name, func, ...)
 	
 	globalThreads[c] = multi
 	threadid = threadid + 1
-	multi:getCurrentProcess():create(c)
+	if self.Type == multi.PROCESS then
+		self:create(c)
+	else
+		threadManager:create(c)
+	end
 	c.creationTime = clock()
 	return c
 end
@@ -1814,6 +1835,31 @@ function multi:createHandler()
 					co_status[status(thd)](thd, ref, task, i, threads)
 				end
 				yield()
+			end
+			yield()
+		end
+	end)
+end
+
+function multi:createPriorityHandler()
+	local threads, startme = self.threads, self.startme
+	return coroutine.wrap(function()
+		local temp_start
+		while true do
+			while #startme>0 do
+				temp_start = table.remove(startme)
+				_, ret, r1, r2, r3, r4, r5, r6, r7, r8, r9, r10, r11, r12, r13, r14, r15, r16 = resume(temp_start.thread, multi.unpack(temp_start.startArgs))
+				co_status[status(temp_start.thread)](temp_start.thread, temp_start, t_none, nil, threads)
+				table.insert(threads, temp_start)
+			end
+			for i=#threads,1,-1 do
+				ref = threads[i]
+				if ref then
+					task = ref.task
+					thd = ref.thread
+					ready = ref.__ready
+					co_status[status(thd)](thd, ref, task, i, threads)
+				end
 			end
 			yield()
 		end
@@ -2247,7 +2293,7 @@ function multi:benchMark(sec,p,pt)
 			c=c+1
 		end
 	end)
-	temp.OnBench = multi:newConnection()
+	temp.OnBench = self:newConnection()
 	temp:setPriority(p or 1)
 	return temp
 end
@@ -2412,7 +2458,11 @@ else
 	getmetatable(multi.m.sentinel).__gc = multi.m.onexit
 end
 
-threadManager = multi:newProcessor("Global_Thread_Manager").Start()
+threadManager = multi:newProcessor("Global_Thread_Manager", nil, true).Start()
+
+function multi:getThreadManagerProcess()
+	return threadManager
+end
 
 function multi:getHandler()
 	return threadManager:getHandler()
