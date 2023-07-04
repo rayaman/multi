@@ -12,8 +12,8 @@ jobs:
       fail-fast: false
       matrix:
         build-type: [Release] # Debug
-        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.1.0-beta3"]
-        os: ["macos-latest", "ubuntu-latest", "windows-2019"]
+        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "lua 5.4", "luajit 2.1.0-beta3"]
+        os: ["ubuntu-latest"]
         include:
         - os: macos-latest
           macos_build_target: 10.0
@@ -35,6 +35,7 @@ jobs:
 
     - name: Install lanes
       run: |
+        lua -v
         luarocks insatll lanes
 
     - name: Run Tests
