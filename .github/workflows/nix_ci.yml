@@ -35,9 +35,9 @@ jobs:
     - name: Install lanes
       run: |
         source ${{github.workspace}}/lua-pkg/bin/activate
-        lua -v
-        luarocks insatll lanes
+        luarocks install lanes
 
     - name: Run Tests
       run: |
+        source ${{github.workspace}}/lua-pkg/bin/activate
         lua tests/runtests.lua
