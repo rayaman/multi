@@ -132,7 +132,6 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedJobQueues: Ok")
 
     queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
-    print(1)
     multi:newSystemThread("Test_Thread_2",function()
         queue2 = THREAD.waitFor("Test_Queue2"):init()
         connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
@@ -141,7 +140,6 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end).OnError(multi.error)
-    print(2)
     multi:newSystemThread("Test_Thread_3",function()
         queue2 = THREAD.waitFor("Test_Queue2"):init()
         connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
@@ -150,35 +148,28 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end).OnError(multi.error)
-    print(3)
     connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
     a=0
     connOut(function(arg)
         queue2:push("Main")
     end)
-    print(4)
     for i=1,3 do
         thread.sleep(.1)
         connOut:Fire("Test From Main Thread: "..i.."\n")
     end
-    print(5)
     thread.sleep(2)
     local count = 0
     multi:newThread(function()
         while count < 9 do
             if queue2:pop() then
                 count = count + 1
-                print("Popped", count)
             end
         end
     end).OnError(multi.error)
-    print(6)
     _, err = thread.hold(function() return count == 9 end,{sleep=.3})
-    print(7)
     if err == multi.TIMEOUT then
         multi.error("SystemThreadedConnections: Failed")
     end
-    print(8)
     multi.success("SystemThreadedConnections: Ok")
 
     we_good = true
@@ -188,6 +179,7 @@ end).OnError(multi.error)
 multi.OnExit(function(err)
     if not we_good then
         multi.error("There was an error running some tests!")
+        os.exit(1)
     else
         multi.success("Tests complete!")
     end
