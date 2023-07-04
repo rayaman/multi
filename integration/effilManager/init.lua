@@ -1,6 +1,6 @@
 local multi, thread = require("multi"):init{error=true}
 multi.error("Currntly not supported!")
-os.exit()
+os.exit(1)
 local effil = require("effil")
 
 -- I like some of the things that this library offers.

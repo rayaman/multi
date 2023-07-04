@@ -52,7 +52,7 @@ multi:newThread("Scheduler Thread",function()
         queue:push("done")
     end,"Passing some args", 1, 2, 3, true, {"Table"}).OnError(function(self,err)
         multi.error(err)
-        os.exit()
+        os.exit(1)
     end)
 
     if thread.hold(function()
@@ -101,7 +101,7 @@ multi:newThread("Scheduler Thread",function()
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedTables: Failed")
-        os.exit()
+        os.exit(1)
     end
 
     multi.success("SystemThreadedTables: Ok")
@@ -126,7 +126,7 @@ multi:newThread("Scheduler Thread",function()
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedJobQueues: Failed")
-        os.exit()
+        os.exit(1)
     end
 
     multi.success("SystemThreadedJobQueues: Ok")
@@ -173,13 +173,14 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedConnections: Ok")
 
     we_good = true
-    os.exit()
+    os.exit(1)
 end).OnError(multi.error)
 
-multi.OnExit(function(err)
+multi.OnExit(function(err_or_errorcode)
+    print("Final status!",err_or_errorcode)
     if not we_good then
-        multi.error("There was an error running some tests!")
-        os.exit(1)
+        multi.info("There was an error running some tests!")
+        return
     else
         multi.success("Tests complete!")
     end

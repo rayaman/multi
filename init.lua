@@ -2431,6 +2431,7 @@ multi.SetName		=	multi.setName
 local _os = os.exit
 
 function os.exit(n)
+	print("ERROR_"..n)
 	multi.OnExit:Fire(n or 0)
 	_os(n)
 end
