@@ -2389,7 +2389,7 @@ end
 function multi.print(...)
 	if multi.defaultSettings.print then
 		local t = {}
-		for i,v in pairs(multi.pack(...)) do t[#t+1] = tostring(v) end
+		for i,v in ipairs(multi.pack(...)) do t[#t+1] = tostring(v) end
 		io.write("\x1b[94mINFO:\x1b[0m " .. table.concat(t," ") .. "\n")
 	end
 end
@@ -2397,7 +2397,7 @@ end
 function multi.warn(...)
 	if multi.defaultSettings.warn then
 		local t = {}
-		for i,v in pairs(multi.pack(...)) do t[#t+1] = tostring(v) end
+		for i,v in ipairs(multi.pack(...)) do t[#t+1] = tostring(v) end
 		io.write("\x1b[93mWARNING:\x1b[0m " .. table.concat(t," ") .. "\n")
 	end
 end
@@ -2414,7 +2414,7 @@ end
 
 function multi.success(...)
 	local t = {}
-	for i,v in pairs(multi.pack(...)) do t[#t+1] = tostring(v) end
+	for i,v in ipairs(multi.pack(...)) do t[#t+1] = tostring(v) end
 	io.write("\x1b[92mSUCCESS:\x1b[0m " .. table.concat(t," ") .. "\n")
 end
 
@@ -2431,7 +2431,6 @@ multi.SetName		=	multi.setName
 local _os = os.exit
 
 function os.exit(n)
-	print("ERROR_"..n)
 	multi.OnExit:Fire(n or 0)
 	_os(n)
 end

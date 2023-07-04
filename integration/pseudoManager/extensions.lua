@@ -153,3 +153,4 @@ function multi:newSystemThreadedConnection(name)
 	GLOBAL[name or "_"] = conn
 	return conn
 end
+require("multi.integration.sharedExtensions")

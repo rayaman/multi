@@ -22,26 +22,6 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 
-local function copy(obj)
-	if type(obj) ~= 'table' then return obj end
-    local res = {}
-    for k, v in pairs(obj) do res[copy(k)] = copy(v) end
-    return res
-end
-
-function tprint (tbl, indent)
-	if not indent then indent = 0 end
-	for k, v in pairs(tbl) do
-	  formatting = string.rep("  ", indent) .. k .. ": "
-	  if type(v) == "table" then
-		print(formatting)
-		tprint(v, indent+1)
-	  else
-		print(formatting .. tostring(v))      
-	  end
-	end
-  end
-
 local multi, thread = require("multi"):init()
 
 -- Returns a handler that allows a user to interact with an object on another thread!
@@ -73,6 +53,12 @@ function multi:newProxy(list)
 	local multi, thread = nil, nil
 	function c:init()
 		local multi, thread = nil, nil
+		local function copy(obj)
+			if type(obj) ~= 'table' then return obj end
+			local res = {}
+			for k, v in pairs(obj) do res[copy(k)] = copy(v) end
+			return res
+		end
 		if not(c.is_init) then
 			c.is_init = true
 			local multi, thread = require("multi"):init()
@@ -132,6 +118,12 @@ function multi:newProxy(list)
 			end).OnError(multi.error)
 			return self
 		else
+			local function copy(obj)
+				if type(obj) ~= 'table' then return obj end
+				local res = {}
+				for k, v in pairs(obj) do res[copy(k)] = copy(v) end
+				return res
+			end
 			local multi, thread = require("multi"):init()
 			local me = self
 			local funcs = copy(self.funcs)
@@ -180,6 +172,12 @@ function multi:newProxy(list)
 	function c:getTransferable()
 		local cp = {}
 		local multi, thread = require("multi"):init()
+		local function copy(obj)
+			if type(obj) ~= 'table' then return obj end
+			local res = {}
+			for k, v in pairs(obj) do res[copy(k)] = copy(v) end
+			return res
+		end
 		cp.is_init = true
 		cp.proxy_link = self.proxy_link
 		cp.name = self.name

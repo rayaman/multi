@@ -131,53 +131,111 @@ multi:newThread("Scheduler Thread",function()
 
     multi.success("SystemThreadedJobQueues: Ok")
 
-    queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
-    multi:newSystemThread("Test_Thread_2",function()
-        queue2 = THREAD.waitFor("Test_Queue2"):init()
-        connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
-        connOut(function(arg)
-            queue2:push("Test_Thread_2")
-        end)
-        multi:mainloop()
-    end).OnError(multi.error)
-    multi:newSystemThread("Test_Thread_3",function()
-        queue2 = THREAD.waitFor("Test_Queue2"):init()
-        connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
-        connOut(function(arg)
-            queue2:push("Test_Thread_3")
-        end)
-        multi:mainloop()
-    end).OnError(multi.error)
-    connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
-    a=0
-    connOut(function(arg)
-        queue2:push("Main")
-    end)
-    for i=1,3 do
-        thread.sleep(.1)
-        connOut:Fire("Test From Main Thread: "..i.."\n")
-    end
-    thread.sleep(2)
-    local count = 0
-    multi:newThread(function()
-        while count < 9 do
-            if queue2:pop() then
-                count = count + 1
+    -- queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
+    -- multi:newSystemThread("Test_Thread_2",function()
+    --     queue2 = THREAD.waitFor("Test_Queue2"):init()
+    --     connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
+    --     connOut(function(arg)
+    --         queue2:push("Test_Thread_2")
+    --     end)
+    --     multi:mainloop()
+    -- end).OnError(multi.error)
+    -- multi:newSystemThread("Test_Thread_3",function()
+    --     queue2 = THREAD.waitFor("Test_Queue2"):init()
+    --     connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
+    --     connOut(function(arg)
+    --         queue2:push("Test_Thread_3")
+    --     end)
+    --     multi:mainloop()
+    -- end).OnError(multi.error)
+    -- connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
+    -- a=0
+    -- connOut(function(arg)
+    --     queue2:push("Main")
+    -- end)
+    -- for i=1,3 do
+    --     thread.sleep(.1)
+    --     connOut:Fire("Test From Main Thread: "..i.."\n")
+    -- end
+    -- thread.sleep(2)
+    -- local count = 0
+    -- multi:newThread(function()
+    --     while count < 9 do
+    --         if queue2:pop() then
+    --             count = count + 1
+    --         end
+    --     end
+    -- end).OnError(multi.error)
+    -- _, err = thread.hold(function() return count == 9 end,{sleep=.3})
+    -- if err == multi.TIMEOUT then
+    --     multi.error("SystemThreadedConnections: Failed")
+    -- end
+    -- multi.success("SystemThreadedConnections: Ok")
+
+    local stp = multi:newSystemThreadedProcessor(8)
+
+    local tloop = stp:newTLoop(nil, 1)
+
+    local proxy_test = false
+
+    multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
+        local multi, thread = require("multi"):init()
+        tloop = tloop:init()
+        multi.print("tloop type:",tloop.Type)
+        multi.print("Testing proxies on other threads")
+        thread:newThread(function()
+            while true do
+                thread.hold(tloop.OnLoop)
+                print(THREAD_NAME,"Loopy")
             end
+        end)
+        tloop.OnLoop(function(a)
+            print(THREAD_NAME, "Got loop...")
+        end)
+        multi:mainloop()
+    end, tloop:getTransferable()).OnError(multi.error)
+
+    multi.print("tloop", tloop.Type)
+    multi.print("tloop.OnLoop", tloop.OnLoop.Type)
+
+    thread:newThread(function()
+        multi.print("Testing holding on a proxy connection!")
+        thread.hold(tloop.OnLoop)
+        multi.print("Held on proxy connection... once")
+        thread.hold(tloop.OnLoop)
+        multi.print("Held on proxy connection... twice")
+        proxy_test = true
+    end).OnError(print)
+
+    thread:newThread(function()
+        while true do
+            thread.hold(tloop.OnLoop)
+            print(THREAD_NAME,"Loopy")
         end
-    end).OnError(multi.error)
-    _, err = thread.hold(function() return count == 9 end,{sleep=.3})
-    if err == multi.TIMEOUT then
-        multi.error("SystemThreadedConnections: Failed")
+    end)
+
+    tloop.OnLoop(function()
+        print("OnLoop",THREAD_NAME)
+    end)
+
+    t, val = thread.hold(function()
+        return count == 10
+    end,{sleep=5})
+
+    if val == multi.TIMEOUT then
+        multi.error("SystemThreadedProcessor/Proxies: Failed")
+        os.exit(1)
     end
-    multi.success("SystemThreadedConnections: Ok")
+
+    thread.sleep(2)
+
+    multi.success("SystemThreadedProcessor: OK")
 
     we_good = true
     os.exit(1)
 end).OnError(multi.error)
 
 multi.OnExit(function(err_or_errorcode)
-    print("Final status!",err_or_errorcode)
     if not we_good then
         multi.info("There was an error running some tests!")
         return

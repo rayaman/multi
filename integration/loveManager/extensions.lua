@@ -381,3 +381,4 @@ function multi:newSystemThreadedConnection(name)
 
 	return c
 end
+require("multi.integration.sharedExtensions")
