@@ -35,6 +35,7 @@ function multi:newSystemThreadedQueue(name)
 	local name = name or multi.randomString(16)
 	local c = {}
 	c.Name = name
+	c.Type = multi.SQUEUE
 	local fRef = {"func",nil}
 	function c:init()
 		local q = {}
@@ -66,33 +67,49 @@ function multi:newSystemThreadedQueue(name)
 		end
 		return q
 	end
+
 	THREAD.package(name,c)
+
+	self:create(c)
+
 	return c
 end
 
 function multi:newSystemThreadedTable(name)
 	local name = name or multi.randomString(16)
-    local c = {}
+    
+	local c = {}
+
     c.Name = name
+	c.Type = multi.STABLE
+
     function c:init()
         return THREAD.createTable(self.Name)
     end
+
     THREAD.package(name,c)
+
+	self:create(c)
+
 	return c
 end
 
 local jqc = 1
 function multi:newSystemThreadedJobQueue(n)
 	local c = {}
+
 	c.cores = n or THREAD.getCores()
 	c.registerQueue = {}
+	c.Type = multi.SJOBQUEUE
 	c.funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
 	c.queue = love.thread.getChannel("__JobQueue_"..jqc.."_queue")
 	c.queueReturn = love.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
 	c.queueAll = love.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
 	c.id = 0
 	c.OnJobCompleted = multi:newConnection()
+
 	local allfunc = 0
+
 	function c:doToAll(func)
 		local f = THREAD.dump(func)
 		for i = 1, self.cores do
@@ -211,13 +228,20 @@ function multi:newSystemThreadedJobQueue(n)
 			multi:mainloop()
 		end,jqc)
 	end
+
 	jqc = jqc + 1
+
+	self:create(c)
+
 	return c
 end
 
 function multi:newSystemThreadedConnection(name)
 	local name = name or multi.randomString(16)
+
 	local c = {}
+
+	c.Type = multi.SCONNECTION
 	c.CONN = 0x00
 	c.TRIG = 0x01
 	c.PING = 0x02
@@ -284,9 +308,11 @@ function multi:newSystemThreadedConnection(name)
 		end
 		return r
 	end
+
 	c.CID = THREAD_ID
 	c.Name = name
 	c.links = {} -- All triggers sent from main connection. When a connection is triggered on another thread, they speak to the main then send stuff out.
+	
 	-- Locals will only live in the thread that creates the original object
 	local ping
 	local pong = function(link, links)
@@ -317,7 +343,7 @@ function multi:newSystemThreadedConnection(name)
 		thread.sleep(3)
 
 		ping:Resume()
-	end,false)
+	end, false)
 
 	local function fire(...)
 		for _, link in pairs(c.links) do
@@ -350,6 +376,8 @@ function multi:newSystemThreadedConnection(name)
 	--- ^^^ This will only exist in the init thread
 
 	THREAD.package(name,c)
+
+	self:create(c)
 
 	return c
 end

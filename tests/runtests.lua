@@ -182,11 +182,19 @@ runTest = thread:newFunction(function()
 	end
 end)
 
-runTest().OnError(function(...)
+local handle = runTest()
+
+handle.OnError(function(...)
 	multi.error("Something went wrong with the test!")
 	print(...)
 end)
 
 if not love then
 	multi:mainloop()
+else
+	local hold = thread:newFunction(function()
+		thread.hold(handle.OnError + handle.OnReturn)
+	end, true)
+	hold()
+	multi.print("Starting Threading tests!")
 end

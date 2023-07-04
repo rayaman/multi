@@ -109,12 +109,10 @@ multi:newThread("Scheduler Thread",function()
     local ready = false
 
     jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
-
     func = jq:newFunction("test-thread",function(a,b)
         THREAD.sleep(.2)
         return a+b
     end)
-
     local count = 0
     for i = 1,10 do
         func(i, i*3).OnReturn(function(data)
@@ -134,6 +132,7 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedJobQueues: Ok")
 
     queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
+    print(1)
     multi:newSystemThread("Test_Thread_2",function()
         queue2 = THREAD.waitFor("Test_Queue2"):init()
         connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
@@ -142,7 +141,7 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end).OnError(multi.error)
-
+    print(2)
     multi:newSystemThread("Test_Thread_3",function()
         queue2 = THREAD.waitFor("Test_Queue2"):init()
         connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
@@ -151,32 +150,35 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end).OnError(multi.error)
-    
+    print(3)
     connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
     a=0
     connOut(function(arg)
         queue2:push("Main")
     end)
+    print(4)
     for i=1,3 do
         thread.sleep(.1)
         connOut:Fire("Test From Main Thread: "..i.."\n")
     end
+    print(5)
     thread.sleep(2)
     local count = 0
     multi:newThread(function()
         while count < 9 do
             if queue2:pop() then
                 count = count + 1
+                print("Popped", count)
             end
         end
     end).OnError(multi.error)
-
+    print(6)
     _, err = thread.hold(function() return count == 9 end,{sleep=.3})
-
+    print(7)
     if err == multi.TIMEOUT then
         multi.error("SystemThreadedConnections: Failed")
     end
-
+    print(8)
     multi.success("SystemThreadedConnections: Ok")
 
     we_good = true

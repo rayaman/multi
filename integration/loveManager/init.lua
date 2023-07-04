@@ -116,10 +116,12 @@ end
 function THREAD:newFunction(func, holdme)
     return thread:newFunctionBase(function(...)
         return multi:newSystemThread("SystemThreaded Function Handler", func, ...)
-    end, holdme)()
+    end, holdme, multi.SFUNCTION)()
 end
 
-THREAD.newSystemThread = multi.newSystemThread
+THREAD.newSystemThread = function(...)
+    multi:newSystemThread(...)
+end
 
 function love.threaderror(thread, errorstr)
     multi.print("Thread error!\n" .. errorstr)

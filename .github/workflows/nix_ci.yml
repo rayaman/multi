@@ -1,0 +1,42 @@
+name: build & run tests (NIX)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: [Release] # Debug
+        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "luajit 2.1.0-beta3"]
+        os: ["macos-latest", "ubuntu-latest", "windows-2019"]
+        include:
+        - os: macos-latest
+          macos_build_target: 10.0
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.8'
+    - name: Setup env
+      env:
+        MACOSX_DEPLOYMENT_TARGET: ${{ matrix.macos_build_target }}
+      run: |
+        pip install hererocks
+        hererocks lua-pkg --${{ matrix.lua }} -rlatest
+        source ${{github.workspace}}/lua-pkg/bin/activate
+
+    - name: Install lanes
+      run: |
+        luarocks insatll lanes
+
+    - name: Run Tests
+      run: |
+        lua tests/runtests.lua

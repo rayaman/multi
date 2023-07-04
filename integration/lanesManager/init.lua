@@ -32,9 +32,7 @@ if multi.integration then -- This allows us to call the lanes manager from suppo
 	}
 end
 -- Step 1 get lanes
-lanes = require("lanes").configure{
-	nb_keepers = 4,
-}
+lanes = require("lanes").configure()
 multi.SystemThreads = {}
 multi.isMainThread = true
 
@@ -63,7 +61,7 @@ local livingThreads = {}
 function THREAD:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
 		return multi:newSystemThread("TempSystemThread",func,...)
-	end, holdme)()
+	end, holdme, multi.SFUNCTION)()
 end
 
 function multi:newSystemThread(name, func, ...)
@@ -143,7 +141,9 @@ function multi:newSystemThread(name, func, ...)
 	return c
 end
 
-THREAD.newSystemThread = multi.newSystemThread
+THREAD.newSystemThread = function(...)
+    multi:newSystemThread(...)
+end
 
 function multi.InitSystemThreadErrorHandler()
 	if started == true then

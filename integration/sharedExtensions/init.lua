@@ -213,6 +213,7 @@ function multi:newSystemThreadedProcessor(cores)
 	
 	setmetatable(c,{__index = multi})
 	
+	c.Type = multi.SPROCESS
 	c.threads = {}
 	c.cores = cores or 8
 	c.Name = name

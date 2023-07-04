@@ -60,6 +60,7 @@ function multi.setType(obj,t)
 		})
 	end
 end
+
 setmetatable(multi.DestroyedObj, {
 	__index = function(t,k)
 		return setmetatable({},{__index = uni,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni})
@@ -68,7 +69,8 @@ setmetatable(multi.DestroyedObj, {
 
 multi.DESTROYED			= multi.DestroyedObj
 multi.ROOTPROCESS		= "rootprocess"
-multi.CONNECTOR			= "connector"
+multi.CONNECTOR			= "connector" -- To be deprecated
+multi.CONNECTION		= "connector" -- To be changed to connection and replace connector (v17.x,x)
 multi.TIMEMASTER		= "timemaster"
 multi.PROCESS			= "process"
 multi.TIMER				= "timer"
@@ -81,8 +83,18 @@ multi.STEP				= "step"
 multi.TSTEP				= "tstep"
 multi.THREAD			= "thread"
 multi.SERVICE			= "service"
+multi.THREADEDFUNCTION	= "threaded_function" -- To be deprecated
+multi.FUNCTION			= "threaded_function" -- To be changed to connection and replace connector (v17.x,x)
+
+-- Extensions
 multi.PROXY 			= "proxy"
-multi.THREADEDFUNCTION	= "threaded_function"
+multi.STHREAD			= "s_thread"
+multi.SQUEUE			= "s_queue"
+multi.STABLE			= "s_table"
+multi.SJOBQUEUE			= "s_jobqueue"
+multi.SCONNECTION		= "s_connection"
+multi.SPROCESS			= "s_process"
+multi.SFUNCTION			= "s_function"
 
 if not _G["$multi"] then
 	_G["$multi"] = {multi = multi, thread = thread}
@@ -305,7 +317,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end})
 
-	c.Type=multi.CONNECTOR
+	c.Type=multi.CONNECTION
 	c.func={}
 	c.ID=0
 	local protect=protect or false
@@ -1286,7 +1298,7 @@ function thread.hold(n, opt)
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
-	elseif type(n) == "table" and n.Type == multi.CONNECTOR then
+	elseif type(n) == "table" and n.Type == multi.CONNECTION then
 		return yield(CMD, t_hold, conn_test(n), nil, interval)
 	elseif type(n) == "table" and n.Hold ~= nil then
 		return n:Hold(opt)
@@ -1367,7 +1379,7 @@ function thread.pushStatus(...)
 	t.statusconnector:Fire(...)
 end
 
-function thread:newFunctionBase(generator, holdme)
+function thread:newFunctionBase(generator, holdme, TYPE)
 	return function()
 		local tfunc = {}
 		tfunc.Active = true
@@ -1449,7 +1461,7 @@ function thread:newFunctionBase(generator, holdme)
 			return temp
 		end
 		setmetatable(tfunc, tfunc)
-		tfunc.Type = multi.THREADEDFUNCTION
+		tfunc.Type = TYPE or multi.FUNCTION
 		return tfunc
 	end
 end
@@ -2043,7 +2055,7 @@ local function doOpt()
 		if type(n) == "number" then
 			thread.getRunningThread().lastSleep = clock()
 			return yield(CMD, t_sleep, n or 0, nil, interval)
-		elseif type(n) == "table" and n.Type == multi.CONNECTOR then
+		elseif type(n) == "table" and n.Type == multi.CONNECTION then
 			local rdy = function()
 				return false
 			end

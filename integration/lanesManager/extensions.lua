@@ -34,6 +34,7 @@ function multi:newSystemThreadedQueue(name)
 	local c = {}
 	c.Name = name
 	c.linda = lanes.linda()
+	c.Type = multi.SQUEUE
 
 	function c:push(v)
 		self.linda:send("Q", v)
@@ -57,6 +58,8 @@ function multi:newSystemThreadedQueue(name)
 		GLOBAL[name] = c
 	end
 
+	self:create(c)
+
 	return c
 end
 
@@ -65,6 +68,7 @@ function multi:newSystemThreadedTable(name)
     local c = {}
     c.link = lanes.linda()
 	c.Name = name
+	c.Type = multi.STABLE
 
     function c:init()
         return self
@@ -85,12 +89,15 @@ function multi:newSystemThreadedTable(name)
 		GLOBAL[name] = c
 	end
 
+	self:create(c)
+
 	return c
 end
 
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
+	c.Type = multi.SJOBQUEUE
     c.OnJobCompleted = multi:newConnection()
     local funcs = multi:newSystemThreadedTable():init()
     local queueJob = multi:newSystemThreadedQueue():init()
@@ -133,7 +140,6 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = multi.pack(...)
-					c.OnJobCompleted:Unconnect(link)
                 end
             end)
             return thread.hold(function()
@@ -207,12 +213,16 @@ function multi:newSystemThreadedJobQueue(n)
             multi:mainloop()
         end,i).OnError(multi.error)
     end
+
+	self:create(c)
+
     return c
 end
 
 function multi:newSystemThreadedConnection(name)
 	local name = name or multi.randomString(16)
 	local c = {}
+	c.Type = multi.SCONNECTION
 	c.CONN = 0x00
 	c.TRIG = 0x01
 	c.PING = 0x02
@@ -347,6 +357,8 @@ function multi:newSystemThreadedConnection(name)
 	else
 		GLOBAL[name] = c
 	end
+
+	self:create(c)
 
 	return c
 end
