@@ -20,7 +20,7 @@ end
     The expected and actual should "match" (Might be impossible when playing with threads)
     This will be pushed directly to the master as tests start existing.
 ]]
-local multi, thread = require("multi"):init{print=true,warn=true,error=false}--{priority=true}
+local multi, thread = require("multi"):init{print=true,warn=true,error=true}--{priority=true}
 local good = false
 local proc = multi:newProcessor("Test")
 
