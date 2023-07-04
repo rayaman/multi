@@ -31,10 +31,10 @@ jobs:
       run: |
         pip install hererocks
         hererocks lua-pkg --${{ matrix.lua }} -rlatest
-        source ${{github.workspace}}/lua-pkg/bin/activate
 
     - name: Install lanes
       run: |
+        source ${{github.workspace}}/lua-pkg/bin/activate
         lua -v
         luarocks insatll lanes
 
