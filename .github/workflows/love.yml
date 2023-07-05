@@ -19,4 +19,5 @@ jobs:
         sudo chmod +x love.AppImage
     - name: Run Tests
       run: |
-        ./love.AppImage tests
+        ls -l
+        ./love.AppImage  ${{github.workspace}}/tests
