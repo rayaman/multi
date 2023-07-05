@@ -12,14 +12,14 @@ jobs:
       fail-fast: false
     runs-on: "ubuntu-latest"
     steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: Install love2d
       run: |
         sudo apt install fuse
         wget https://github.com/love2d/love/releases/download/11.4/love-11.4-x86_64.AppImage -O love.AppImage
         sudo chmod +x love.AppImage
-    - uses: actions/checkout@v2
-      with:
-        submodules: recursive
     - name: Run Tests
       run: |
         ./love.AppImage tests
