@@ -1,4 +1,4 @@
-name: Build & Run tests (Ubuntu/Love2d)
+name: Build & Run tests Ubuntu - Love2d
 
 on:
   push:
@@ -12,12 +12,11 @@ jobs:
       fail-fast: false
     runs-on: "ubuntu-latest"
     steps:
-    - uses: actions/checkout@v2
-    - uses: nhartland/love-build@v1-beta4
-      with:
-        app_name: 'love_test'
-        love_version: '11.4'
-        source_dir: './tests'
+    - name: Install love2d
+      run: |
+        apt install fuse
+        wget https://github.com/love2d/love/releases/download/11.4/love-11.4-x86_64.AppImage -O love.AppImage
+        chmod +x love.AppImage
     - name: Run Tests
       run: |
-        ./release/love_tests
+        ./love.AppImage tests
