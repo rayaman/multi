@@ -1,4 +1,4 @@
-name: build & run tests (Win)
+name: Build & Run tests (Windows/Love2d)
 
 on:
   push:
@@ -13,7 +13,7 @@ jobs:
     runs-on: "windows-2019"
     steps:
     - uses: actions/checkout@v2
-    - uses: nhartland/love-build@v1-beta2
+    - uses: nhartland/love-build@v1-beta4
       with:
         app_name: 'love_test'
         love_version: '11.4'

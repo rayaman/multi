@@ -1,4 +1,4 @@
-name: build & run tests (NIX)
+name: Build & Run tests Ubuntu
 
 on:
   push:
