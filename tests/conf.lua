@@ -1,6 +1,6 @@
 function love.conf(t)
 	t.identity = nil -- The name of the save directory (string)
-	t.version = "12.0" -- The LOVE version this game was made for (string)
+	t.version = "11.4" -- The LOVE version this game was made for (string)
 	t.console = true -- Attach a console (boolean, Windows only)
 
 	t.window = false

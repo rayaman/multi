@@ -232,7 +232,7 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedProcessor: OK")
 
     we_good = true
-    os.exit(1)
+    os.exit()
 end).OnError(multi.error)
 
 multi.OnExit(function(err_or_errorcode)
