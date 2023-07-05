@@ -17,7 +17,7 @@ jobs:
       with:
         app_name: 'love_test'
         love_version: '11.4'
-        source_dir: 'test'
+        source_dir: './tests'
     - name: Run Tests
       run: |
         ./release/love_tests
