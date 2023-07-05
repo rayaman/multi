@@ -12,6 +12,9 @@ jobs:
       fail-fast: false
     runs-on: "ubuntu-latest"
     steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
     - name: Install love2d
       run: |
         sudo apt install fuse
@@ -19,6 +22,4 @@ jobs:
         sudo chmod +x love.AppImage
     - name: Run Tests
       run: |
-        ls -l
-        ls -l ${{github.workspace}}
-        ./love.AppImage  ${{github.workspace}}/tests
+        ./love.AppImage tests
