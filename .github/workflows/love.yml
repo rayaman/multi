@@ -1,4 +1,4 @@
-name: Build & Run tests Ubuntu - Love2d
+name: Build & Run tests Love2d
 
 on:
   push:
@@ -14,9 +14,9 @@ jobs:
     steps:
     - name: Install love2d
       run: |
-        apt install fuse
+        sudo apt install fuse
         wget https://github.com/love2d/love/releases/download/11.4/love-11.4-x86_64.AppImage -O love.AppImage
-        chmod +x love.AppImage
+        sudo chmod +x love.AppImage
     - name: Run Tests
       run: |
         ./love.AppImage tests
