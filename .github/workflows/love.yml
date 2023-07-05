@@ -1,0 +1,23 @@
+name: build & run tests (Win)
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+    runs-on: "windows-2019"
+    steps:
+    - uses: actions/checkout@v2
+    - uses: nhartland/love-build@v1-beta2
+      with:
+        app_name: 'love_test'
+        love_version: '11.4'
+        source_dir: 'test'
+    - name: Run Tests
+      run: |
+        ./release/love_tests.exe

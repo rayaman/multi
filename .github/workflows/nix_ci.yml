@@ -38,10 +38,3 @@ jobs:
       run: |
         source ${{github.workspace}}/lua-pkg/bin/activate
         lua tests/runtests.lua
-    
-    - name: Run Tests using LÖVE
-      run: |
-        nix-shell -p love
-        love tests
-
-
