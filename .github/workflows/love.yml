@@ -1,4 +1,4 @@
-name: Build & Run tests (Windows/Love2d)
+name: Build & Run tests (Ubuntu/Love2d)
 
 on:
   push:
@@ -10,7 +10,7 @@ jobs:
   build:
     strategy:
       fail-fast: false
-    runs-on: "windows-2019"
+    runs-on: "ubuntu-latest"
     steps:
     - uses: actions/checkout@v2
     - uses: nhartland/love-build@v1-beta4
@@ -20,4 +20,4 @@ jobs:
         source_dir: 'test'
     - name: Run Tests
       run: |
-        ./release/love_tests.exe
+        ./release/love_tests
