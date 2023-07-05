@@ -15,9 +15,8 @@ function love.conf(t)
 	t.modules.mouse = false -- Enable the mouse module (boolean)
 	t.modules.physics = false -- Enable the physics module (boolean)
 	t.modules.sound = false -- Enable the sound module (boolean)
-	t.modules.system = false -- Enable the system module (boolean)
-	t.modules.timer = false -- Enable the timer module (boolean)
+	t.modules.system = true -- Enable the system module (boolean)
+	t.modules.timer = true -- Enable the timer module (boolean)
 	t.modules.window = false -- Enable the window module (boolean)
 	t.modules.thread = true -- Enable the thread module (boolean)
 end
---1440 x 2560

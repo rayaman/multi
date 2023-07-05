@@ -37,6 +37,12 @@ THREAD.setENV({
 })
 
 multi:newThread("Scheduler Thread",function()
+    multi:newThread(function()
+        thread.sleep(30)
+        print("Timeout tests took longer than 30 seconds")
+        multi:Stop()
+        os.exit(1)
+    end)
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
 
     multi:newSystemThread("Test_Thread_0", function()
@@ -172,12 +178,12 @@ multi:newThread("Scheduler Thread",function()
     -- end
     -- multi.success("SystemThreadedConnections: Ok")
 
-    local stp = multi:newSystemThreadedProcessor(8)
-
+    local stp = multi:newSystemThreadedProcessor(1)
+    print(stp)
     local tloop = stp:newTLoop(nil, 1)
-
+    print(2)
     local proxy_test = false
-
+    print(3)
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
         local multi, thread = require("multi"):init()
         tloop = tloop:init()
@@ -194,10 +200,10 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end, tloop:getTransferable()).OnError(multi.error)
-
+    print(4)
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
-
+    print(5)
     thread:newThread(function()
         multi.print("Testing holding on a proxy connection!")
         thread.hold(tloop.OnLoop)
@@ -206,6 +212,7 @@ multi:newThread("Scheduler Thread",function()
         multi.print("Held on proxy connection... twice")
         proxy_test = true
     end).OnError(print)
+    print(6)
 
     thread:newThread(function()
         while true do
@@ -232,6 +239,7 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedProcessor: OK")
 
     we_good = true
+    multi:Stop()
     os.exit()
 end).OnError(multi.error)
 
