@@ -19,4 +19,4 @@ jobs:
         sudo chmod +x love.AppImage
     - name: Run Tests
       run: |
-        cd tests && ./love.AppImage .
+        ./love.AppImage tests
