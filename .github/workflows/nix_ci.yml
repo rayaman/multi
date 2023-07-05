@@ -19,9 +19,11 @@ jobs:
     - uses: actions/checkout@v2
       with:
         submodules: recursive
+
     - uses: actions/setup-python@v2
       with:
         python-version: '3.8'
+
     - name: Setup env
       run: |
         pip install hererocks
@@ -36,3 +38,10 @@ jobs:
       run: |
         source ${{github.workspace}}/lua-pkg/bin/activate
         lua tests/runtests.lua
+    
+    - name: Run Tests using LÖVE
+      run: |
+        nix-shell -p love
+        love tests
+
+
