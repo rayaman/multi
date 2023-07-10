@@ -177,13 +177,21 @@ multi:newThread("Scheduler Thread",function()
     --     multi.error("SystemThreadedConnections: Failed")
     -- end
     -- multi.success("SystemThreadedConnections: Ok")
-
-    local stp = multi:newSystemThreadedProcessor(1)
-    print(stp)
-    local tloop = stp:newTLoop(nil, 1)
-    print(2)
     local proxy_test = false
-    print(3)
+    multi:newThread(function()
+        t, val = thread.hold(function()
+            return proxy_test
+        end,{sleep=5})
+        if val == multi.TIMEOUT then
+            multi.error("SystemThreadedProcessor/Proxies: Failed")
+        end
+        thread.sleep(1)
+        os.exit(1)
+    end)
+    local stp = multi:newSystemThreadedProcessor(1)
+
+    local tloop = stp:newTLoop(nil, 1)
+
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
         local multi, thread = require("multi"):init()
         tloop = tloop:init()
@@ -200,10 +208,10 @@ multi:newThread("Scheduler Thread",function()
         end)
         multi:mainloop()
     end, tloop:getTransferable()).OnError(multi.error)
-    print(4)
+
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
-    print(5)
+
     thread:newThread(function()
         multi.print("Testing holding on a proxy connection!")
         thread.hold(tloop.OnLoop)
@@ -239,7 +247,7 @@ multi:newThread("Scheduler Thread",function()
     multi.success("SystemThreadedProcessor: OK")
 
     we_good = true
-    multi:Stop()
+    multi:Stop() -- Needed in love2d tests to stop the main runner
     os.exit()
 end).OnError(multi.error)
 

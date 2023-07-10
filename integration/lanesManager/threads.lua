@@ -66,11 +66,11 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         local c = {}
         c.queue = __Console
         function c.print(...)
-            c.queue:send("Q", multi.pack(...))
+            c.queue:push("Q", table.concat(multi.pack(...), "\t"))
         end
         function c.error(err)
-            c.queue:push("Q",{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__})
-            error(err)
+            c.queue:push("Q", "Error in <"..THREAD_NAME..":" .. THREAD_ID .. ">: ".. err)
+            multi.error(err)
         end
         return c
     end

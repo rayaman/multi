@@ -2405,7 +2405,12 @@ end
 function multi.error(self, err)
 	if type(err) == "bool" then crash = err end
 	if type(self) == "string" then err = self end
-	io.write("\x1b[91mERROR:\x1b[0m " .. err .. " " .. debug.getinfo(2).name .."\n")
+	local name = debug.getinfo(2).name
+	if name then
+		io.write("\x1b[91mERROR:\x1b[0m " .. err .. " " .. name .."\n")
+	else
+		io.write("\x1b[91mERROR:\x1b[0m " .. err .. " ?\n")
+	end
 	error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
 	if multi.defaultSettings.error then
 		os.exit(1)

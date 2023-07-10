@@ -76,7 +76,7 @@ function multi:newSystemThread(name, func, ...)
 	c.loadString = {"base","package","os","io","math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
 	c.returns = return_linda
-	c.Type = "sthread"
+	c.Type = multi.STHREAD
 	c.creationTime = os.clock()
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
