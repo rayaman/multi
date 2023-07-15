@@ -1630,14 +1630,11 @@ function thread:newThread(name, func, ...)
 
 	c.Destroy = c.Kill
 	if thread.isThread() then
-		multi:newLoop(function(loop)
-			if self.Type == multi.PROCESS then
-				table.insert(self.startme, c)
-			else
-				table.insert(threadManager.startme, c)
-			end
-			loop:Break()
-		end)
+		if self.Type == multi.PROCESS then
+			table.insert(self.startme, c)
+		else
+			table.insert(threadManager.startme, c)
+		end
 	else
 		if self.Type == multi.PROCESS then
 			table.insert(self.startme, c)
@@ -2411,8 +2408,8 @@ function multi.error(self, err)
 	else
 		io.write("\x1b[91mERROR:\x1b[0m " .. err .. " ?\n")
 	end
-	error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
 	if multi.defaultSettings.error then
+		error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
 		os.exit(1)
 	end
 end

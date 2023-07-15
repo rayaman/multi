@@ -70,9 +70,8 @@ function multi:newSystemThread(name, func, ...)
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
 	c = {}
-	c.name = name
 	c.Name = name
-	c.Id = count
+	c.ID = count
 	c.loadString = {"base","package","os","io","math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
 	c.returns = return_linda
@@ -162,13 +161,13 @@ function multi.InitSystemThreadErrorHandler()
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status
-				push = __StatusLinda:get(temp.Id)
+				push = __StatusLinda:get(temp.ID)
 				if push then
-					temp.statusconnector:Fire(multi.unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
+					temp.statusconnector:Fire(multi.unpack(({__StatusLinda:receive(nil, temp.ID)})[2]))
 				end
 				if status == "done" or temp.returns:get("returns") then
 					returns = ({temp.returns:receive(0, "returns")})[2]
-					livingThreads[temp.Id] = {false, temp.Name}
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
 					if returns[1] == false then
 						temp.OnError:Fire(temp, returns[2])
@@ -185,13 +184,13 @@ function multi.InitSystemThreadErrorHandler()
 				elseif status == "error" then
 					-- The thread never really errors, we handle this through our linda object
 				elseif status == "cancelled" then
-					livingThreads[temp.Id] = {false, temp.Name}
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,"thread_cancelled")
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "killed" then
-					livingThreads[temp.Id] = {false, temp.Name}
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,"thread_killed")
 					GLOBAL["__THREADS__"] = livingThreads

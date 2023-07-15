@@ -65,7 +65,7 @@ local function unpackValue(d)
             if not status then
                 multi.error(data)
             end
-            return serpent.load(data:sub(2,-1))[1]
+            return data[1]
         else
             return d
         end
@@ -101,8 +101,10 @@ local function createTable(n)
     )
 end
 
-function INIT(global_channel, console_channel, status_channel)
-    local GLOBAL, THREAD = createTable("GLOBAL"), {}
+function INIT()
+    local GLOBAL, THREAD = createTable("__GLOBAL__"), {}
+    local status_channel, console_channel = love.thread.getChannel("__status_channel__" .. THREAD_ID), 
+                                            love.thread.getChannel("__console_channel__")
 
     -- Non portable methods, shouldn't be used unless you know what you are doing
     THREAD.packValue = packValue
@@ -117,16 +119,16 @@ function INIT(global_channel, console_channel, status_channel)
         return GLOBAL[name]
     end
 
-    function THREAD.waitFor(name)
+    THREAD.waitFor = thread:newFunction(function(name)
         local function wait()
             math.randomseed(os.time())
-            love.timer.sleep(.001)
+            thread.yield()
         end
         repeat
             wait()
         until GLOBAL[name]
         return GLOBAL[name]
-    end
+    end, true)
 
     function THREAD.getCores()
         return love.system.getProcessorCount()
@@ -154,18 +156,16 @@ function INIT(global_channel, console_channel, status_channel)
     end
 
     function THREAD.pushStatus(...)
-        status_channel:push({THREAD_ID, multi.pack(...)})
+        status_channel:push(multi.pack(...))
     end
-
-    _G.THREAD_ID = 0
 
     function THREAD.sleep(n)
         love.timer.sleep(n)
     end
 
-    function THREAD.hold(n)
-        --
-    end
+    THREAD.hold = thread:newFunction(function(n)
+        thread.hold(n)
+    end, true)
 
     function THREAD.setENV(env, name)
         GLOBAL[name or "__env"] = env
@@ -187,8 +187,7 @@ function INIT(global_channel, console_channel, status_channel)
 end
 
 return {
-    -- These are the acutal channels
-    init = function(global_channel, console_channel, status_channel)
-        return INIT(global_channel, console_channel, status_channel)
+    init = function()
+        return INIT()
     end
 }
