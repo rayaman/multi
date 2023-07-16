@@ -1,42 +1,39 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
-local multi, thread = require("multi"):init()
+local multi, thread = require("multi"):init{print=true, warning = true, error=true}
 
 GLOBAL, THREAD = require("multi.integration.loveManager"):init()
 
-GLOBAL["Test"] = {1,2,3, function() print("HI") end}
-
-for i,v in pairs(GLOBAL["Test"]) do
-    print(i,v)
-    if type(v) == "function" then v() end
-end
+local queue = multi:newSystemThreadedQueue("TestQueue")
+local tab = multi:newSystemThreadedTable("TestTable")
 
 local test = multi:newSystemThread("Test",function()
+    local queue = THREAD.waitFor("TestQueue")
+    local tab = THREAD.waitFor("TestTable")
     print("THREAD_ID:",THREAD_ID)
-    GLOBAL["Test2"] = "We did it!"
-    eror("hahaha")
+    queue:push("Did it work?")
+    tab["Test"] = true
     return 1,2,3
 end)
 
-test.OnDeath(function(a,b,c)
-    print("Thread finished!",a,b,c)
+multi:newThread("QueueTest", function()
+    print(thread.hold(queue))
+    print(thread.hold(tab, {key="Test"}))
+    print("Done!")
 end)
 
-test.OnError(function(self, err)
-    print("Got Error!",err)
+local jq = multi:newSystemThreadedJobQueue(n)
+
+jq:registerFunction("test",function(a, b, c)
+    print(a, b+c)
+    return a+b+c
 end)
 
-local func = THREAD:newFunction(function(a,b,c)
-    print("let's do this!",1,2,3)
-    return true
-end)
+print("Job:",jq:pushJob("test",1,2,3))
+print("Job:",jq:pushJob("test",2,3,4))
+print("Job:",jq:pushJob("test",5,6,7))
 
-func(1,2,3).OnReturn(function(ret)
-    print("Done",ret)
-end)
-
-thread:newThread(function()
-    print("Waiting...")
-    print(THREAD.waitFor("Test2"))
+jq.OnJobCompleted(function(...)
+    print("Job Completed!", ...)
 end)
 
 function love.draw()

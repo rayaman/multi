@@ -127,7 +127,11 @@ function INIT()
         repeat
             wait()
         until GLOBAL[name]
-        return GLOBAL[name]
+        if type(GLOBAL[name].init) == "function" then
+            return GLOBAL[name]:init()
+        else
+            return GLOBAL[name]
+        end
     end, true)
 
     function THREAD.getCores()

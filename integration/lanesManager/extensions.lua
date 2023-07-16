@@ -58,6 +58,19 @@ function multi:newSystemThreadedQueue(name)
 		GLOBAL[name] = c
 	end
 
+	function c:Hold(opt)
+		local multi, thread = require("multi"):init()
+        if opt.peek then
+            return thread.hold(function()
+                return self:peek()
+            end)
+        else
+            return thread.hold(function()
+                return self:pop()
+            end)
+        end
+	end
+
 	self:create(c)
 
 	return c
@@ -88,6 +101,17 @@ function multi:newSystemThreadedTable(name)
 	else
 		GLOBAL[name] = c
 	end
+
+	function c:Hold(opt)
+		local multi, thread = require("multi"):init()
+        if opt.key then
+            return thread.hold(function()
+                return self.tab[opt.key]
+            end)
+        else
+            multi.error("Must provide a key to check opt.key = 'key'")
+        end
+    end
 
 	self:create(c)
 
@@ -212,6 +236,10 @@ function multi:newSystemThreadedJobQueue(n)
             end).OnError(multi.error)
             multi:mainloop()
         end,i).OnError(multi.error)
+    end
+
+	function c:Hold(opt)
+        return thread.hold(self.OnJobCompleted)
     end
 
 	self:create(c)

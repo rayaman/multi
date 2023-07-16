@@ -482,9 +482,9 @@ function multi:newConnection(protect,func,kill)
 		return temp
 	end
 
-	c.Hold = thread:newFunction(function(self)
-		return thread.hold(self)
-	end, true)
+	function c:Hold(self)
+		return multi.hold(self)
+	end
 
 	c.connect=c.Connect
 	c.GetConnection=c.getConnection
@@ -1158,36 +1158,18 @@ function multi:newProcessor(name, nothread, priority)
 end
 
 function multi.hold(func,opt)
-	if thread.isThread() then
-		if type(func) == "function" or type(func) == "table" then
-			return thread.hold(func,opt)
-		end
-		return thread.sleep(func)
-	end
-	local death = false
+	if thread.isThread() then return thread.hold(func, opt) end
 	local proc = multi.getCurrentTask()
 	proc:Pause()
-	if type(func)=="number" then
-		thread:newThread("Hold_func",function()
-			thread.hold(func)
-			death = true
-		end)
-		while not death do
-			multi:uManager()
-		end
-		proc:Resume()
-	else
-		local rets
-		thread:newThread("Hold_func",function()
-			rets = {thread.hold(func,opt)}
-			death = true
-		end)
-		while not death do
-			multi:uManager()
-		end
-		proc:Resume()
-		return multi.unpack(rets)
+	local rets
+	thread:newThread("Hold_func",function()
+		rets = {thread.hold(func,opt)}
+	end)
+	while rets == nil do
+		multi:uManager()
 	end
+	proc:Resume()
+	return multi.unpack(rets)
 end
 
 -- Threading stuff
