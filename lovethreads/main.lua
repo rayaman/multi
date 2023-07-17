@@ -23,8 +23,13 @@ end)
 
 local jq = multi:newSystemThreadedJobQueue(n)
 
+jq:registerFunction("test2",function()
+    print("This works!")
+end)
+
 jq:registerFunction("test",function(a, b, c)
     print(a, b+c)
+    test2()
     return a+b+c
 end)
 

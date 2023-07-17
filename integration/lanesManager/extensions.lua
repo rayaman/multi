@@ -123,10 +123,10 @@ function multi:newSystemThreadedJobQueue(n)
     c.cores = n or THREAD.getCores()*2
 	c.Type = multi.SJOBQUEUE
     c.OnJobCompleted = multi:newConnection()
-    local funcs = multi:newSystemThreadedTable():init()
-    local queueJob = multi:newSystemThreadedQueue():init()
-    local queueReturn = multi:newSystemThreadedQueue():init()
-    local doAll = multi:newSystemThreadedQueue():init()
+    local funcs = multi:newSystemThreadedTable()
+    local queueJob = multi:newSystemThreadedQueue()
+    local queueReturn = multi:newSystemThreadedQueue()
+    local doAll = multi:newSystemThreadedQueue()
     local ID=1
     local jid = 1
     function c:isEmpty()

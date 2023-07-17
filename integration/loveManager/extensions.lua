@@ -62,11 +62,9 @@ function multi:newSystemThreadedTable(name)
         self.tab = THREAD.createTable(self.Name)
         setmetatable(self,{
             __index = function(t, k)
-                print("Getting...", k)
                 return self.tab[k]
             end,
             __newindex = function(t,k,v)
-                print("Setting...", k, v)
                 self.tab[k] = v
             end
         })
@@ -85,11 +83,9 @@ function multi:newSystemThreadedTable(name)
 
     setmetatable(c,{
         __index = function(t, k)
-            print("Getting...", k)
             return c.tab[k]
         end,
         __newindex = function(t,k,v)
-            print("Setting...", k, v)
             c.tab[k] = v
         end
     })

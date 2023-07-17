@@ -59,17 +59,17 @@ function multi:newProxy(list)
 			for k, v in pairs(obj) do res[copy(k)] = copy(v) end
 			return res
 		end
-		if not(c.is_init) then
-			c.is_init = true
+		if not(self.is_init) then
+			self.is_init = true
 			local multi, thread = require("multi"):init()
-			c.proxy_link = "PL" .. multi.randomString(12)
+			self.proxy_link = "PL" .. multi.randomString(12)
 
 			if multi.integration then
 				GLOBAL = multi.integration.GLOBAL
 				THREAD = multi.integration.THREAD
 			end
 
-			GLOBAL[c.proxy_link] = c
+			GLOBAL[self.proxy_link] = self
 
 			local function check()
 				return self.send:pop()
@@ -135,6 +135,7 @@ function multi:newProxy(list)
 			self.recv = THREAD.waitFor(self.name.."_R"):init()
 			self.Type = multi.PROXY
 			for _,v in pairs(funcs) do
+				print(v,_)
 				if type(v) == "table" then
 					-- We have a connection
 					v[2]:init(proc_name)
@@ -280,13 +281,13 @@ function multi:newSystemThreadedProcessor(cores)
 	end
 
 	function c:newFunction(func, holdme)
-		return c.jobqueue:newFunction(func, holdme)
+		return self.jobqueue:newFunction(func, holdme)
 	end
 
 	function c:newSharedTable(name)
 		if not name then multi.error("You must provide a name when creating a table!") end
 		local tbl_name = "TABLE_"..multi.randomString(8)
-		c.jobqueue:doToAll(function(tbl_name, interaction)
+		self.jobqueue:doToAll(function(tbl_name, interaction)
 			_G[interaction] = THREAD.waitFor(tbl_name):init()
 		end, tbl_name, name)
 		return multi:newSystemThreadedTable(tbl_name):init()

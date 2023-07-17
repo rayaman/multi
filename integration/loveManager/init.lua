@@ -14,7 +14,7 @@ math.random()
 math.random()
 stab = THREAD.createTable(THREAD_NAME .. THREAD_ID)
 if GLOBAL["__env"] then
-    local env = THREAD.unpackENV(GLOBAL["__env"])
+    local env = THREAD.getENV()
     for i,v in pairs(env) do
         _G[i] = v
     end
