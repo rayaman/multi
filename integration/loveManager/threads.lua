@@ -25,53 +25,19 @@ require("love.timer")
 require("love.system")
 require("love.data")
 require("love.thread")
-local serpent = require("multi.integration.loveManager.serpent")
+local utils = require("multi.integration.loveManager.utils")
 local multi, thread = require("multi"):init()
-
-local function ltype(data)
-    local tp = type(data)
-    if tp == "userdata" then
-        return data:type()
-    end
-    return tp
-end
 
 local NIL = love.data.newByteData("\3")
 
 -- If a non table/function is supplied we just return it
 local function packValue(t)
-    local tp = type(t)
-    if tp == "table" then
-        return love.data.newByteData("\1"..serpent.dump(t,{safe = true}))
-    elseif tp == "function" then
-        return love.data.newByteData("\2"..serpent.dump({t,true},{safe = true}))
-    else
-        return t
-    end
+    return utils.pack(t)
 end
 
 -- If a non table/function is supplied we just return it
 local function unpackValue(d)
-    if ltype(d) == "ByteData" then
-        local data = d:getString()
-        if data:sub(1, 1) == "\1" then
-            local status, data = serpent.load(data:sub(2,-1),{safe = false})
-            if not status then
-                multi.error(data)
-            end
-            return data
-        elseif data:sub(1, 1) =="\2" then
-            local status, data = serpent.load(data:sub(2,-1),{safe = false})
-            if not status then
-                multi.error(data)
-            end
-            return data[1]
-        else
-            return d
-        end
-    else
-        return d
-    end
+    return utils.unpack(d)
 end
 
 local function createTable(n)
@@ -126,7 +92,7 @@ function INIT()
         end
         repeat
             wait()
-        until GLOBAL[name]
+        until GLOBAL[name] ~= nil
         if type(GLOBAL[name].init) == "function" then
             return GLOBAL[name]:init()
         else

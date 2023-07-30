@@ -4,10 +4,11 @@ end
 
 local ThreadFileData = [[
 ISTHREAD = true
-__FUNC, THREAD_ID, THREAD_NAME, __PACK = ...
+args = {...}
+THREAD_ID = table.remove(args, 1)
+THREAD_NAME = table.remove(args, 1)
 GLOBAL, THREAD = require("multi.integration.loveManager.threads"):init()
-__FUNC = THREAD.unpackValue(__FUNC)
-__PACK = THREAD.unpackValue(__PACK)
+__FUNC = THREAD.unpackValue(table.remove(args, 1))
 math.randomseed(THREAD_ID)
 math.random()
 math.random()
@@ -22,7 +23,7 @@ end
 multi, thread = require("multi"):init()
 require("multi.integration.loveManager.extensions")
 require("multi.integration.sharedExtensions")
-stab["returns"] = {__FUNC(multi.unpack(__PACK))}
+stab["returns"] = {__FUNC(multi.unpack(args))}
 ]]
 
 _G.THREAD_NAME = "MAIN_THREAD"
@@ -44,7 +45,7 @@ function multi:newSystemThread(name, func, ...)
     c.Name = name
     c.ID = tid
     c.thread = love.thread.newThread(ThreadFileData)
-    c.thread:start(THREAD.packValue(func), c.ID, c.Name, THREAD.packValue({...}))
+    c.thread:start(c.ID, c.Name, THREAD.packValue(func), ...)
     c.stab = THREAD.createTable(name .. c.ID)
     c.creationTime = os.clock()
     c.OnDeath = multi:newConnection()

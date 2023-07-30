@@ -71,13 +71,13 @@ multi:newThread("Scheduler Thread",function()
 
     func = THREAD:newFunction(function(a,b,c)
         assert(a == 3, "First argument expected '3' got '".. a .."'!")
-        assert(b == 2, "Second argument expected '2' got '".. a .."'!")
-        assert(c == 1, "Third argument expected '1' got '".. a .."'!")
+        assert(b == 2, "Second argument expected '2' got '".. b .."'!")
+        assert(c == 1, "Third argument expected '1' got '".. c .."'!")
         return 1, 2, 3, {"a table"}
     end, true) -- Hold this
 
     a, b, c, d = func(3,2,1)
-
+    print(a, b, c, d)
     assert(a == 1, "First return was not '1'!")
     assert(b == 2, "Second return was not '2'!")
     assert(c == 3, "Third return was not '3'!")
@@ -194,6 +194,9 @@ multi:newThread("Scheduler Thread",function()
 
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
         local multi, thread = require("multi"):init()
+        for i,v in pairs(tloop.funcs) do
+            print(i,v)
+        end
         tloop = tloop:init()
         multi.print("tloop type:",tloop.Type)
         multi.print("Testing proxies on other threads")

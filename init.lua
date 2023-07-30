@@ -1287,7 +1287,7 @@ function thread.hold(n, opt)
 	elseif type(n) == "function" then
 		return yield(CMD, t_hold, n, nil, interval)
 	else
-		multi.error("Invalid argument passed to thread.hold(...)!")
+		multi.error("Invalid argument passed to thread.hold(...) ".. type(n) .. "!")
 	end
 end
 

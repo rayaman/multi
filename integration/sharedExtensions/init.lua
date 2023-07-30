@@ -135,7 +135,6 @@ function multi:newProxy(list)
 			self.recv = THREAD.waitFor(self.name.."_R"):init()
 			self.Type = multi.PROXY
 			for _,v in pairs(funcs) do
-				print(v,_)
 				if type(v) == "table" then
 					-- We have a connection
 					v[2]:init(proc_name)
@@ -190,6 +189,7 @@ function multi:newProxy(list)
 				THREAD = multi.integration.THREAD
 			end
 			local proxy = THREAD.waitFor(self.proxy_link)
+			print("Got:",proxy)
 			proxy.funcs = self.funcs
 			return proxy:init()
 		end

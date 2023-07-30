@@ -11,7 +11,7 @@ function multi:newSystemThreadedQueue(name)
 
 	c.Name = name
 	c.Type = multi.SQUEUE
-    c.chan = love.thread.getChannel(name)
+    c.chan = love.thread.newChannel()
 
     function c:push(dat)
         self.chan:push(THREAD.packValue(dat))
@@ -26,7 +26,6 @@ function multi:newSystemThreadedQueue(name)
     end
 
     function c:init()
-        self.chan = love.thread.getChannel(self.Name)
         return self
     end
 
