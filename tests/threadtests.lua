@@ -55,6 +55,9 @@ multi:newThread("Scheduler Thread",function()
         multi_assert("Passing some args", a, "First argument is not as expected 'Passing some args'")
         multi_assert(true, e, "Argument e is not true!")
         multi_assert("table", type(f), "Argument f is not a table!")
+        for i,v in pairs(queue) do
+            print("Queue:",i,v)
+        end
         queue:push("done")
     end,"Passing some args", 1, 2, 3, true, {"Table"}).OnError(function(self,err)
         multi.error(err)
@@ -90,14 +93,14 @@ multi:newThread("Scheduler Thread",function()
     local worked = false
 
     multi:newSystemThread("testing tables",function()
-        tab=THREAD.waitFor("YO"):init()
+        tab=THREAD.waitFor("YO")
         THREAD.hold(function() return tab["test1"] end)
         THREAD.sleep(.1)
         tab["test2"] = "Whats so funny?"
     end).OnError(multi.error)
 
     multi:newThread("test2",function()
-        thread.hold(function() return test["test2"] end)
+        print(thread.hold(function() return test["test2"] end))
         worked = true
     end)
 

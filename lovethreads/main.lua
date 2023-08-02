@@ -1,35 +1,15 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
 local multi, thread = require("multi"):init{print=true, warning = true, error=true}
-local flat = require("flatten")
+local utils = require("multi.integration.loveManager.utils")
 
-local people = {
-    {
-       name = "Fred",
-       address = "16 Long Street",
-       phone = "123456"
-    },
-    {
-       name = "Wilma",
-       address = "16 Long Street",
-       phone = "123456",
-       func = function()
-           print("Hi")
-       end
-    },
-    {
-       name = "Barney",
-       address = "17 Long Street",
-       phone = "123457",
-       important = love.data.newByteData("TEST")
-    }
- }
+local people = {1,2,3}
 
 function dump(o)
     if type(o) == 'table' then
         local s = '{ '
         for k,v in pairs(o) do
             if type(k) ~= 'number' then k = '"'..k..'"' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
+            s = s .. '['..k..'] = ' .. dump(v) .. '('..type(v):sub(1,1)..'),'
         end
         return s .. '} '
     else
@@ -37,13 +17,14 @@ function dump(o)
     end
 end
 
-local fpeople = flat.flatten(people)
+local fpeople = utils.pack(people)
 
-print("Flatten", dump(fpeople))
+print("Pack:", dump(fpeople))
 
-local people = flat.unflatten(fpeople)
+local people = utils.unpack(fpeople)
 
-print("Unflatten", dump(people))
+print("Unpack:", dump(people))
+print(type(people[3]))
  
 -- GLOBAL, THREAD = require("multi.integration.loveManager"):init()
 

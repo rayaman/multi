@@ -52,8 +52,7 @@ local function createTable(n)
         chan:push(packValue(val))
     end
     local function get(name)
-        local dat = love.thread.getChannel(n .. name):peek()
-        return unpackValue(dat)
+        return unpackValue(love.thread.getChannel(n .. name):peek())
     end
     return setmetatable({},
         {
