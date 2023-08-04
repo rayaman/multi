@@ -2392,8 +2392,8 @@ function multi.error(self, err)
 	end
 	if multi.defaultSettings.error then
 		error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
-		os.exit(1)
 	end
+	os.exit(1)
 end
 
 function multi.success(...)

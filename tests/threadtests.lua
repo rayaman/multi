@@ -55,9 +55,6 @@ multi:newThread("Scheduler Thread",function()
         multi_assert("Passing some args", a, "First argument is not as expected 'Passing some args'")
         multi_assert(true, e, "Argument e is not true!")
         multi_assert("table", type(f), "Argument f is not a table!")
-        for i,v in pairs(queue) do
-            print("Queue:",i,v)
-        end
         queue:push("done")
     end,"Passing some args", 1, 2, 3, true, {"Table"}).OnError(function(self,err)
         multi.error(err)
@@ -195,25 +192,25 @@ multi:newThread("Scheduler Thread",function()
 
     local tloop = stp:newTLoop(nil, 1)
 
-    -- multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
-    --     local multi, thread = require("multi"):init()
-    --     for i,v in pairs(tloop.funcs) do
-    --         print(i,v)
-    --     end
-    --     tloop = tloop:init()
-    --     multi.print("tloop type:",tloop.Type)
-    --     multi.print("Testing proxies on other threads")
-    --     thread:newThread(function()
-    --         while true do
-    --             thread.hold(tloop.OnLoop)
-    --             print(THREAD_NAME,"Loopy")
-    --         end
-    --     end)
-    --     tloop.OnLoop(function(a)
-    --         print(THREAD_NAME, "Got loop...")
-    --     end)
-    --     multi:mainloop()
-    -- end, tloop:getTransferable()).OnError(multi.error)
+    multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
+        local multi, thread = require("multi"):init()
+        for i,v in pairs(tloop.funcs) do
+            print(i,v)
+        end
+        tloop = tloop:init()
+        multi.print("tloop type:",tloop.Type)
+        multi.print("Testing proxies on other threads")
+        thread:newThread(function()
+            while true do
+                thread.hold(tloop.OnLoop)
+                print(THREAD_NAME,"Loopy")
+            end
+        end)
+        tloop.OnLoop(function(a)
+            print(THREAD_NAME, "Got loop...")
+        end)
+        multi:mainloop()
+    end, tloop:getTransferable()).OnError(multi.error)
 
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
@@ -240,8 +237,8 @@ multi:newThread("Scheduler Thread",function()
     end)
 
     t, val = thread.hold(function()
-        return proxy_test
-    end,{sleep=15})
+        return count == 10
+    end,{sleep=5})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedProcessor/Proxies: Failed")
