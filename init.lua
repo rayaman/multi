@@ -1789,6 +1789,7 @@ co_status = {
 			ref.OnDeath:Fire(ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
 		else
 			ref.OnError:Fire(ref,ret,r1,r2,r3,r4,r5,r6,r7,r8,r9,r10,r11,r12,r13,r14,r15,r16)
+			multi.error(ref, ret)
 		end
 		if i then
 			table.remove(th,i)
@@ -2392,8 +2393,8 @@ function multi.error(self, err)
 	end
 	if multi.defaultSettings.error then
 		error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
+		os.exit(1)
 	end
-	os.exit(1)
 end
 
 function multi.success(...)

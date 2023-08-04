@@ -251,7 +251,6 @@ multi:newThread("Scheduler Thread",function()
 
     we_good = true
     multi:Stop() -- Needed in love2d tests to stop the main runner
-    os.exit()
 end).OnError(multi.error)
 
 multi.OnExit(function(err_or_errorcode)

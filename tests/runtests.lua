@@ -179,10 +179,8 @@ runTest = thread:newFunction(function()
 		ec = ec + os.execute("lua tests/threadtests.lua p")
 		multi.print("Testing lanes threading")
 		ec = ec + os.execute("lua tests/threadtests.lua l")
-		if ec > 0 then
+		if ec ~= 0 then
 			os.exit(1)
-		else
-			os.exit()
 		end
 	end
 end)

@@ -59,8 +59,6 @@ tab = split(tab)
 
 local id = 0
 
-print("Outerglobal",_G)
-
 function multi:newSystemThread(name, func, ...)
 	local env
 	env = {
