@@ -52,6 +52,9 @@ function multi:newProxy(list)
 	c.is_init = false
 	local multi, thread = nil, nil
 	function c:init()
+		for i,v in pairs(self) do
+			print("Pattern",i,v)
+		end
 		local multi, thread = nil, nil
 		local function copy(obj)
 			if type(obj) ~= 'table' then return obj end
@@ -169,6 +172,7 @@ function multi:newProxy(list)
 			return self
 		end
 	end
+
 	function c:getTransferable()
 		local cp = {}
 		local multi, thread = require("multi"):init()
@@ -193,8 +197,12 @@ function multi:newProxy(list)
 			proxy.funcs = self.funcs
 			return proxy:init()
 		end
+		for i,v in pairs(cp) do
+			print("TRANS", i, v)
+		end
 		return cp
 	end
+
 	self:create(c)
 	return c
 end

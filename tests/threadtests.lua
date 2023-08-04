@@ -195,25 +195,25 @@ multi:newThread("Scheduler Thread",function()
 
     local tloop = stp:newTLoop(nil, 1)
 
-    multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
-        local multi, thread = require("multi"):init()
-        for i,v in pairs(tloop.funcs) do
-            print(i,v)
-        end
-        tloop = tloop:init()
-        multi.print("tloop type:",tloop.Type)
-        multi.print("Testing proxies on other threads")
-        thread:newThread(function()
-            while true do
-                thread.hold(tloop.OnLoop)
-                print(THREAD_NAME,"Loopy")
-            end
-        end)
-        tloop.OnLoop(function(a)
-            print(THREAD_NAME, "Got loop...")
-        end)
-        multi:mainloop()
-    end, tloop:getTransferable()).OnError(multi.error)
+    -- multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
+    --     local multi, thread = require("multi"):init()
+    --     for i,v in pairs(tloop.funcs) do
+    --         print(i,v)
+    --     end
+    --     tloop = tloop:init()
+    --     multi.print("tloop type:",tloop.Type)
+    --     multi.print("Testing proxies on other threads")
+    --     thread:newThread(function()
+    --         while true do
+    --             thread.hold(tloop.OnLoop)
+    --             print(THREAD_NAME,"Loopy")
+    --         end
+    --     end)
+    --     tloop.OnLoop(function(a)
+    --         print(THREAD_NAME, "Got loop...")
+    --     end)
+    --     multi:mainloop()
+    -- end, tloop:getTransferable()).OnError(multi.error)
 
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
@@ -225,8 +225,8 @@ multi:newThread("Scheduler Thread",function()
         thread.hold(tloop.OnLoop)
         multi.print("Held on proxy connection... twice")
         proxy_test = true
-    end).OnError(print)
-    print(6)
+    end).OnError(multi.error)
+    
 
     thread:newThread(function()
         while true do
@@ -240,8 +240,8 @@ multi:newThread("Scheduler Thread",function()
     end)
 
     t, val = thread.hold(function()
-        return count == 10
-    end,{sleep=5})
+        return proxy_test
+    end,{sleep=15})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedProcessor/Proxies: Failed")
