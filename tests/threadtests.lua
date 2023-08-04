@@ -255,6 +255,7 @@ multi:newThread("Scheduler Thread",function()
 end).OnError(multi.error)
 
 multi.OnExit(function(err_or_errorcode)
+    print("Error Code: ", err_or_errorcode)
     if not we_good then
         multi.info("There was an error running some tests!")
         return

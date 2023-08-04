@@ -2445,7 +2445,7 @@ end
 multi.OnError=multi:newConnection()
 multi.OnPreLoad = multi:newConnection()
 multi.OnExit = multi:newConnection(nil,nil,true)
-multi.m = {onexit = function() multi.OnExit:Fire() end}
+multi.m = {onexit = function() os.exit() end}
 
 if _VERSION >= "Lua 5.2" or jit then
 	setmetatable(multi.m, {__gc = multi.m.onexit})

@@ -174,11 +174,16 @@ runTest = thread:newFunction(function()
 		multi.error("Connection Test 3: Error removing connection")
 	end
 	if not love then
+		local ec = 0
 		multi.print("Testing pseudo threading")
-		os.execute("lua tests/threadtests.lua p")
+		ec = ec + os.execute("lua tests/threadtests.lua p")
 		multi.print("Testing lanes threading")
-		os.execute("lua tests/threadtests.lua l")
-		os.exit()
+		ec = ec + os.execute("lua tests/threadtests.lua l")
+		if ec > 0 then
+			os.exit(1)
+		else
+			os.exit()
+		end
 	end
 end)
 
