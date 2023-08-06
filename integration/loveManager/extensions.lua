@@ -70,6 +70,8 @@ function multi:newSystemThreadedTable(name)
         return self
     end
 
+	c.__init = c.init
+
     function c:Hold(opt)
         if opt.key then
             return thread.hold(function()

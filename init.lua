@@ -482,7 +482,7 @@ function multi:newConnection(protect,func,kill)
 		return temp
 	end
 
-	function c:Hold(self)
+	function c:Hold()
 		return multi.hold(self)
 	end
 
@@ -1276,7 +1276,6 @@ function thread.hold(n, opt)
 			return yield(CMD, t_skip, opt.skip or 1, nil, interval)
 		end
 	end
-	
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
@@ -2392,7 +2391,8 @@ function multi.error(self, err)
 		io.write("\x1b[91mERROR:\x1b[0m " .. err .. " ?\n")
 	end
 	if multi.defaultSettings.error then
-		error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. debug.traceback().."\n")
+		error("^^^ " .. multi:getCurrentProcess():getFullName() .. " " .. multi:getCurrentTask().Type .. "\n" .. 
+		((coroutine.running()) and debug.traceback((coroutine.running())) or debug.traceback()) .. "\n")
 		os.exit(1)
 	end
 end

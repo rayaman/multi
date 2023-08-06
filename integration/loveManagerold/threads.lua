@@ -48,7 +48,6 @@ end
 local fRef = {"func",nil}
 local function manage(channel, value)
     channel:clear()
-    print("pushing",value)
     if type(value) == "table" then
         channel:push{"DATA",threads.packTable(value)}
     else

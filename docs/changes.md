@@ -62,16 +62,11 @@ Table of contents
 
 Full Update Showcase
 ---
+
 ```lua
 multi, thread = require("multi"):init{print=true}
 GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 ```
-
-## Added New Integration: **effilManager**
-
-Another option for multithreading support, works just like all the other threading integrations, but uses the internals of effil and it's unique features.
-- Refer to this [doc](https://www.lua.org/wshop18/Kupriyanov.pdf) to read more about it.
-- Project github [page](https://github.com/effil/effil/tree/master).
 
 ```lua
 package.path = "?/init.lua;?.lua;"..package.path

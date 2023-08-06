@@ -87,12 +87,12 @@ function multi:newSystemThread(name,func,...)
 end
 THREAD.newSystemThread = multi.newSystemThread
 function lovr.threaderror(thread, errorstr)
-  print("Thread error!\n"..errorstr)
+    multi.print("Thread error!\n"..errorstr)
 end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.lovrManager.extensions")
-print("Integrated lovr Threading!")
+multi.print("Integrated lovr Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

@@ -77,7 +77,6 @@ multi:newThread("Scheduler Thread",function()
     end, true) -- Hold this
 
     a, b, c, d = func(3,2,1)
-    print(a, b, c, d)
     assert(a == 1, "First return was not '1'!")
     assert(b == 2, "Second return was not '2'!")
     assert(c == 3, "Third return was not '3'!")
@@ -115,8 +114,11 @@ multi:newThread("Scheduler Thread",function()
     local ready = false
 
     jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
-    func = jq:newFunction("test-thread",function(a,b)
+    func2 = jq:newFunction("sleep",function(a,b)
         THREAD.sleep(.2)
+    end)
+    func = jq:newFunction("test-thread",function(a,b)
+        sleep()
         return a+b
     end)
     local count = 0
@@ -194,9 +196,6 @@ multi:newThread("Scheduler Thread",function()
 
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
         local multi, thread = require("multi"):init()
-        for i,v in pairs(tloop.funcs) do
-            print(i,v)
-        end
         tloop = tloop:init()
         multi.print("tloop type:",tloop.Type)
         multi.print("Testing proxies on other threads")
@@ -223,7 +222,6 @@ multi:newThread("Scheduler Thread",function()
         multi.print("Held on proxy connection... twice")
         proxy_test = true
     end).OnError(multi.error)
-    
 
     thread:newThread(function()
         while true do
@@ -256,7 +254,7 @@ end).OnError(multi.error)
 multi.OnExit(function(err_or_errorcode)
     print("Error Code: ", err_or_errorcode)
     if not we_good then
-        multi.info("There was an error running some tests!")
+        multi.print("There was an error running some tests!")
         return
     else
         multi.success("Tests complete!")

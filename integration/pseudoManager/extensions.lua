@@ -47,6 +47,17 @@ function multi:newSystemThreadedQueue(name)
 	function c:init()
 		return self
 	end
+    function c:Hold(opt)
+        if opt.peek then
+            return thread.hold(function()
+                return self:peek()
+            end)
+        else
+            return thread.hold(function()
+                return self:pop()
+            end)
+        end
+	end
 	GLOBAL[name or "_"] = c
 	return c
 end
@@ -56,58 +67,59 @@ function multi:newSystemThreadedTable(name)
     function c:init()
         return self
     end
+    function c:Hold(opt)
+        if opt.key then
+            return thread.hold(function()
+                return self.tab[opt.key]
+            end)
+        else
+            multi.error("Must provide a key to check opt.key = 'key'")
+        end
+    end
     GLOBAL[name or "_"] = c
 	return c
 end
 
-local setfenv = setfenv
-if not setfenv then
-    if not debug then
-        multi.print("Unable to implement setfenv in lua 5.2+ the debug module is not available!")
-    else
-        setfenv = function(f, env)
-            return load(string.dump(f), nil, nil, env)
-        end
-    end
-end
+local setfenv = multi.isolateFunction
 
+local jqc = 1
 function multi:newSystemThreadedJobQueue(n)
-    local c = {}
-    c.cores = n or THREAD.getCores()*2
-    c.OnJobCompleted = multi:newConnection()
-    local jobs = {}
-    local ID=1
-    local jid = 1
-    local env = {}
+	local c = {}
 
-    setmetatable(env,{
-        __index = _G
-    })
+	c.cores = n or THREAD.getCores()
+	c.registerQueue = {}
+	c.Type = multi.SJOBQUEUE
+	c.funcs = multi:newSystemThreadedTable("__JobQueue_"..jqc.."_table")
+	c.queue = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queue")
+	c.queueReturn = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueReturn")
+	c.queueAll = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueAll")
+	c.id = 0
+	c.OnJobCompleted = multi:newConnection()
 
-    local funcs = {}
-    function c:doToAll(func)
-        setfenv(func,env)()
-        return self
+	local allfunc = 0
+
+	function c:doToAll(func)
+		for i = 1, self.cores do
+			self.queueAll:push({allfunc, func})
+		end
+		allfunc = allfunc + 1
+	end
+	function c:registerFunction(name, func)
+		if self.funcs[name] then
+			multi.error("A function by the name "..name.." has already been registered!") 
+		end
+		self.funcs[name] = func
+	end
+	function c:pushJob(name,...)
+		self.id = self.id + 1
+		self.queue:push{name,self.id,...}
+		return self.id
+	end
+	function c:isEmpty()
+        return queueJob:peek()==nil
     end
-
-    function c:registerFunction(name,func)
-        funcs[name] = setfenv(func,env)
-        return self
-    end
-
-    function c:pushJob(name,...)
-        table.insert(jobs,{name,jid,multi.pack(...)})
-        jid = jid + 1
-        return jid-1
-    end
-
-    function c:isEmpty()
-        return #jobs == 0
-    end
-
-    local nFunc = 0
+	local nFunc = 0
     function c:newFunction(name,func,holup) -- This registers with the queue
-        local func = stripUpValues(func)
         if type(name)=="function" then
             holup = func
             func = name
@@ -129,22 +141,84 @@ function multi:newSystemThreadedJobQueue(n)
                     return multi.unpack(rets) or multi.NIL
                 end
             end)
-        end, holup), name
+        end,holup),name
     end
-    for i=1,c.cores do
-        thread:newThread("PesudoThreadedJobQueue_"..i,function()
-            while true do
-                thread.yield()
-                if #jobs>0 then
-                    local j = table.remove(jobs,1)
-                    c.OnJobCompleted:Fire(j[2],funcs[j[1]](multi.unpack(j[3])))
-                else
-                    thread.sleep(.05)
-                end
-            end
-        end).OnError(multi.error)
+	thread:newThread("jobManager",function()
+		while true do
+			thread.yield()
+			local dat = c.queueReturn:pop()
+			if dat then
+				c.OnJobCompleted:Fire(multi.unpack(dat))
+			end
+		end
+	end)
+	for i=1,c.cores do
+		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
+			local multi, thread = require("multi"):init()
+			local clock = os.clock
+			local funcs = THREAD.waitFor("__JobQueue_"..jqc.."_table")
+			local queue = THREAD.waitFor("__JobQueue_"..jqc.."_queue")
+			local queueReturn = THREAD.waitFor("__JobQueue_"..jqc.."_queueReturn")
+			local lastProc = clock()
+			local queueAll = THREAD.waitFor("__JobQueue_"..jqc.."_queueAll")
+			local registry = {}
+			_G["__QR"] = queueReturn
+			setmetatable(_G,{__index = funcs})
+			thread:newThread("startUp",function()
+				while true do
+					thread.yield()
+					local all = queueAll:peek()
+					if all and not registry[all[1]] then
+						lastProc = os.clock()
+						queueAll:pop()[2]()
+					end
+				end
+			end)
+			thread:newThread("runner",function()
+				thread.sleep(.1)
+				while true do
+					thread.yield()
+					local all = queueAll:peek()
+					if all and not registry[all[1]] then
+						lastProc = os.clock()
+						queueAll:pop()[2]()
+					end
+					local dat = thread.hold(queue)
+					if dat then
+						multi:newThread("Test",function()
+							lastProc = os.clock()
+							local name = table.remove(dat,1)
+							local id = table.remove(dat,1)
+							local tab = {multi.isolateFunction(funcs[name],_G)(multi.unpack(dat))}
+							table.insert(tab,1,id)
+							queueReturn:push(tab)
+						end)
+					end
+				end
+			end).OnError(multi.error)
+			thread:newThread("Idler",function()
+				while true do
+					thread.yield()
+					if clock()-lastProc> 2 then
+						THREAD.sleep(.05)
+					else
+						THREAD.sleep(.001)
+					end
+				end
+			end)
+			multi:mainloop()
+		end,jqc)
+	end
+
+    function c:Hold(opt)
+        return thread.hold(self.OnJobCompleted)
     end
-    return c
+
+	jqc = jqc + 1
+
+	self:create(c)
+
+	return c
 end
 
 function multi:newSystemThreadedConnection(name)

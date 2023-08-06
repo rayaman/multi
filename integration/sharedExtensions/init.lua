@@ -189,7 +189,6 @@ function multi:newProxy(list)
 				THREAD = multi.integration.THREAD
 			end
 			local proxy = THREAD.waitFor(self.proxy_link)
-			print("Got:",proxy)
 			proxy.funcs = self.funcs
 			return proxy:init()
 		end
@@ -267,7 +266,8 @@ function multi:newSystemThreadedProcessor(cores)
 
 	for _, method in pairs(implement) do
 		c[method] = function(self, ...)
-			proxy = self.spawnTask(method, ...):init()
+			proxy = self.spawnTask(method, ...)
+			proxy:init()
 			references[proxy] = self
 			return proxy
 		end

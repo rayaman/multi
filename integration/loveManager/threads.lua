@@ -92,8 +92,8 @@ function INIT()
         repeat
             wait()
         until GLOBAL[name] ~= nil
-        if type(GLOBAL[name].init) == "function" then
-            return GLOBAL[name]:init()
+        if type(GLOBAL[name].__init) == "function" then
+            return GLOBAL[name]:__init()
         else
             return GLOBAL[name]
         end
