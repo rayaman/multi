@@ -175,7 +175,7 @@ runTest = thread:newFunction(function()
 	end
 	if not love then
 		local ec = 0
-		if _VERSION > "5.1" then
+		if _VERSION == "5.1" then
 			multi.print("Testing pseudo threading")
 			_, str, ecc = os.execute("lua tests/threadtests.lua p")
 			ec = ec + ecc
