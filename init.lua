@@ -67,7 +67,7 @@ setmetatable(multi.DestroyedObj, {
 	end,__newindex = uni,__call = uni,__metatable = multi.DestroyedObj,__tostring = function() return "destroyed" end,__unm = uni,__add = uni,__sub = uni,__mul = uni,__div = uni,__mod = uni,__pow = uni,__concat = uni
 })
 
-multi.DESTROYED			= multi.DestroyedObj
+multi.DESTROYED	= multi.DestroyedObj
 
 -- I don't like modifying the global namespace, so I prepend a "$"
 if not _G["$multi"] then

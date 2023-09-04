@@ -175,12 +175,24 @@ runTest = thread:newFunction(function()
 	end
 	if not love then
 		local ec = 0
-		multi.print("Testing pseudo threading")
-		ec = ec + os.execute("lua tests/threadtests.lua p")
-		multi.print("Testing lanes threading")
-		ec = ec + os.execute("lua tests/threadtests.lua l")
-		if ec ~= 0 then
-			os.exit(1)
+		if _VERSION > "5.1" then
+			multi.print("Testing pseudo threading")
+			_, str, ecc = os.execute("lua tests/threadtests.lua p")
+			ec = ec + ecc
+			multi.print("Testing lanes threading")
+			_, str, ecc = os.execute("lua tests/threadtests.lua l")
+			ec = ec + ecc
+			if ec ~= 0 then
+				os.exit(1)
+			end
+		else
+			multi.print("Testing pseudo threading")
+			ec = ec + os.execute("lua tests/threadtests.lua p")
+			multi.print("Testing lanes threading")
+			ec = ec + os.execute("lua tests/threadtests.lua l")
+			if ec ~= 0 then
+				os.exit(1)
+			end
 		end
 	end
 end)

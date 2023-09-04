@@ -5,12 +5,15 @@ multi.defaultSettings.debugging = true
 local dbg = {}
 
 local creation_hook
+local types
 
 creation_hook = function(obj, process)
+    local types = multi:getTypes()
     print("Created: ",obj.Type, "in", process.Type, process:getFullName())
     if obj.Type == multi.PROCESS then
         obj.OnObjectCreated(creation_hook)
     end
+    
 end
 
 local debug_stats = {}
@@ -18,6 +21,8 @@ local debug_stats = {}
 local tmulti = multi:getThreadManagerProcess()
 multi.OnObjectCreated(creation_hook)
 tmulti.OnObjectCreated(creation_hook)
+
+multi
 
 --[[
     multi.ROOTPROCESS		= "rootprocess"
