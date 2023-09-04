@@ -35,6 +35,7 @@ end
 
 function multi:newSystemThreadedQueue(name)
 	local c = {}
+	c.Type = multi.registerType("s_queue")
 	function c:push(v)
 		table.insert(self,v)
 	end
@@ -64,6 +65,7 @@ end
 
 function multi:newSystemThreadedTable(name)
     local c = {}
+	c.Type = multi.registerType("s_table")
     function c:init()
         return self
     end
@@ -88,7 +90,7 @@ function multi:newSystemThreadedJobQueue(n)
 
 	c.cores = n or THREAD.getCores()
 	c.registerQueue = {}
-	c.Type = multi.SJOBQUEUE
+	c.Type = multi.registerType("s_jobqueue")
 	c.funcs = multi:newSystemThreadedTable("__JobQueue_"..jqc.."_table")
 	c.queue = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queue")
 	c.queueReturn = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueReturn")

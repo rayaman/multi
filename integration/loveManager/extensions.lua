@@ -10,7 +10,7 @@ function multi:newSystemThreadedQueue(name)
 	local c = {}
 
 	c.Name = name
-	c.Type = multi.SQUEUE
+	c.Type = multi.registerType("s_queue")
     c.chan = love.thread.newChannel()
 
     function c:push(dat)
@@ -54,7 +54,7 @@ function multi:newSystemThreadedTable(name)
 	local c = {}
 
     c.Name = name
-	c.Type = multi.STABLE
+	c.Type = multi.registerType("s_table")
     c.tab = THREAD.createTable(name)
 
     function c:init()
@@ -104,7 +104,7 @@ function multi:newSystemThreadedJobQueue(n)
 
 	c.cores = n or THREAD.getCores()
 	c.registerQueue = {}
-	c.Type = multi.SJOBQUEUE
+	c.Type = multi.registerType("s_jobqueue")
 	c.funcs = THREAD.createTable("__JobQueue_"..jqc.."_table")
 	c.queue = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queue")
 	c.queueReturn = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueReturn")

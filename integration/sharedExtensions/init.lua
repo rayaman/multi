@@ -35,9 +35,9 @@ function multi:chop(obj)
 	local list = {[0] = multi.randomString(12)}
 	_G[list[0]] = obj
 	for i,v in pairs(obj) do
-		if type(v) == "function" or type(v) == "table" and v.Type == multi.THREADEDFUNCTION then
+		if type(v) == "function" or type(v) == "table" and v.Type == multi.registerType("s_function") then
 			table.insert(list, i)
-		elseif type(v) == "table" and v.Type == multi.CONNECTOR then	
+		elseif type(v) == "table" and v.Type == multi.registerType("connector", "connections") then	
 			table.insert(list, {i, multi:newProxy(multi:chop(v)):init()})
 		end
 	end
@@ -79,7 +79,7 @@ function multi:newProxy(list)
 			self.recv = multi:newSystemThreadedQueue(self.name.."_R"):init()
 			self.funcs = list
 			self._funcs = copy(list)
-			self.Type = multi.PROXY
+			self.Type = multi.registerType("proxy", "proxies")
 			self.TID = THREAD_ID
 
 			thread:newThread("Proxy_Handler_" .. multi.randomString(4), function()
@@ -99,7 +99,7 @@ function multi:newProxy(list)
 							end
 
 							for i = 1,#ret do
-								if type(ret[i]) == "table" and ret[i].Type ~= nil and ret[i].Type ~= multi.PROXY then
+								if type(ret[i]) == "table" and ret[i].Type ~= nil and ret[i].Type ~= multi.registerType("proxy", "proxies") then
 									ret[i] = "\1PARENT_REF"
 								end
 								if type(ret[i]) == "table" and getmetatable(ret[i]) then
@@ -133,7 +133,7 @@ function multi:newProxy(list)
 			end
 			self.send = THREAD.waitFor(self.name.."_S"):init()
 			self.recv = THREAD.waitFor(self.name.."_R"):init()
-			self.Type = multi.PROXY
+			self.Type = multi.registerType("proxy", "proxies")
 			for _,v in pairs(funcs) do
 				if type(v) == "table" then
 					-- We have a connection
@@ -184,11 +184,14 @@ function multi:newProxy(list)
 		cp.funcs = copy(self._funcs)
 		cp.init = function(self)
 			local multi, thread = require("multi"):init()
-			if multi.integration then
-				GLOBAL = multi.integration.GLOBAL
-				THREAD = multi.integration.THREAD
-			end
+			-- if multi.integration then
+			-- 	GLOBAL = multi.integration.GLOBAL
+			-- 	THREAD = multi.integration.THREAD
+			-- end
 			local proxy = THREAD.waitFor(self.proxy_link)
+			for i,v in pairs(proxy) do
+				print("proxy",i,v)
+			end
 			proxy.funcs = self.funcs
 			return proxy:init()
 		end
@@ -211,7 +214,7 @@ function multi:newSystemThreadedProcessor(cores)
 	
 	setmetatable(c,{__index = multi})
 	
-	c.Type = multi.SPROCESS
+	c.Type = multi.registerType("s_process", "s_processes")
 	c.threads = {}
 	c.cores = cores or 8
 	c.Name = name
@@ -331,3 +334,4 @@ function multi:newSystemThreadedProcessor(cores)
 
 	return c
 end
+

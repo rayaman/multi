@@ -1,5 +1,7 @@
 local multi, thread = require("multi"):init()
 
+multi.defaultSettings.debugging = true
+
 local dbg = {}
 
 local creation_hook
@@ -10,6 +12,8 @@ creation_hook = function(obj, process)
         obj.OnObjectCreated(creation_hook)
     end
 end
+
+local debug_stats = {}
 
 local tmulti = multi:getThreadManagerProcess()
 multi.OnObjectCreated(creation_hook)
@@ -33,5 +37,3 @@ tmulti.OnObjectCreated(creation_hook)
     multi.PROXY 			= "proxy"
     multi.THREADEDFUNCTION	= "threaded_function"
 ]]
-
-return dbg

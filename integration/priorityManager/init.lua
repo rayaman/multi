@@ -102,7 +102,7 @@ priorityManager.uManager = function(self)
 end
 
 local function processHook(obj, proc)
-	if obj.Type == multi.PROCESS or not(obj.IsAnActor) then return end
+	if obj.Type == multi.registerType("process", "processes") or not(obj.IsAnActor) then return end
 	obj.__restoreProc = proc
 	obj.__profiling = {}
 	obj:reallocate(priorityManager)
@@ -171,7 +171,7 @@ local function init()
 
     function multi:setPriorityScheme(scheme)
 
-        if not self.Type == multi.PROCESS or not self.Type == multi.ROOTPROCESS then
+        if not self.Type == multi.registerType("process", "processes") or not self.Type == multi.registerType("rootprocess") then
 			multi.warn("You should only invoke setPriorityScheme on a processor object!")
 		end
 

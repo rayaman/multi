@@ -102,7 +102,7 @@ multi:newThread("Scheduler Thread",function()
 
     t, val = thread.hold(function()
         return worked
-    end,{sleep=1})
+    end,{sleep=2})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedTables: Failed")
@@ -190,9 +190,11 @@ multi:newThread("Scheduler Thread",function()
         thread.sleep(1)
         os.exit(1)
     end)
-    local stp = multi:newSystemThreadedProcessor(1)
+    local stp = multi:newSystemThreadedProcessor(5)
 
-    local tloop = stp:newTLoop(nil, 1)
+    local tloop = stp:newTLoop(function()
+        print("Test")
+    end, 1)
 
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
         local multi, thread = require("multi"):init()
@@ -235,17 +237,17 @@ multi:newThread("Scheduler Thread",function()
     end)
 
     t, val = thread.hold(function()
-        return count == 10
+        return proxy_test
     end,{sleep=5})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedProcessor/Proxies: Failed")
         os.exit(1)
+    else
+        multi.success("SystemThreadedProcessor: OK")
     end
 
     thread.sleep(2)
-
-    multi.success("SystemThreadedProcessor: OK")
 
     we_good = true
     multi:Stop() -- Needed in love2d tests to stop the main runner

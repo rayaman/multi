@@ -91,6 +91,7 @@ function multi:newSystemThread(name, func, ...)
 	local GLOBAL, THREAD = activator.init(thread, env)
 
 	local th = thread:newISOThread(name, func, env, ...)
+	th.Type = multi.registerType("s_thread", "pseudoThreads")
 	
 	id = id + 1
 
@@ -104,7 +105,7 @@ THREAD.newSystemThread = multi.newSystemThread
 function THREAD:newFunction(func,holdme)
 	return thread:newFunctionBase(function(...)
 		return multi:newSystemThread("TempSystemThread",func,...)
-	end,holdme)()
+	end, holdme, multi.registerType("s_function", "pseudoFunctions"))()
 end
 
 multi.print("Integrated Pesudo Threading!")

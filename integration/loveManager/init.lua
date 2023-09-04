@@ -33,6 +33,9 @@ _G.THREAD_ID = 0
 local multi, thread = require("multi"):init()
 local GLOBAL, THREAD = require("multi.integration.loveManager.threads"):init()
 
+multi.registerType("s_function")
+multi.registerType("s_thread")
+
 multi.integration = {}
 multi.isMainThread = true
 local threads = {}

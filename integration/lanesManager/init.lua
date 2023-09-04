@@ -61,7 +61,7 @@ local livingThreads = {}
 function THREAD:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
 		return multi:newSystemThread("TempSystemThread",func,...)
-	end, holdme, multi.SFUNCTION)()
+	end, holdme, multi.registerType("s_function"))()
 end
 
 function multi:newSystemThread(name, func, ...)
@@ -75,7 +75,7 @@ function multi:newSystemThread(name, func, ...)
 	c.loadString = {"base","package","os","io","math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
 	c.returns = return_linda
-	c.Type = multi.STHREAD
+	c.Type = multi.registerType("s_thread")
 	c.creationTime = os.clock()
 	c.alive = true
 	c.priority = THREAD.Priority_Normal

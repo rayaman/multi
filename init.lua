@@ -68,36 +68,22 @@ setmetatable(multi.DestroyedObj, {
 })
 
 multi.DESTROYED			= multi.DestroyedObj
-multi.ROOTPROCESS		= "rootprocess"
-multi.CONNECTOR			= "connector" -- To be deprecated
-multi.CONNECTION		= "connector" -- To be changed to connection and replace connector (v17.x,x)
-multi.TIMEMASTER		= "timemaster"
-multi.PROCESS			= "process"
-multi.TIMER				= "timer"
-multi.EVENT				= "event"
-multi.UPDATER			= "updater"
-multi.ALARM				= "alarm"
-multi.LOOP				= "loop"
-multi.TLOOP				= "tloop"
-multi.STEP				= "step"
-multi.TSTEP				= "tstep"
-multi.THREAD			= "thread"
-multi.SERVICE			= "service"
-multi.THREADEDFUNCTION	= "threaded_function" -- To be deprecated
-multi.FUNCTION			= "threaded_function" -- To be changed to connection and replace connector (v17.x,x)
 
--- Extensions
-multi.PROXY 			= "proxy"
-multi.STHREAD			= "s_thread"
-multi.SQUEUE			= "s_queue"
-multi.STABLE			= "s_table"
-multi.SJOBQUEUE			= "s_jobqueue"
-multi.SCONNECTION		= "s_connection"
-multi.SPROCESS			= "s_process"
-multi.SFUNCTION			= "s_function"
-
+-- I don't like modifying the global namespace, so I prepend a "$"
 if not _G["$multi"] then
 	_G["$multi"] = {multi = multi, thread = thread}
+end
+
+local types = {}
+function multi.registerType(typ, p)
+	if multi[typ:upper():gsub("_","")] then return typ end
+	multi[typ:upper():gsub("_","")] = typ
+	table.insert(types, {typ, p or typ})
+	return typ
+end
+
+function multi.getTypes()
+	return types
 end
 
 multi.Version = "16.0.0"
@@ -107,7 +93,7 @@ local NIL = multi.NIL
 multi.Mainloop = {}
 multi.Children = {}
 multi.Active = true
-multi.Type = multi.ROOTPROCESS
+multi.Type = multi.registerType("rootprocess")
 multi.LinkedPath = multi
 multi.TIMEOUT = "TIMEOUT"
 multi.TID = 0
@@ -317,7 +303,7 @@ function multi:newConnection(protect,func,kill)
 		return cn
 	end})
 
-	c.Type=multi.CONNECTION
+	c.Type=multi.registerType("connector", "connections")
 	c.func={}
 	c.ID=0
 	local protect=protect or false
@@ -483,7 +469,8 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Hold()
-		return multi.hold(self)
+		local rets = {multi.hold(self)}
+		return unpack(rets)
 	end
 
 	c.connect=c.Connect
@@ -538,7 +525,7 @@ end
 function multi:SetTime(n)
 	if not n then n=3 end
 	local c=self:newBase()
-	c.Type=multi.TIMEMASTER
+	c.Type=multi.registerType("timemaster")
 	c.timer=self:newTimer()
 	c.timer:Start()
 	c.set=n
@@ -567,7 +554,7 @@ end
 -- Timer stuff done
 multi.PausedObjects = {}
 function multi:Pause()
-	if self.Type==multi.ROOTPROCESS then
+	if self.Type==multi.registerType("rootprocess") then
 		multi.print("You cannot pause the main process. Doing so will stop all methods and freeze your program! However if you still want to use multi:_Pause()")
 	else
 		self.Active=false
@@ -578,7 +565,7 @@ function multi:Pause()
 end
 
 function multi:Resume()
-	if self.Type==multi.PROCESS or self.Type==multi.ROOTPROCESS then
+	if self.Type==multi.registerType("process", "processes") or self.Type==multi.registerType("rootprocess") then
 		self.Active=true
 		local c=self:getChildren()
 		for i=1,#c do
@@ -594,7 +581,7 @@ function multi:Resume()
 end
 
 function multi:Destroy()
-	if self.Type==multi.PROCESS or self.Type==multi.ROOTPROCESS then
+	if self.Type==multi.registerType("process", "processes") or self.Type==multi.registerType("rootprocess") then
 		local c=self:getChildren()
 		for i=1,#c do
 			self.OnObjectDestroyed:Fire(c[i])
@@ -648,9 +635,9 @@ end
 --Constructors [CORE]
 local _tid = 0
 function multi:newBase(ins)
-	if not(self.Type==multi.ROOTPROCESS or self.Type==multi.PROCESS) then multi.error('Can only create an object on multi or an interface obj') return false end
+	if not(self.Type==multi.registerType("rootprocess") or self.Type==multi.registerType("process", "processes")) then multi.error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
-	if self.Type==multi.PROCESS then
+	if self.Type==multi.registerType("process", "processes") then
 		setmetatable(c, {__index = multi})
 	else
 		setmetatable(c, {__index = multi})
@@ -687,7 +674,7 @@ end
 
 function multi:newTimer()
 	local c={}
-	c.Type=multi.TIMER
+	c.Type=multi.registerType("timer", "timers")
 	local time=0
 	local count=0
 	local paused=false
@@ -720,7 +707,7 @@ end
 --Core Actors
 function multi:newEvent(task, func)
 	local c=self:newBase()
-	c.Type=multi.EVENT
+	c.Type=multi.registerType("event", "events")
 	local task = task or function() end
 	function c:Act()
 		local t = task(self)
@@ -747,7 +734,7 @@ end
 
 function multi:newUpdater(skip, func)
 	local c=self:newBase()
-	c.Type=multi.UPDATER
+	c.Type=multi.registerType("updater", "updaters")
 	local pos = 1
 	local skip = skip or 1
 	function c:Act()
@@ -773,7 +760,7 @@ end
 
 function multi:newAlarm(set, func)
 	local c=self:newBase()
-	c.Type=multi.ALARM
+	c.Type=multi.registerType("alarm", "alarms")
 	c:setPriority("Low")
 	c.set=set or 0
 	local count = 0
@@ -814,7 +801,7 @@ end
 
 function multi:newLoop(func, notime)
 	local c=self:newBase()
-	c.Type=multi.LOOP
+	c.Type = multi.registerType("loop", "loops")
 	local start=clock()
 	if notime then
 		function c:Act()
@@ -842,7 +829,7 @@ end
 function multi:newStep(start,reset,count,skip)
 	local c=self:newBase()
 	think=1
-	c.Type=multi.STEP
+	c.Type=multi.registerType("step", "steps")
 	c.pos=start or 1
 	c.endAt=reset or math.huge
 	c.skip=skip or 0
@@ -901,7 +888,7 @@ end
 
 function multi:newTLoop(func, set)
 	local c=self:newBase()
-	c.Type=multi.TLOOP
+	c.Type=multi.registerType("tloop", "tloops")
 	c.set=set or 0
 	c.timer=self:newTimer()
 	c.life=0
@@ -951,7 +938,7 @@ end
 
 function multi:newTStep(start,reset,count,set)
 	local c=self:newStep(start,reset,count)
-	c.Type=multi.TSTEP
+	c.Type=multi.registerType("tstep", "tsteps")
 	c:setPriority("Low")
 	local reset = reset or math.huge
 	c.timer=clock()
@@ -1068,7 +1055,7 @@ function multi:newProcessor(name, nothread, priority)
 	local name = name or "Processor_" .. sandcount
 	sandcount = sandcount + 1
 	c.Mainloop = {}
-	c.Type = multi.PROCESS
+	c.Type = multi.registerType("process", "processes")
 	local Active =  nothread or false
 	c.Name = name or ""
 	c.threads = {}
@@ -1279,7 +1266,7 @@ function thread.hold(n, opt)
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)
-	elseif type(n) == "table" and n.Type == multi.CONNECTION then
+	elseif type(n) == "table" and n.Type == multi.registerType("connector", "connections") then
 		return yield(CMD, t_hold, conn_test(n), nil, interval)
 	elseif type(n) == "table" and n.Hold ~= nil then
 		return n:Hold(opt)
@@ -1442,7 +1429,7 @@ function thread:newFunctionBase(generator, holdme, TYPE)
 			return temp
 		end
 		setmetatable(tfunc, tfunc)
-		tfunc.Type = TYPE or multi.FUNCTION
+		tfunc.Type = TYPE or multi.registerType("function", "functions")
 		return tfunc
 	end
 end
@@ -1543,14 +1530,14 @@ function thread:newThread(name, func, ...)
 	c.Name=name
 	c.thread=create(func)
 	c.sleep=1
-	c.Type = multi.THREAD
+	c.Type = multi.registerType("thread", "threads")
 	c.TID = threadid
 	c.firstRunDone=false
 	c._isPaused = false
 	c.returns = {}
 	c.isError = false
 
-	if self.Type == multi.PROCESS then
+	if self.Type == multi.registerType("process", "processes") then
 		c.OnError = self:newConnection(true,nil,true)
 		c.OnDeath = self:newConnection(true,nil,true)
 	else
@@ -1611,13 +1598,13 @@ function thread:newThread(name, func, ...)
 
 	c.Destroy = c.Kill
 	if thread.isThread() then
-		if self.Type == multi.PROCESS then
+		if self.Type == multi.registerType("process", "processes") then
 			table.insert(self.startme, c)
 		else
 			table.insert(threadManager.startme, c)
 		end
 	else
-		if self.Type == multi.PROCESS then
+		if self.Type == multi.registerType("process", "processes") then
 			table.insert(self.startme, c)
 		else
 			table.insert(threadManager.startme, c)
@@ -1626,7 +1613,7 @@ function thread:newThread(name, func, ...)
 	
 	globalThreads[c] = multi
 	threadid = threadid + 1
-	if self.Type == multi.PROCESS then
+	if self.Type == multi.registerType("process", "processes") then
 		self:create(c)
 	else
 		threadManager:create(c)
@@ -1859,7 +1846,7 @@ end
 
 function multi:newService(func) -- Priority managed threads
 	local c = {}
-	c.Type = multi.SERVICE
+	c.Type = multi.registerType("service", "services")
 	c.OnStopped = self:newConnection()
 	c.OnStarted = self:newConnection()
 	local Service_Data = {}
@@ -2034,7 +2021,7 @@ local function doOpt()
 		if type(n) == "number" then
 			thread.getRunningThread().lastSleep = clock()
 			return yield(CMD, t_sleep, n or 0, nil, interval)
-		elseif type(n) == "table" and n.Type == multi.CONNECTION then
+		elseif type(n) == "table" and n.Type == multi.registerType("connector", "connections") then
 			local rdy = function()
 				return false
 			end
@@ -2071,22 +2058,32 @@ local function doOpt()
 end
 
 local init = false
+multi.settingsHook = multi:newConnection()
 function multi.init(settings, realsettings)
 	if settings == multi then settings = realsettings end
 	if init then return _G["$multi"].multi,_G["$multi"].thread end
 	init = true
 	if type(settings)=="table" then
+
 		multi.defaultSettings = settings
+
 		if settings.priority then
 			multi.mainloop = multi.p_mainloop
 		else
 			multi.mainloop = multi.mainloopRef
 		end
+
 		if settings.findopt then
 			find_optimization = true
 			doOpt()
 			multi.enableOptimization:Fire(multi, thread)
 		end
+
+		if settings.debugging then
+			require("multi.integration.debugManager")
+		end
+
+		multi.settingsHook:Fire(settings)
 	end
 	return _G["$multi"].multi,_G["$multi"].thread
 end
@@ -2194,7 +2191,7 @@ function multi:getLoad()
 end
 
 function multi:setPriority(s)
-	if not self.IsAnActor or self.Type == multi.PROCESS then return end
+	if not self.IsAnActor or self.Type == multi.registerType("process", "processes") then return end
 	if type(s)=="number" then
 		self.Priority=s
 	elseif type(s)=='string' then
