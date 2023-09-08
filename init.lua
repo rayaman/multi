@@ -584,7 +584,7 @@ function multi:Destroy()
 	if self.Type==multi.registerType("process", "processes") or self.Type==multi.registerType("rootprocess") then
 		local c=self:getChildren()
 		for i=1,#c do
-			self.OnObjectDestroyed:Fire(c[i])
+			self.OnObjectDestroyed:Fire(c[i], self)
 			c[i]:Destroy()
 		end
 		local new = {}
@@ -601,7 +601,7 @@ function multi:Destroy()
 	else
 		for i=#self.Parent.Mainloop,1,-1 do
 			if self.Parent.Mainloop[i]==self then
-				self.Parent.OnObjectDestroyed:Fire(self)
+				self.Parent.OnObjectDestroyed:Fire(self, self.Parent)
 				table.remove(self.Parent.Mainloop,i)
 				self.Destroyed = true
 				break
@@ -1442,8 +1442,9 @@ end
 
 function thread:newProcessor(name, nothread, priority)
 	-- Inactive proxy proc
-	local proc = multi:getCurrentProcess():newProcessor(name, true)
-	local thread_proc = multi:getCurrentProcess():newProcessor(name).Start()
+	local process = multi:getCurrentProcess()
+	local proc = process:newProcessor(name, true)
+	local thread_proc = process:newProcessor(name).Start()
 	local Active = true
 
 	local handler
@@ -1458,7 +1459,7 @@ function thread:newProcessor(name, nothread, priority)
 	end
 
 	function proc:getFullName()
-		return thread_proc.parent:getFullName() .. "." .. c.Name
+		return thread_proc.parent:getFullName() .. "." .. self.Name
 	end
 
 	function proc:getName()
@@ -1496,6 +1497,7 @@ function thread:newProcessor(name, nothread, priority)
 	
 	proc.OnObjectCreated(function(obj)
 		if not obj.Act then return end
+		multi.print("Converting "..obj.Type.." to thread!")
 		thread_proc:newThread(function()
 			obj.reallocate = empty_func
 			while true do
@@ -1505,7 +1507,7 @@ function thread:newProcessor(name, nothread, priority)
 		end)
 	end)
 
-	self:create(proc)
+	process:create(proc)
 	
 	return proc
 end
@@ -2191,7 +2193,7 @@ function multi:getLoad()
 end
 
 function multi:setPriority(s)
-	if not self.IsAnActor or self.Type == multi.registerType("process", "processes") then return end
+	if not self:IsAnActor() or self.Type == multi.registerType("process", "processes") then return end
 	if type(s)=="number" then
 		self.Priority=s
 	elseif type(s)=='string' then
@@ -2378,6 +2380,17 @@ function multi.warn(...)
 	end
 end
 
+function multi.debug(...)
+	if multi.defaultSettings.debugging then
+		local t = {}
+		for i,v in ipairs(multi.pack(...)) do t[#t+1] = tostring(v) end
+		io.write("\x1b[97mDEBUG:\x1b[0m " .. table.concat(t," ") 
+		.. "\n" .. multi:getCurrentProcess():getFullName() 
+		.. " " .. (multi:getCurrentTask() and multi:getCurrentTask().Type or "Unknown Type") .. "\n" .. 
+		((coroutine.running()) and debug.traceback((coroutine.running())) or debug.traceback()) .. "\n")
+	end
+end
+
 function multi.error(self, err)
 	if type(err) == "bool" then crash = err end
 	if type(self) == "string" then err = self end
@@ -2462,12 +2475,16 @@ function multi:getHandler()
 	return threadManager:getHandler()
 end
 
+local function task_holder()
+	return #tasks > 0
+end
+
 multi:newThread("Task Handler", function()
 	while true do
 		if #tasks > 0 then
 			table.remove(tasks)()
 		else
-			thread.yield()
+			thread.hold(task_holder)
 		end
 	end
 end).OnError(multi.error)

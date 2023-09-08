@@ -299,6 +299,7 @@ Added
 	multi:mainloop()
 	```
 
+- multi.OnObjectDestroyed(func(obj, process)) now supplies obj, process just like OnObjectCreated
 - thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
 - multi.Processors:getHandler() -- returns the thread handler for a process
 - multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!
