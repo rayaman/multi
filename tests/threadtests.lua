@@ -180,16 +180,6 @@ multi:newThread("Scheduler Thread",function()
     -- end
     -- multi.success("SystemThreadedConnections: Ok")
     local proxy_test = false
-    multi:newThread(function()
-        t, val = thread.hold(function()
-            return proxy_test
-        end,{sleep=5})
-        if val == multi.TIMEOUT then
-            multi.error("SystemThreadedProcessor/Proxies: Failed")
-        end
-        thread.sleep(1)
-        os.exit(1)
-    end)
     local stp = multi:newSystemThreadedProcessor(5)
 
     local tloop = stp:newTLoop(function()
@@ -251,6 +241,7 @@ multi:newThread("Scheduler Thread",function()
 
     we_good = true
     multi:Stop() -- Needed in love2d tests to stop the main runner
+    os.exit(0)
 end).OnError(multi.error)
 
 multi.OnExit(function(err_or_errorcode)

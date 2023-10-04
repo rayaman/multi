@@ -38,20 +38,60 @@ end .. multi:newConnection()
 
 local creation_hook, destruction_hook
 local types
-local processes = {}
+local objects = {}
 
 creation_hook = function(obj, process)
     types = multi:getTypes()
     if obj.Type == multi.PROCESS and not dbg.processors[obj] then
         obj.OnObjectCreated(creation_hook)
         obj.OnObjectDestroyed(destruction_hook)
-        dbg.processors[obj] = {}
     end
+
+    table.insert(objects, obj)
+
     dbg.OnObjectCreated:Fire(obj, process)
 end
 
 destruction_hook = function(obj, process)
+    for i = 1, #objects do
+        if objects[i] == obj then
+            table.remove(objects, i)
+            break
+        end
+    end
     dbg.OnObjectDestroyed:Fire(obj, process)
+end
+
+function dbg:getObjects(typ)
+    if type(typ) == "string" then
+        local objs = {}
+        for i = 1, #objects do
+            if objects[i].Type == typ then
+                objs[#objs+1] = objects[i]
+            end
+        end
+        return objs
+    elseif type(typ) == "table" then -- Process
+        local objs = {}
+        for i = 1, #objects do
+            if objects[i].Parent == typ then
+                objs[#objs+1] = objects[i]
+            end
+        end
+        return objs
+    elseif type(typ) == "function" then
+        local objs = {}
+        -- Keep objects local/private, return true to add to list, false to reject, "break" to break loop
+        for i = 1, #objects do
+            local ret = typ(objects[i])
+            if ret then
+                objs[#objs+1] = objects[i]
+            elseif ret == "break" then
+                break
+            end
+        end
+        return objs
+    end
 end
 
 local debug_stats = {}

@@ -184,10 +184,10 @@ function multi:newProxy(list)
 		cp.funcs = copy(self._funcs)
 		cp.init = function(self)
 			local multi, thread = require("multi"):init()
-			-- if multi.integration then
-			-- 	GLOBAL = multi.integration.GLOBAL
-			-- 	THREAD = multi.integration.THREAD
-			-- end
+			if multi.integration then
+				GLOBAL = multi.integration.GLOBAL
+				THREAD = multi.integration.THREAD
+			end
 			local proxy = THREAD.waitFor(self.proxy_link)
 			for i,v in pairs(proxy) do
 				print("proxy",i,v)
