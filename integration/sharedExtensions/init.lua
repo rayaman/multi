@@ -92,6 +92,8 @@ function multi:newProxy(list)
 							local sref = table.remove(data, 1)
 							local ret
 
+							print(_G[list[0]], func)
+
 							if sref then
 								ret = {_G[list[0]][func](_G[list[0]], multi.unpack(data))}
 							else
@@ -115,7 +117,7 @@ function multi:newProxy(list)
 						end)
 					end
 				end
-			end).OnError(multi.error)
+			end)
 			return self
 		else
 			local function copy(obj)
@@ -143,6 +145,7 @@ function multi:newProxy(list)
 					setmetatable(v[2],getmetatable(multi:newConnection()))
 				else
 					self[v] = thread:newFunction(function(self,...)
+						multi.print("Pushing: " .. v)
 						if self == me then
 							me.send:push({v, true, ...})
 						else

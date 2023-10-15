@@ -172,6 +172,7 @@ function multi:newSystemThreadedJobQueue(n)
 		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
 			local multi, thread = require("multi"):init()
 			require("love.timer")
+			love.timer.sleep(1)
 			local clock = os.clock
 			local funcs = THREAD.createTable("__JobQueue_"..jqc.."_table")
 			local queue = THREAD.waitFor("__JobQueue_"..jqc.."_queue")
@@ -208,11 +209,12 @@ function multi:newSystemThreadedJobQueue(n)
 							local id = table.remove(dat,1)
 							local tab = {funcs[name](multi.unpack(dat))}
 							table.insert(tab,1,id)
+							--local test = queueReturn.push
 							queueReturn:push(tab)
 						end)
 					end
 				end
-			end).OnError(multi.error)
+			end)
 			thread:newThread("Idler",function()
 				while true do
 					thread.yield()

@@ -207,9 +207,9 @@ function multi:newSystemThreadedJobQueue(n)
 						local jid = table.remove(dat, 1)
 						local args = table.remove(dat, 1)
 						queueReturn:push{jid, funcs[name](args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8]), queue}
-					end).OnError(multi.error)
+					end)
                 end
-            end).OnError(multi.error)
+            end)
             thread:newThread("DoAllHandler",function()
                 while true do
                     local dat = thread.hold(function()
@@ -225,7 +225,7 @@ function multi:newSystemThreadedJobQueue(n)
                         end
                     end
                 end
-            end).OnError(multi.error)
+            end)
             thread:newThread("IdleHandler",function()
                 while true do
                     thread.hold(function()
@@ -233,9 +233,9 @@ function multi:newSystemThreadedJobQueue(n)
                     end)
                     THREAD.sleep(.01)
                 end
-            end).OnError(multi.error)
+            end)
             multi:mainloop()
-        end,i).OnError(multi.error)
+        end,i)
     end
 
 	function c:Hold(opt)

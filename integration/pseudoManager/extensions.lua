@@ -35,15 +35,16 @@ end
 
 function multi:newSystemThreadedQueue(name)
 	local c = {}
+	c.data = {}
 	c.Type = multi.registerType("s_queue")
 	function c:push(v)
 		table.insert(self,v)
 	end
 	function c:pop()
-		return table.remove(self,1)
+		return table.remove(self.data,1)
 	end
 	function c:peek()
-		return self[1]
+		return self.data[1]
 	end
 	function c:init()
 		return self
@@ -156,6 +157,7 @@ function multi:newSystemThreadedJobQueue(n)
 	end)
 	for i=1,c.cores do
 		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
+			local GLOBAL, THREAD = require("multi.integration.pseudoManager"):init()
 			local multi, thread = require("multi"):init()
 			local clock = os.clock
 			local funcs = THREAD.waitFor("__JobQueue_"..jqc.."_table")
@@ -197,7 +199,7 @@ function multi:newSystemThreadedJobQueue(n)
 						end)
 					end
 				end
-			end).OnError(multi.error)
+			end)
 			thread:newThread("Idler",function()
 				while true do
 					thread.yield()

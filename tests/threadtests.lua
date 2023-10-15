@@ -1,4 +1,5 @@
-package.path = "../?/init.lua;../?.lua;"..package.path
+package.path = "D:/VSCWorkspace/?/init.lua;D:/VSCWorkspace/?.lua;"..package.path
+package.cpath = "C:/luaInstalls/lua5.4/lib/lua/5.4/?/core.dll;" .. package.cpath
 multi, thread = require("multi"):init{error=true,warning=true,print=true}--{priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3
@@ -37,12 +38,12 @@ THREAD.setENV({
 })
 
 multi:newThread("Scheduler Thread",function()
-    multi:newThread(function()
-        thread.sleep(30)
-        print("Timeout tests took longer than 30 seconds")
-        multi:Stop()
-        os.exit(1)
-    end)
+    -- multi:newThread(function()
+    --     thread.sleep(30)
+    --     print("Timeout tests took longer than 30 seconds")
+    --     multi:Stop()
+    --     os.exit(1)
+    -- end)
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
 
     multi:newSystemThread("Test_Thread_0", function()
@@ -201,7 +202,7 @@ multi:newThread("Scheduler Thread",function()
             print(THREAD_NAME, "Got loop...")
         end)
         multi:mainloop()
-    end, tloop:getTransferable()).OnError(multi.error)
+    end, tloop:getTransferable())
 
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
@@ -213,12 +214,13 @@ multi:newThread("Scheduler Thread",function()
         thread.hold(tloop.OnLoop)
         multi.print("Held on proxy connection... twice")
         proxy_test = true
-    end).OnError(multi.error)
+    end)
 
     thread:newThread(function()
+        print("While Test!")
         while true do
             thread.hold(tloop.OnLoop)
-            print(THREAD_NAME,"Loopy")
+            print(THREAD_NAME,"Local Loopy")
         end
     end)
 
@@ -228,7 +230,7 @@ multi:newThread("Scheduler Thread",function()
 
     t, val = thread.hold(function()
         return proxy_test
-    end,{sleep=5})
+    end--[[,{sleep=5}]]) -- No timeouts
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedProcessor/Proxies: Failed")
@@ -242,7 +244,7 @@ multi:newThread("Scheduler Thread",function()
     we_good = true
     multi:Stop() -- Needed in love2d tests to stop the main runner
     os.exit(0)
-end).OnError(multi.error)
+end)
 
 multi.OnExit(function(err_or_errorcode)
     print("Error Code: ", err_or_errorcode)

@@ -92,6 +92,7 @@ function multi:newSystemThread(name, func, ...)
 
 	local th = thread:newISOThread(name, func, env, ...)
 	th.Type = multi.registerType("s_thread", "pseudoThreads")
+	th.OnError(multi.error)
 	
 	id = id + 1
 

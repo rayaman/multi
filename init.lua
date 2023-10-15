@@ -1423,7 +1423,7 @@ function thread:newFunctionBase(generator, holdme, TYPE)
 				end
 			}
 			t.OnDeath(function(...) temp.OnReturn:Fire(...) end) 
-			t.OnError(function(self,err) temp.OnError:Fire(err) end)
+			t.OnError(function(self,err) temp.OnError:Fire(err) temp.OnError(multi.error) end)
 			t.linkedFunction = temp
 			t.statusconnector = temp.OnStatus
 			return temp
@@ -1885,6 +1885,7 @@ function multi:newService(func) -- Priority managed threads
 	end)
 
 	th.OnError = c.OnError -- use the threads onerror as our own
+	th.OnError(multi.error)
 	
 	function c.Destroy()
 		th:kill()

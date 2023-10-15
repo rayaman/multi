@@ -104,6 +104,8 @@ function multi:newSystemThread(name, func, ...)
             c.stab.returns = nil
         end
     end)
+
+    c.OnError(multi.error)
     	
 	if self.isActor then
 		self:create(c)

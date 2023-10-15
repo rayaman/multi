@@ -210,7 +210,7 @@ local function init_chronos()
 			thread.yield()
 			priorityManager.run()
 		end
-	end).OnError(multi.error)
+	end)
 end
 
 if chronos then

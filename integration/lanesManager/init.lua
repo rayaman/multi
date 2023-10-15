@@ -130,6 +130,7 @@ function multi:newSystemThread(name, func, ...)
 	c.OnDeath = multi:newConnection()
 	c.OnError = multi:newConnection()
 	GLOBAL["__THREADS__"] = livingThreads
+	c.OnError(multi.error)
 
 	if self.isActor then
 		self:create(c)

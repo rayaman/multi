@@ -60,6 +60,8 @@ function multi:newSystemThread(name, func, ...)
 
     table.insert(threads, c)
 
+    c.OnError(multi.error)
+
     if self.isActor then
 		self:create(c)
 	else
