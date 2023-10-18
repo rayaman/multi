@@ -366,6 +366,25 @@ Added
 		return cn
 	end
 	```
+- Connection objects can be divided, function / connection
+	This is a mix between the behavior between mod and concat, where the original connection can forward it's events to the new one as well as do a check like concat can. View it's implementation below:
+	```lua
+	__div = function(obj1, obj2) -- /
+		local cn = self:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				local args = {obj1(...)}
+				if args[1] then
+					cn:Fire(multi.unpack(args))
+				end
+			end)
+		else
+			multi.error("Invalid divide! ", type(obj1), type(obj2)," Expected function/connection(table)")
+		end
+		return cn
+	end
+	```
 - Connection objects can now be concatenated with functions, not each other. For example:
 	```lua
 	multi, thread = require("multi"):init{print=true,findopt=true}
