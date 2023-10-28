@@ -1,14 +1,19 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=true}
-require("multi.integration.priorityManager")
+-- require("multi.integration.priorityManager")
 
-multi.debugging.OnObjectCreated(function(obj, process)
-	multi.print("Created:", obj.Type, "in", process.Type, process:getFullName())
-end)
+-- multi.debugging.OnObjectCreated(function(obj, process)
+-- 	multi.print("Created:", obj.Type, "in", process.Type, process:getFullName())
+-- end)
 
-multi.debugging.OnObjectDestroyed(function(obj, process)
-	multi.print("Destroyed:", obj.Type, "in", process.Type, process:getFullName())
-end)
+-- multi.debugging.OnObjectDestroyed(function(obj, process)
+-- 	multi.print("Destroyed:", obj.Type, "in", process.Type, process:getFullName())
+-- end)
+
+
+
+
+
 
 -- test = multi:newProcessor("Test")
 -- test:setPriorityScheme(multi.priorityScheme.TimeBased)
@@ -60,26 +65,37 @@ end)
 -- end)
 
 -- conn5:Fire()
-multi.print("Testing thread:newProcessor()")
 
-proc = thread:newProcessor("Test")
 
-proc:newLoop(function()
-	multi.print("Running...")
-	thread.sleep(1)
+
+
+-- multi.print("Testing thread:newProcessor()")
+
+-- proc = thread:newProcessor("Test")
+
+-- proc:newLoop(function()
+-- 	multi.print("Running...")
+-- 	thread.sleep(1)
+-- end)
+
+-- proc:newThread(function()
+-- 	while true do
+-- 		multi.warn("Everything is a thread in this proc!")
+-- 		thread.sleep(1)
+-- 	end
+-- end)
+
+-- proc:newAlarm(5):OnRing(function(a)
+-- 	multi.print(";) Goodbye")
+-- 	a:Destroy()
+-- end)
+
+local func = thread:newFunction(function()
+	thread.sleep(4)
+	print("Hello!")
 end)
 
-proc:newThread(function()
-	while true do
-		multi.warn("Everything is a thread in this proc!")
-		thread.sleep(1)
-	end
-end)
-
-proc:newAlarm(5):OnRing(function(a)
-	multi.print(";) Goodbye")
-	a:Destroy()
-end)
+multi:newTLoop(func, 1)
 
 multi:mainloop()
 

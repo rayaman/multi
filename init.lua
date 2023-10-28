@@ -1063,7 +1063,9 @@ function multi:newProcessor(name, nothread, priority)
 	c.parent = self
 	c.OnObjectCreated = self:newConnection()
 
+	local boost = 1
 	local handler
+
 	if priority then
 		handler = c:createPriorityHandler(c)
 	else
@@ -1113,10 +1115,16 @@ function multi:newProcessor(name, nothread, priority)
 		end, holdme)()
 	end
 
+	function c:boost(count)
+		boost = count or 1
+	end
+
 	function c.run()
 		if not Active then return end
-		c:uManager(true)
-		handler()
+		for i=1,boost do
+			c:uManager(true)
+			handler()
+		end
 		return c
 	end
 

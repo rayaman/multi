@@ -47,7 +47,9 @@ multi:newThread("Scheduler Thread",function()
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
 
     multi:newSystemThread("Test_Thread_0", function()
-        print("The name should be Test_Thread_0",THREAD_NAME,THREAD_NAME,_G.THREAD_NAME)
+        if THREAD_NAME~="Test_Thread_0" then
+            multi.error("The name should be Test_Thread_0",THREAD_NAME,THREAD_NAME,_G.THREAD_NAME)
+        end
     end)
     
     th1 = multi:newSystemThread("Test_Thread_1", function(a,b,c,d,e,f)
@@ -97,7 +99,7 @@ multi:newThread("Scheduler Thread",function()
     end).OnError(multi.error)
 
     multi:newThread("test2",function()
-        print(thread.hold(function() return test["test2"] end))
+        thread.hold(function() return test["test2"] end)
         worked = true
     end)
 
@@ -114,7 +116,7 @@ multi:newThread("Scheduler Thread",function()
 
     local ready = false
 
-    jq = multi:newSystemThreadedJobQueue(5) -- Job queue with 4 worker threads
+    jq = multi:newSystemThreadedJobQueue(1) -- Job queue with 4 worker threads
     func2 = jq:newFunction("sleep",function(a,b)
         THREAD.sleep(.2)
     end)
@@ -131,7 +133,7 @@ multi:newThread("Scheduler Thread",function()
 
     t, val = thread.hold(function()
         return count == 10
-    end,{sleep=2})
+    end,{sleep=3})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedJobQueues: Failed")
@@ -140,46 +142,6 @@ multi:newThread("Scheduler Thread",function()
 
     multi.success("SystemThreadedJobQueues: Ok")
 
-    -- queue2 = multi:newSystemThreadedQueue("Test_Queue2"):init()
-    -- multi:newSystemThread("Test_Thread_2",function()
-    --     queue2 = THREAD.waitFor("Test_Queue2"):init()
-    --     connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
-    --     connOut(function(arg)
-    --         queue2:push("Test_Thread_2")
-    --     end)
-    --     multi:mainloop()
-    -- end).OnError(multi.error)
-    -- multi:newSystemThread("Test_Thread_3",function()
-    --     queue2 = THREAD.waitFor("Test_Queue2"):init()
-    --     connOut = THREAD.waitFor("ConnectionNAMEHERE"):init()
-    --     connOut(function(arg)
-    --         queue2:push("Test_Thread_3")
-    --     end)
-    --     multi:mainloop()
-    -- end).OnError(multi.error)
-    -- connOut = multi:newSystemThreadedConnection("ConnectionNAMEHERE"):init()
-    -- a=0
-    -- connOut(function(arg)
-    --     queue2:push("Main")
-    -- end)
-    -- for i=1,3 do
-    --     thread.sleep(.1)
-    --     connOut:Fire("Test From Main Thread: "..i.."\n")
-    -- end
-    -- thread.sleep(2)
-    -- local count = 0
-    -- multi:newThread(function()
-    --     while count < 9 do
-    --         if queue2:pop() then
-    --             count = count + 1
-    --         end
-    --     end
-    -- end).OnError(multi.error)
-    -- _, err = thread.hold(function() return count == 9 end,{sleep=.3})
-    -- if err == multi.TIMEOUT then
-    --     multi.error("SystemThreadedConnections: Failed")
-    -- end
-    -- multi.success("SystemThreadedConnections: Ok")
     local proxy_test = false
     local stp = multi:newSystemThreadedProcessor(5)
 
@@ -213,11 +175,12 @@ multi:newThread("Scheduler Thread",function()
         multi.print("Held on proxy connection... once")
         thread.hold(tloop.OnLoop)
         multi.print("Held on proxy connection... twice")
+        thread.hold(tloop.OnLoop)
+        multi.print("Held on proxy connection... finally")
         proxy_test = true
     end)
 
     thread:newThread(function()
-        print("While Test!")
         while true do
             thread.hold(tloop.OnLoop)
             print(THREAD_NAME,"Local Loopy")
@@ -230,7 +193,7 @@ multi:newThread("Scheduler Thread",function()
 
     t, val = thread.hold(function()
         return proxy_test
-    end--[[,{sleep=5}]]) -- No timeouts
+    end,{sleep=10})
 
     if val == multi.TIMEOUT then
         multi.error("SystemThreadedProcessor/Proxies: Failed")
@@ -247,7 +210,7 @@ multi:newThread("Scheduler Thread",function()
 end)
 
 multi.OnExit(function(err_or_errorcode)
-    print("Error Code: ", err_or_errorcode)
+    multi.print("Error Code: ", err_or_errorcode)
     if not we_good then
         multi.print("There was an error running some tests!")
         return

@@ -38,7 +38,7 @@ function multi:newSystemThreadedQueue(name)
 	c.data = {}
 	c.Type = multi.registerType("s_queue")
 	function c:push(v)
-		table.insert(self,v)
+		table.insert(self.data,v)
 	end
 	function c:pop()
 		return table.remove(self.data,1)
@@ -163,7 +163,6 @@ function multi:newSystemThreadedJobQueue(n)
 			local funcs = THREAD.waitFor("__JobQueue_"..jqc.."_table")
 			local queue = THREAD.waitFor("__JobQueue_"..jqc.."_queue")
 			local queueReturn = THREAD.waitFor("__JobQueue_"..jqc.."_queueReturn")
-			local lastProc = clock()
 			local queueAll = THREAD.waitFor("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
 			_G["__QR"] = queueReturn
@@ -173,7 +172,6 @@ function multi:newSystemThreadedJobQueue(n)
 					thread.yield()
 					local all = queueAll:peek()
 					if all and not registry[all[1]] then
-						lastProc = os.clock()
 						queueAll:pop()[2]()
 					end
 				end
@@ -184,13 +182,11 @@ function multi:newSystemThreadedJobQueue(n)
 					thread.yield()
 					local all = queueAll:peek()
 					if all and not registry[all[1]] then
-						lastProc = os.clock()
 						queueAll:pop()[2]()
 					end
 					local dat = thread.hold(queue)
 					if dat then
-						multi:newThread("Test",function()
-							lastProc = os.clock()
+						multi:newThread("JobSubRunner",function()
 							local name = table.remove(dat,1)
 							local id = table.remove(dat,1)
 							local tab = {multi.isolateFunction(funcs[name],_G)(multi.unpack(dat))}
@@ -200,18 +196,8 @@ function multi:newSystemThreadedJobQueue(n)
 					end
 				end
 			end)
-			thread:newThread("Idler",function()
-				while true do
-					thread.yield()
-					if clock()-lastProc> 2 then
-						THREAD.sleep(.05)
-					else
-						THREAD.sleep(.001)
-					end
-				end
-			end)
 			multi:mainloop()
-		end,jqc)
+		end, jqc)
 	end
 
     function c:Hold(opt)
