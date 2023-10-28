@@ -225,6 +225,21 @@ function multi:newConnection(protect,func,kill)
 		end
 		return cn
 	end,
+	__div = function(obj1, obj2) -- /
+		local cn = self:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				local args = {obj1(...)}
+				if args[1] then
+					cn:Fire(multi.unpack(args))
+				end
+			end)
+		else
+			multi.error("Invalid divide!", type(obj1), type(obj2),"Expected function/connection(table)")
+		end
+		return cn
+	end,
 	__concat = function(obj1, obj2) -- ..
 		local cn = self:newConnection()
 		local ref
