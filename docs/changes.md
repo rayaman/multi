@@ -523,6 +523,8 @@ Added
 
 Changed
 ---
+- multi:newTask(task) is not tied to the processor it is created on.
+- `multi:getTasks()` renamed to `multi:getRunners()`, should help with confusion between multi:newTask()
 - changed how multi adds unpack to the global namespace. Instead we capture that value into multi.unpack.
 - multi:newUpdater(skip, func) -- Now accepts func as the second argument. So you don't need to call OnUpdate(func) after creation. 
 - multi errors now internally call `multi.error` instead of `multi.print`

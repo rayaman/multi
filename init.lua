@@ -1011,10 +1011,10 @@ function multi:newTStep(start,reset,count,set)
 	return c
 end
 
-local tasks = {}
+multi.tasks = {}
 
 function multi:newTask(func)
-	tasks[#tasks + 1] = func
+	self.tasks[#self.tasks + 1] = func
 end
 
 local scheduledjobs = {}
@@ -1086,6 +1086,7 @@ function multi:newProcessor(name, nothread, priority)
 	c.Type = multi.registerType("process", "processes")
 	local Active =  nothread or false
 	c.Name = name or ""
+	c.tasks = {}
 	c.threads = {}
 	c.startme = {}
 	c.parent = self
@@ -1174,6 +1175,20 @@ function multi:newProcessor(name, nothread, priority)
 		Active = false
 		c.process:Destroy()
 	end
+
+	c:newThread("Task Handler", function()
+		local self = multi:getCurrentProcess()
+		local function task_holder()
+			return #self.tasks > 0
+		end
+		while true do
+			if #self.tasks > 0 then
+				table.remove(self.tasks,1)()
+			else
+				thread.hold(task_holder)
+			end
+		end
+	end).OnError(multi.error)
 	
 	table.insert(processes,c)
 	self:create(c)
@@ -1213,7 +1228,7 @@ function multi:getThreads()
 	return threads
 end
 
-function multi:getTasks()
+function multi:getRunners()
 	local tasks = {}
 	for i,v in pairs(self.Mainloop) do
 		if not v.__ignore then
@@ -2503,6 +2518,7 @@ else
 end
 
 threadManager = multi:newProcessor("Global_Thread_Manager", nil, true).Start()
+threadManager.tasks = multi.tasks -- The main multi interface is a bit different.
 
 function multi:getThreadManagerProcess()
 	return threadManager
@@ -2511,19 +2527,5 @@ end
 function multi:getHandler()
 	return threadManager:getHandler()
 end
-
-local function task_holder()
-	return #tasks > 0
-end
-
-multi:newThread("Task Handler", function()
-	while true do
-		if #tasks > 0 then
-			table.remove(tasks)()
-		else
-			thread.hold(task_holder)
-		end
-	end
-end).OnError(multi.error)
 
 return multi

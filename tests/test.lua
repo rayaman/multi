@@ -98,6 +98,11 @@ multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=
 -- multi:newTLoop(func, 1)
 
 -- multi:mainloop()
+for i = 1, 100 do
+    multi:newTask(function()
+        print("Task "..i)
+    end)
+end
 
 local conn = multi:newConnection()
 conn(function() print("Test 1") end)
@@ -112,6 +117,8 @@ print("Fire 2")
 conn:Fire()
 
 print(#conn)
+
+multi:mainloop()
 
 -- local conn1, conn2, conn3 = multi:newConnection(nil,nil,true), multi:newConnection(), multi:newConnection()
 
