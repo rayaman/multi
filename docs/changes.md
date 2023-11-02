@@ -367,6 +367,46 @@ Added
 		return cn
 	end
 	```
+- The len operator `#` will return the number of connections in the object!
+	```
+		local conn = multi:newConnection()
+		conn(function() print("Test 1") end)
+		conn(function() print("Test 2") end)
+		conn(function() print("Test 3") end)
+		conn(function() print("Test 4") end)
+		print(#conn)
+	```
+	Output:
+	```
+	4
+	```
+- Connection objects can be negated -conn returns self so conn = -conn, reverses the order of connection events
+	```lua
+	local conn = multi:newConnection()
+	conn(function() print("Test 1") end)
+	conn(function() print("Test 2") end)
+	conn(function() print("Test 3") end)
+	conn(function() print("Test 4") end)
+
+	print("Fire 1")
+	conn:Fire()
+	conn = -conn
+	print("Fire 2")
+	conn:Fire()
+	```
+	Output:
+	```
+	Fire 1
+	Test 1
+	Test 2
+	Test 3
+	Test 4
+	Fire 2
+	Test 4
+	Test 3
+	Test 2
+	Test 1
+	```
 - Connection objects can be divided, function / connection
 	This is a mix between the behavior between mod and concat, where the original connection can forward it's events to the new one as well as do a check like concat can. View it's implementation below:
 	```lua

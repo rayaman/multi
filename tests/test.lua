@@ -90,15 +90,28 @@ multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=
 -- 	a:Destroy()
 -- end)
 
-local func = thread:newFunction(function()
-	thread.sleep(4)
-	print("Hello!")
-end)
+-- local func = thread:newFunction(function()
+-- 	thread.sleep(4)
+-- 	print("Hello!")
+-- end)
 
-multi:newTLoop(func, 1)
+-- multi:newTLoop(func, 1)
 
-multi:mainloop()
+-- multi:mainloop()
 
+local conn = multi:newConnection()
+conn(function() print("Test 1") end)
+conn(function() print("Test 2") end)
+conn(function() print("Test 3") end)
+conn(function() print("Test 4") end)
+
+print("Fire 1")
+conn:Fire()
+conn = -conn
+print("Fire 2")
+conn:Fire()
+
+print(#conn)
 
 -- local conn1, conn2, conn3 = multi:newConnection(nil,nil,true), multi:newConnection(), multi:newConnection()
 

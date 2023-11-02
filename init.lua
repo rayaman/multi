@@ -196,7 +196,8 @@ function multi:newConnection(protect,func,kill)
 	c.rawadd = false
 	c.Parent = self
 
-	setmetatable(c,{__call=function(self,...)
+	setmetatable(c,{
+		__call=function(self,...)
 		local t = ...
 		if type(t)=="table" then
 			for i,v in pairs(t) do
@@ -213,6 +214,14 @@ function multi:newConnection(protect,func,kill)
 		else
 			return self:Connect(...)
 		end
+	end,
+	__unm = function(obj) -- -obj Reverses the order of connected events
+		local conns = obj:Bind({})
+		for i = #conns, 1, -1 do
+			obj.rawadd = true
+			obj(conns[i])
+		end
+		return obj
 	end,
 	__mod = function(obj1, obj2) -- %
 		local cn = self:newConnection()
@@ -267,6 +276,8 @@ function multi:newConnection(protect,func,kill)
 					end
 				end)
 			end
+		elseif type(obj1) == "table" and type(obj2) == "table" then
+			-- 
 		else
 			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
 		end
@@ -391,6 +402,7 @@ function multi:newConnection(protect,func,kill)
 	function c:Unconnect(conn)
 		for i = 1, #fast do
 			if fast[conn.ref] == fast[i] then
+				table.remove(self)
 				return table.remove(fast, i), i
 			end
 		end
@@ -466,6 +478,7 @@ function multi:newConnection(protect,func,kill)
 		if self.rawadd then
 			self.rawadd = false
 		else
+			table.insert(self,true)
 			self.__connectionAdded(temp, func)
 		end
 		return temp
