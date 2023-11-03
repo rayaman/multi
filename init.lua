@@ -1085,6 +1085,7 @@ function multi:newProcessor(name, nothread, priority)
 	c.Mainloop = {}
 	c.Type = multi.registerType("process", "processes")
 	local Active =  nothread or false
+	local task_delay = 0
 	c.Name = name or ""
 	c.tasks = {}
 	c.threads = {}
@@ -1176,6 +1177,10 @@ function multi:newProcessor(name, nothread, priority)
 		c.process:Destroy()
 	end
 
+	function c:setTaskDelay(delay)
+		task_delay = tonumber(delay) or 0
+	end
+
 	c:newThread("Task Handler", function()
 		local self = multi:getCurrentProcess()
 		local function task_holder()
@@ -1186,6 +1191,9 @@ function multi:newProcessor(name, nothread, priority)
 				table.remove(self.tasks,1)()
 			else
 				thread.hold(task_holder)
+			end
+			if task_delay~=0 then
+				thread.sleep(task_delay)
 			end
 		end
 	end).OnError(multi.error)
@@ -2519,6 +2527,10 @@ end
 
 threadManager = multi:newProcessor("Global_Thread_Manager", nil, true).Start()
 threadManager.tasks = multi.tasks -- The main multi interface is a bit different.
+
+function multi:setTaskDelay(delay)
+	threadManager:setTaskDelay(delay)
+end
 
 function multi:getThreadManagerProcess()
 	return threadManager

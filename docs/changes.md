@@ -84,6 +84,7 @@ Allows the user to have multi auto set priorities (Requires chronos). Also adds 
 
 Added
 ---
+- multi:setTaskDelay(delay), Tasks which are now tied to a processor can have an optional delay between the execution between each task. Useful perhaps for rate limiting. Without a delay all grouped tasks will be handled in one step.
 - processor's now have a boost function which causes it to run its processes the number of times specified in the `boost(count)` function
 - thread.hold will now use a custom hold method for objects with a `Hold` method. This is called like `obj:Hold(opt)`. The only argument passed is the optional options table that thread.hold can pass. There is an exception for connection objects. While they do contain a Hold method, the Hold method isn't used and is there for proxy objects, though they can be used in non proxy/thread situations. Hold returns all the arguments that the connection object was fired with.
 - shared_table = STP:newSharedTable(tbl_name) -- Allows you to create a shared table that all system threads in a process have access to. Returns a reference to that table for use on the main thread. Sets `_G[tbl_name]` on the system threads so you can access it there.

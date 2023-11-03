@@ -98,11 +98,18 @@ multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=
 -- multi:newTLoop(func, 1)
 
 -- multi:mainloop()
-for i = 1, 100 do
+
+multi:setTaskDelay(.05)
+multi:newTask(function()
+    for i = 1, 100 do
+        multi:newTask(function()
+            print("Task "..i)
+        end)
+    end
     multi:newTask(function()
-        print("Task "..i)
+        multi:Stop()
     end)
-end
+end)
 
 local conn = multi:newConnection()
 conn(function() print("Test 1") end)
