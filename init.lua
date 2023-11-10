@@ -1250,6 +1250,14 @@ function thread.request(t,cmd,...)
 	thread.requests[t.thread] = {cmd, multi.pack(...)}
 end
 
+function thread.defer(func)
+	local th = thread.getRunningThread()
+	local conn = (th.OnError + th.OnDeath)
+	conn(function()
+		func(th)
+	end)
+end
+
 function thread.getRunningThread()
 	local threads = globalThreads
 	local t = coroutine.running()

@@ -1,5 +1,5 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
-multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=true}
+multi, thread = require("multi"):init{print=true,warn=true,debugging=true}
 -- require("multi.integration.priorityManager")
 
 -- multi.debugging.OnObjectCreated(function(obj, process)
@@ -101,14 +101,11 @@ multi, thread = require("multi"):init{print=true,warn=true,error=true,debugging=
 
 multi:setTaskDelay(.05)
 multi:newTask(function()
-    for i = 1, 100 do
+    for i = 1, 10 do
         multi:newTask(function()
             print("Task "..i)
         end)
     end
-    multi:newTask(function()
-        multi:Stop()
-    end)
 end)
 
 local conn = multi:newConnection()
@@ -124,6 +121,17 @@ print("Fire 2")
 conn:Fire()
 
 print(#conn)
+
+thread:newThread("Test thread", function()
+    print("Starting thread!")
+    thread.defer(function() -- Runs when the thread finishes execution
+        print("Clean up time!")
+    end)
+    --[[
+        Do lot's of stuff
+    ]]
+    thread.sleep(3)
+end)
 
 multi:mainloop()
 
