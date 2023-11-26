@@ -1,25 +1,5 @@
-if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
-    package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
-    require("lldebugger").start()
-else
-	package.path = "../?/init.lua;../?.lua;"..package.path
-end
---[[
-    This file runs all tests.
-    Format:
-        Expected:
-            ...
-            ...
-            ...
-        Actual:
-            ...
-            ...
-            ...
-    
-    Each test that is ran should have a 5 second pause after the test is complete
-    The expected and actual should "match" (Might be impossible when playing with threads)
-    This will be pushed directly to the master as tests start existing.
-]]
+package.path = "?/init.lua;?.lua;"..package.path
+
 local multi, thread = require("multi"):init{print=true,warn=true,error=true}--{priority=true}
 local good = false
 local proc = multi:newProcessor("Test")
