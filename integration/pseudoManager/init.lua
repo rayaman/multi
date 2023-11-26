@@ -66,7 +66,6 @@ function multi:newSystemThread(name, func, ...)
 		THREAD = THREAD,
 		THREAD_NAME = tostring(name),
 		__THREADNAME__ = tostring(name),
-		test = "testing",
 		THREAD_ID = id,
 		thread = thread,
 		multi = multi,

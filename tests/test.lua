@@ -1,5 +1,8 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,debugging=true}
+for i,v in pairs(thread) do
+    print(i,v)
+end
 -- require("multi.integration.priorityManager")
 
 -- multi.debugging.OnObjectCreated(function(obj, process)
@@ -267,3 +270,32 @@ multi:mainloop()
 -- end)
 
 -- multi:mainloop()
+--[[
+    newFunction     function: 0x00fad170
+    waitFor function: 0x00fad0c8        
+    request function: 0x00fa4f10        
+    newThread       function: 0x00fad1b8
+    --__threads       table: 0x00fa4dc8   
+    defer   function: 0x00fa4f98        
+    isThread        function: 0x00facd40
+    holdFor function: 0x00fa5058
+    yield   function: 0x00faccf8
+    hold    function: 0x00fa51a0
+    chain   function: 0x00fa5180
+    __CORES 32
+    newISOThread    function: 0x00fad250
+    newFunctionBase function: 0x00fad128
+    requests        table: 0x00fa4e68
+    newProcessor    function: 0x00fad190
+    exec    function: 0x00fa50e8
+    pushStatus      function: 0x00fad108
+    kill    function: 0x00faccd8
+    get     function: 0x00fad0a8
+    set     function: 0x00fad088
+    getCores        function: 0x00facd60
+    skip    function: 0x00faccb0
+    --_Requests       function: 0x00fa50a0
+    getRunningThread        function: 0x00fa4fb8
+    holdWithin      function: 0x00facc80
+    sleep   function: 0x00fa4df0
+]]

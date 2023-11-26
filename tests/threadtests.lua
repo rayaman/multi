@@ -146,7 +146,7 @@ multi:newThread("Scheduler Thread",function()
     local stp = multi:newSystemThreadedProcessor(5)
 
     local tloop = stp:newTLoop(function()
-        print("Test")
+        --print("Test")
     end, 1)
 
     multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
@@ -157,11 +157,11 @@ multi:newThread("Scheduler Thread",function()
         thread:newThread(function()
             while true do
                 thread.hold(tloop.OnLoop)
-                print(THREAD_NAME,"Loopy")
+                --print(THREAD_NAME,"Loopy")
             end
         end)
         tloop.OnLoop(function(a)
-            print(THREAD_NAME, "Got loop...")
+            --print(THREAD_NAME, "Got loop...")
         end)
         multi:mainloop()
     end, tloop:getTransferable())
@@ -183,12 +183,12 @@ multi:newThread("Scheduler Thread",function()
     thread:newThread(function()
         while true do
             thread.hold(tloop.OnLoop)
-            print(THREAD_NAME,"Local Loopy")
+            --print(THREAD_NAME,"Local Loopy")
         end
     end)
 
     tloop.OnLoop(function()
-        print("OnLoop",THREAD_NAME)
+        --print("OnLoop",THREAD_NAME)
     end)
 
     t, val = thread.hold(function()

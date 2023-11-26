@@ -60,6 +60,7 @@ function multi:newProxy(list)
 			return res
 		end
 		if not(self.is_init) then
+			THREAD.sleep(.3)
 			self.is_init = true
 			local multi, thread = require("multi"):init()
 			self.proxy_link = "PL" .. multi.randomString(12)
@@ -92,8 +93,6 @@ function multi:newProxy(list)
 							local sref = table.remove(data, 1)
 							local ret
 
-							print(_G[list[0]], func)
-
 							if sref then
 								ret = {_G[list[0]][func](_G[list[0]], multi.unpack(data))}
 							else
@@ -120,6 +119,7 @@ function multi:newProxy(list)
 			end)
 			return self
 		else
+			THREAD.sleep(.3)
 			local function copy(obj)
 				if type(obj) ~= 'table' then return obj end
 				local res = {}
@@ -145,7 +145,6 @@ function multi:newProxy(list)
 					setmetatable(v[2],getmetatable(multi:newConnection()))
 				else
 					self[v] = thread:newFunction(function(self,...)
-						multi.print("Pushing: " .. v)
 						if self == me then
 							me.send:push({v, true, ...})
 						else
@@ -192,9 +191,6 @@ function multi:newProxy(list)
 				THREAD = multi.integration.THREAD
 			end
 			local proxy = THREAD.waitFor(self.proxy_link)
-			for i,v in pairs(proxy) do
-				print("proxy",i,v)
-			end
 			proxy.funcs = self.funcs
 			return proxy:init()
 		end

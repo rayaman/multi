@@ -189,6 +189,7 @@ local optimization_stats = {}
 local ignoreconn = true
 local empty_func = function() end
 function multi:newConnection(protect,func,kill)
+	local processor = self
 	local c={}
 	local lock = false
 	local fast = {}
@@ -380,7 +381,7 @@ function multi:newConnection(protect,func,kill)
 				end
 				if kill then
 					table.insert(kills,i)
-					multi:newTask(function()
+					processor:newTask(function()
 						for _, k in pairs(kills) do
                             table.remove(kills, _)
 							table.remove(fast, k)
@@ -418,7 +419,7 @@ function multi:newConnection(protect,func,kill)
 				fast[i](...)
 				if kill then
 					table.insert(kills,i)
-					multi:newTask(function()
+					processor:newTask(function()
 						for _, k in pairs(kills) do
                             table.remove(kills, _)
 							table.remove(fast, k)
@@ -1147,14 +1148,29 @@ function multi:newProcessor(name, nothread, priority)
 
 	function c:boost(count)
 		boost = count or 1
+		if boost > 1 then
+			self.run = function()
+				if not Active then return end
+				for i=1,boost do
+					c:uManager(true)
+					handler()
+				end
+				return c
+			end
+		else
+			self.run = function()
+				if not Active then return end
+				c:uManager(true)
+				handler()
+				return c
+			end
+		end
 	end
 
 	function c.run()
 		if not Active then return end
-		for i=1,boost do
-			c:uManager(true)
-			handler()
-		end
+		c:uManager(true)
+		handler()
 		return c
 	end
 
@@ -1178,7 +1194,11 @@ function multi:newProcessor(name, nothread, priority)
 	end
 
 	function c:setTaskDelay(delay)
-		task_delay = tonumber(delay) or 0
+		if type(delay) == "function" then
+			task_delay = delay
+		else
+			task_delay = tonumber(delay) or 0
+		end
 	end
 
 	c:newThread("Task Handler", function()
@@ -1193,7 +1213,7 @@ function multi:newProcessor(name, nothread, priority)
 				thread.hold(task_holder)
 			end
 			if task_delay~=0 then
-				thread.sleep(task_delay)
+				thread.hold(task_delay)
 			end
 		end
 	end).OnError(multi.error)
@@ -2481,12 +2501,14 @@ function multi.success(...)
 	io.write("\x1b[92mSUCCESS:\x1b[0m " .. table.concat(t," ") .. "\n")
 end
 
+-- Old things for compatability
 multi.GetType		=	multi.getType
 multi.IsPaused		=	multi.isPaused
 multi.IsActive		=	multi.isActive
-multi.Reallocate	=	multi.Reallocate
+multi.Reallocate	=	multi.reallocate
 multi.ConnectFinal	=	multi.connectFinal
 multi.ResetTime		=	multi.SetTime
+multi.setTime		=	multi.SetTime
 multi.IsDone		=	multi.isDone
 multi.SetName		=	multi.setName
 
