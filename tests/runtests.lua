@@ -1,4 +1,4 @@
-package.path = "?/init.lua;?.lua;"..package.path
+package.path = "../?/init.lua;../?.lua;./init.lua;./?.lua;"..package.path
 
 local multi, thread = require("multi"):init{print=true,warn=true,error=true}--{priority=true}
 local good = false
@@ -156,10 +156,10 @@ runTest = thread:newFunction(function()
 	if not love then
 		local ec = 0
 		multi.print("Testing pseudo threading")
-		_, str, ecc = os.execute("lua multi/tests/threadtests.lua p")
+		_, str, ecc = os.execute("lua tests/threadtests.lua p")
 		ec = ec + ecc
 		multi.print("Testing lanes threading")
-		_, str, ecc = os.execute("lua multi/tests/threadtests.lua l")
+		_, str, ecc = os.execute("lua tests/threadtests.lua l")
 		ec = ec + ecc
 		if ec ~= 0 then
 			os.exit(1)
