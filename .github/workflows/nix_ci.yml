@@ -29,7 +29,7 @@ jobs:
         pip install hererocks
         hererocks lua-pkg --${{ matrix.lua }} -rlatest
 
-    - name: Install lanes
+    - name: Install lanes and multi
       run: |
         source ${{github.workspace}}/lua-pkg/bin/activate
         luarocks install lanes

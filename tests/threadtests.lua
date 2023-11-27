@@ -210,7 +210,7 @@ multi:newThread("Scheduler Thread",function()
 end)
 
 multi.OnExit(function(err_or_errorcode)
-    multi.print("Error Code: ", err_or_errorcode)
+    multi.print("EC: ", err_or_errorcode)
     if not we_good then
         multi.print("There was an error running some tests!")
         return

@@ -156,13 +156,20 @@ runTest = thread:newFunction(function()
 	if not love then
 		local ec = 0
 		multi.print("Testing pseudo threading")
-		_, str, ecc = os.execute("lua tests/threadtests.lua p")
-		ec = ec + ecc
-		multi.print("Testing lanes threading")
-		_, str, ecc = os.execute("lua tests/threadtests.lua l")
-		ec = ec + ecc
-		if ec ~= 0 then
+		capture = io.popen("lua tests/threadtests.lua p"):read("*a")
+		if capture:lower():match("error") then
+			ec = ec + 1
 			os.exit(1)
+		else
+			io.write(capture)
+		end
+		multi.print("Testing lanes threading")
+		capture = io.popen("lua tests/threadtests.lua l"):read("*a")
+		if capture:lower():match("error") then
+			ec = ec + 1
+			os.exit(1)
+		else
+			io.write(capture)
 		end
 		os.exit(0)
 	end

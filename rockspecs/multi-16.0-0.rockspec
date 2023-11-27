@@ -35,6 +35,7 @@ build = {
       ["multi.integration.pseudoManager.threads"] = "integration/pseudoManager/threads.lua",
       ["multi.integration.luvitManager"] = "integration/luvitManager.lua",
       ["multi.integration.threading"] = "integration/threading.lua",
+      ["multi.integration.sharedExtension"] = "integration/sharedExtension/init.lua",
       --["multi.integration.networkManager"] = "integration/networkManager.lua",
    }
 }
