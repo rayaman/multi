@@ -137,9 +137,19 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         end
     end
 
+    function THREAD.defer(func)
+        local m = {onexit = function() func() end}
+        if _VERSION >= "Lua 5.2" then
+            setmetatable(m, {__gc = m.onexit})
+        else
+            m.sentinel = newproxy(true)
+            getmetatable(m.sentinel).__gc = m.onexit
+        end
+    end
+
     return GLOBAL, THREAD
 end
 
-return {init = function(g,s,st,c)
-    return INIT(g,s,st,c)
+return {init = function(g,s,st,c,onexit)
+    return INIT(g,s,st,c,onexit)
 end}

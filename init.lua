@@ -1340,7 +1340,7 @@ end
 function thread.hold(n, opt)
 	thread._Requests()
 	local opt = opt or {}
-	if type(opt)=="table" then
+	if type(opt)=="table" and type(n) == "function" then
 		interval = opt.interval
 		if opt.cycles then
 			return yield(CMD, t_holdW, opt.cycles or 1, n or dFunc, interval)
@@ -1350,6 +1350,7 @@ function thread.hold(n, opt)
 			return yield(CMD, t_skip, opt.skip or 1, nil, interval)
 		end
 	end
+
 	if type(n) == "number" then
 		thread.getRunningThread().lastSleep = clock()
 		return yield(CMD, t_sleep, n or 0, nil, interval)

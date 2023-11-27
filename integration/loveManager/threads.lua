@@ -152,6 +152,10 @@ function INIT()
         end
     end
 
+    function THREAD.defer(func)
+        multi.OnExit(func)
+    end
+
     return GLOBAL, THREAD
 end
 

@@ -44,13 +44,32 @@ multi:newThread("Scheduler Thread",function()
     --     multi:Stop()
     --     os.exit(1)
     -- end)
+
     queue = multi:newSystemThreadedQueue("Test_Queue"):init()
+    defer_queue = multi:newSystemThreadedQueue("Defer_Queue"):init()
 
     multi:newSystemThread("Test_Thread_0", function()
+        defer_queue = THREAD.waitFor("Defer_Queue"):init()
+        
+        THREAD.defer(function()
+            defer_queue:push("done")
+            multi.print("This function was defered until the end of the threads life")
+        end)
+
+        multi.print("Testing defer, should print below this")
+
         if THREAD_NAME~="Test_Thread_0" then
             multi.error("The name should be Test_Thread_0",THREAD_NAME,THREAD_NAME,_G.THREAD_NAME)
         end
     end)
+
+    thread:newThread(function()
+        if thread.hold(function()
+            return defer_queue:pop() == "done"
+        end,{sleep=1}) == nil then
+            multi.error("Thread.defer didn't work!")
+        end
+    end)    
     
     th1 = multi:newSystemThread("Test_Thread_1", function(a,b,c,d,e,f)
         queue = THREAD.waitFor("Test_Queue"):init()

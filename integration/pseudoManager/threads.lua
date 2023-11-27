@@ -88,6 +88,8 @@ local function INIT(thread)
     THREAD.sleep = thread.sleep
 
     THREAD.hold = thread.hold
+
+    THREAD.defer = thread.defer
 	
 	function THREAD.setENV(env, name)
         name = name or "__env"
