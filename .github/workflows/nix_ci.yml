@@ -33,6 +33,7 @@ jobs:
       run: |
         source ${{github.workspace}}/lua-pkg/bin/activate
         luarocks install lanes
+        luarocks install rockspecs/multi-16.0-0.rockspec
 
     - name: Run Tests
       run: |

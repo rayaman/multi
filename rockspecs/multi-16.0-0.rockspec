@@ -26,6 +26,7 @@ build = {
       ["multi.integration.loveManager"] = "integration/loveManager/init.lua",
       ["multi.integration.loveManager.extensions"] = "integration/loveManager/extensions.lua",
       ["multi.integration.loveManager.threads"] = "integration/loveManager/threads.lua",
+      ["multi.integration.loveManager.utils"] = "integration/loveManager/threads.lua",
       --["multi.integration.lovrManager"] = "integration/lovrManager/init.lua",
       --["multi.integration.lovrManager.extensions"] = "integration/lovrManager/extensions.lua",
       --["multi.integration.lovrManager.threads"] = "integration/lovrManager/threads.lua",
