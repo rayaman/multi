@@ -48,14 +48,12 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     end
 
     function THREAD.waitFor(name)
-        local function wait()
+        local multi, thread = require("multi"):init()
+        return multi.hold(function()
             math.randomseed(os.time())
             __SleepingLinda:receive(.001, "__non_existing_variable")
-        end
-        repeat
-            wait()
-        until __GlobalLinda:get(name)
-        return __GlobalLinda:get(name)
+            return __GlobalLinda:get(name)
+        end)
     end
 
     function THREAD.getCores()

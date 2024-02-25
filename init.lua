@@ -1226,7 +1226,9 @@ end
 function multi.hold(func,opt)
 	if thread.isThread() then return thread.hold(func, opt) end
 	local proc = multi.getCurrentTask()
-	proc:Pause()
+	if proc then
+		proc:Pause()
+	end
 	local rets
 	thread:newThread("Hold_func",function()
 		rets = {thread.hold(func,opt)}
@@ -1234,7 +1236,9 @@ function multi.hold(func,opt)
 	while rets == nil do
 		multi:uManager()
 	end
-	proc:Resume()
+	if proc then
+		proc:Resume()
+	end
 	return multi.unpack(rets)
 end
 
