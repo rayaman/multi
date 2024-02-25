@@ -110,6 +110,10 @@ local function INIT(thread)
         end
     end
 
+    function THREAD.sync()
+        thread.sleep(.5)
+    end
+
     return GLOBAL, THREAD
 end
 

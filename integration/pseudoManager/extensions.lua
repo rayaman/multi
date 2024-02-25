@@ -22,7 +22,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
-local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+local GLOBAL, THREAD = multi.integration.GLOBAL, multi.integration.THREAD
 
 local function stripUpValues(func)
     local dmp = string.dump(func)
@@ -156,7 +156,7 @@ function multi:newSystemThreadedJobQueue(n)
 		end
 	end)
 	for i=1,c.cores do
-		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
+		multi:newSystemThread("STJQ_"..multi.randomString(8),function(jqc)
 			local GLOBAL, THREAD = require("multi.integration.pseudoManager"):init()
 			local multi, thread = require("multi"):init()
 			local clock = os.clock
@@ -217,4 +217,5 @@ function multi:newSystemThreadedConnection(name)
 	GLOBAL[name or "_"] = conn
 	return conn
 end
+
 require("multi.integration.sharedExtensions")

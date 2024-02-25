@@ -60,7 +60,7 @@ function multi:newProxy(list)
 			return res
 		end
 		if not(self.is_init) then
-			THREAD.sleep(.3)
+			THREAD.sync()
 			self.is_init = true
 			local multi, thread = require("multi"):init()
 			self.proxy_link = "PL" .. multi.randomString(12)
@@ -92,7 +92,6 @@ function multi:newProxy(list)
 							local func = table.remove(data, 1)
 							local sref = table.remove(data, 1)
 							local ret
-
 							if sref then
 								ret = {_G[list[0]][func](_G[list[0]], multi.unpack(data))}
 							else
@@ -119,7 +118,8 @@ function multi:newProxy(list)
 			end)
 			return self
 		else
-			THREAD.sleep(.3)
+			THREAD.sync()
+			if not self.funcs then return self end
 			local function copy(obj)
 				if type(obj) ~= 'table' then return obj end
 				local res = {}
@@ -267,12 +267,12 @@ function multi:newSystemThreadedProcessor(cores)
 	}
 
 	for _, method in pairs(implement) do
-		c[method] = function(self, ...)
+		c[method] = thread:newFunction(function(self, ...)
 			proxy = self.spawnTask(method, ...)
 			proxy:init()
 			references[proxy] = self
 			return proxy
-		end
+		end, true)
 	end
 
 	function c:newThread(name, func, ...)

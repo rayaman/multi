@@ -11,25 +11,27 @@ function multi:newSystemThreadedQueue(name)
 
 	c.Name = name
 	c.Type = multi.registerType("s_queue")
-    c.chan = love.thread.newChannel()
+    c.chan = love.thread.getChannel(name)
 
     function c:push(dat)
         self.chan:push(THREAD.packValue(dat))
     end
 
     function c:pop()
-        return THREAD.unpackValue(self.chan:pop())
+		return THREAD.unpackValue(self.chan:pop())
     end
 
     function c:peek()
-        return THREAD.unpackValue(self.chan:peek())
+		return THREAD.unpackValue(self.chan:peek())
     end
 
     function c:init()
+		self.chan = love.thread.getChannel(self.Name)
         return self
     end
 
     function c:Hold(opt)
+		local multi, thread = require("multi"):init()
         if opt.peek then
             return thread.hold(function()
                 return self:peek()
@@ -73,6 +75,7 @@ function multi:newSystemThreadedTable(name)
 	c.__init = c.init
 
     function c:Hold(opt)
+		local multi, thread = require("multi"):init()
         if opt.key then
             return thread.hold(function()
                 return self.tab[opt.key]

@@ -5,11 +5,13 @@ end
 local ThreadFileData = [[
 ISTHREAD = true
 args = {...}
-THREAD_ID = table.remove(args, 1)
-THREAD_NAME = table.remove(args, 1)
-GLOBAL, THREAD = require("multi.integration.loveManager.threads"):init()
-__FUNC = THREAD.unpackValue(table.remove(args, 1))
-ARGS = THREAD.unpackValue(table.remove(args, 1))
+THREAD_ID = args[1]
+THREAD_NAME = args[2]
+GLOBAL, THREAD, DEFER = require("multi.integration.loveManager.threads"):init()
+__FUNC = THREAD.unpackValue(args[3])
+ARGS = THREAD.unpackValue(args[4])
+settings = args[5]
+if ARGS == nil then ARGS = {} end
 math.randomseed(THREAD_ID)
 math.random()
 math.random()
@@ -21,10 +23,16 @@ if GLOBAL["__env"] then
         _G[i] = v
     end
 end
-multi, thread = require("multi"):init()
+multi, thread = require("multi"):init{error=true, warning=true, print=true, priority=true}
+multi.defaultSettings.print = true
 require("multi.integration.loveManager.extensions")
 require("multi.integration.sharedExtensions")
-stab["returns"] = {__FUNC(multi.unpack(ARGS))}
+local returns = {pcall(__FUNC, multi.unpack(ARGS))}
+table.remove(returns,1)
+stab["returns"] = returns
+for i,v in pairs(DEFER) do
+    pcall(v)
+end
 ]]
 
 _G.THREAD_NAME = "MAIN_THREAD"
@@ -49,7 +57,7 @@ function multi:newSystemThread(name, func, ...)
     c.Name = name
     c.ID = tid
     c.thread = love.thread.newThread(ThreadFileData)
-    c.thread:start(c.ID, c.Name, THREAD.packValue(func), THREAD.packValue({...}))
+    c.thread:start(c.ID, c.Name, THREAD.packValue(func), THREAD.packValue({...}), multi.defaultSettings)
     c.stab = THREAD.createTable(name .. c.ID)
     c.creationTime = os.clock()
     c.OnDeath = multi:newConnection()

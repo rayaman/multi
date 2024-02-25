@@ -85,7 +85,8 @@ function multi:newSystemThread(name, func, ...)
 		THREAD_ID = count,
 		THREAD = THREAD,
 		GLOBAL = GLOBAL,
-		_Console = __ConsoleLinda
+		_Console = __ConsoleLinda,
+		_DEFER = {}
 	}
 	if GLOBAL["__env"] then
 		for i,v in pairs(GLOBAL["__env"]) do
@@ -97,26 +98,16 @@ function multi:newSystemThread(name, func, ...)
 		globals = globe,
 		priority = c.priority
 	},function(...)
-		local profi
-
-		if multi_settings.debug then
-			profi = require("proFI")
-			profi:start()
-		end
-
 		multi, thread = require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
 		require("multi.integration.sharedExtensions")
 		local has_error = true
 		returns = {pcall(func, ...)}
 		return_linda:set("returns", returns)
-		has_error = false
-		if profi then
-			multi.OnExit(function(...)
-				profi:stop()
-				profi:writeReport("Profiling Report [".. THREAD_NAME .."].txt")
-			end)
+		for i,v in pairs(_DEFER) do
+			pcall(v)
 		end
+		has_error = false
 	end)(...)
 	count = count + 1
 	function c:getName()

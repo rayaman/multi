@@ -2152,8 +2152,7 @@ local init = false
 multi.settingsHook = multi:newConnection()
 function multi.init(settings, realsettings)
 	if settings == multi then settings = realsettings end
-	if init then return _G["$multi"].multi,_G["$multi"].thread end
-	init = true
+	
 	if type(settings)=="table" then
 
 		multi.defaultSettings = settings
@@ -2164,18 +2163,22 @@ function multi.init(settings, realsettings)
 			multi.mainloop = multi.mainloopRef
 		end
 
-		if settings.findopt then
-			find_optimization = true
-			doOpt()
-			multi.enableOptimization:Fire(multi, thread)
-		end
+		if not init then
+			
+			if settings.findopt then
+				find_optimization = true
+				doOpt()
+				multi.enableOptimization:Fire(multi, thread)
+			end
 
-		if settings.debugging then
-			require("multi.integration.debugManager")
-		end
+			if settings.debugging then
+				require("multi.integration.debugManager")
+			end
 
-		multi.settingsHook:Fire(settings)
+			multi.settingsHook:Fire(settings)
+		end
 	end
+	init = true
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 

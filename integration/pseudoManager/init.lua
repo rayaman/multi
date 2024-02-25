@@ -24,6 +24,8 @@ SOFTWARE.
 package.path = "?/init.lua;?.lua;" .. package.path
 local multi, thread = require("multi"):init()
 
+local pseudoProcessor = multi:newProcessor()
+
 if multi.integration then
 	return {
 		init = function()
@@ -89,7 +91,7 @@ function multi:newSystemThread(name, func, ...)
 	
 	local GLOBAL, THREAD = activator.init(thread, env)
 
-	local th = thread:newISOThread(name, func, env, ...)
+	local th = pseudoProcessor:newISOThread(name, func, env, ...)
 	th.Type = multi.registerType("s_thread", "pseudoThreads")
 	th.OnError(multi.error)
 	

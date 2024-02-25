@@ -1,6 +1,6 @@
 package.path = "D:/VSCWorkspace/?/init.lua;D:/VSCWorkspace/?.lua;"..package.path
 package.cpath = "C:/luaInstalls/lua5.4/lib/lua/5.4/?/core.dll;" .. package.cpath
-multi, thread = require("multi"):init{error=true,warning=true,print=true}--{priority=true}
+multi, thread = require("multi"):init{error=true,warning=true,print=true, priority=true}
 proc = multi:newProcessor("Thread Test",true)
 local LANES, LOVE, PSEUDO = 1, 2, 3
 local env, we_good
@@ -38,15 +38,15 @@ THREAD.setENV({
 })
 
 multi:newThread("Scheduler Thread",function()
-    -- multi:newThread(function()
-    --     thread.sleep(30)
-    --     print("Timeout tests took longer than 30 seconds")
-    --     multi:Stop()
-    --     os.exit(1)
-    -- end)
+    multi:newThread(function()
+        thread.sleep(30)
+        print("Timeout tests took longer than 30 seconds")
+        multi:Stop()
+        os.exit(1)
+    end)
 
-    queue = multi:newSystemThreadedQueue("Test_Queue"):init()
-    defer_queue = multi:newSystemThreadedQueue("Defer_Queue"):init()
+    queue = multi:newSystemThreadedQueue("Test_Queue")
+    defer_queue = multi:newSystemThreadedQueue("Defer_Queue")
 
     multi:newSystemThread("Test_Thread_0", function()
         defer_queue = THREAD.waitFor("Defer_Queue"):init()
@@ -63,13 +63,11 @@ multi:newThread("Scheduler Thread",function()
         end
     end)
 
-    thread:newThread(function()
-        if thread.hold(function()
-            return defer_queue:pop() == "done"
-        end,{sleep=1}) == nil then
-            multi.error("Thread.defer didn't work!")
-        end
-    end)    
+    if thread.hold(function()
+        return defer_queue:pop() == "done"
+    end,{sleep=3}) == nil then
+        multi.error("Thread.defer didn't work!")
+    end
     
     th1 = multi:newSystemThread("Test_Thread_1", function(a,b,c,d,e,f)
         queue = THREAD.waitFor("Test_Queue"):init()
@@ -135,7 +133,7 @@ multi:newThread("Scheduler Thread",function()
 
     local ready = false
 
-    jq = multi:newSystemThreadedJobQueue(1) -- Job queue with 4 worker threads
+    jq = multi:newSystemThreadedJobQueue(4) -- Job queue with 4 worker threads
     func2 = jq:newFunction("sleep",function(a,b)
         THREAD.sleep(.2)
     end)
@@ -168,7 +166,7 @@ multi:newThread("Scheduler Thread",function()
         --print("Test")
     end, 1)
 
-    multi:newSystemThread("Testing proxy copy THREAD",function(tloop)
+    multi:newSystemThread("PROX_THREAD",function(tloop)
         local multi, thread = require("multi"):init()
         tloop = tloop:init()
         multi.print("tloop type:",tloop.Type)
@@ -176,19 +174,21 @@ multi:newThread("Scheduler Thread",function()
         thread:newThread(function()
             while true do
                 thread.hold(tloop.OnLoop)
-                --print(THREAD_NAME,"Loopy")
+                print(THREAD_NAME,"Loopy")
             end
         end)
         tloop.OnLoop(function(a)
-            --print(THREAD_NAME, "Got loop...")
+            print(THREAD_NAME, "Got loop...")
         end)
         multi:mainloop()
     end, tloop:getTransferable())
 
+    local test = tloop:getTransferable()
+
     multi.print("tloop", tloop.Type)
     multi.print("tloop.OnLoop", tloop.OnLoop.Type)
 
-    thread:newThread(function()
+    thread:newThread("Proxy Test Thread",function()
         multi.print("Testing holding on a proxy connection!")
         thread.hold(tloop.OnLoop)
         multi.print("Held on proxy connection... once")
@@ -197,17 +197,22 @@ multi:newThread("Scheduler Thread",function()
         thread.hold(tloop.OnLoop)
         multi.print("Held on proxy connection... finally")
         proxy_test = true
-    end)
+    end).OnError(print)
 
     thread:newThread(function()
+        thread.defer(function()
+            multi.print("Something happened!")
+        end)
         while true do
             thread.hold(tloop.OnLoop)
-            --print(THREAD_NAME,"Local Loopy")
+            multi.print(THREAD_NAME,"Local Loopy")
         end
+    end).OnError(function(...)
+        print("Error",...)
     end)
 
     tloop.OnLoop(function()
-        --print("OnLoop",THREAD_NAME)
+        print("OnLoop", THREAD_NAME)
     end)
 
     t, val = thread.hold(function()

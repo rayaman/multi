@@ -1,8 +1,9 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
 multi, thread = require("multi"):init{print=true,warn=true,debugging=true}
-for i,v in pairs(thread) do
-    print(i,v)
-end
+-- for i,v in pairs(thread) do
+--     print(i,v)
+-- end
+
 -- require("multi.integration.priorityManager")
 
 -- multi.debugging.OnObjectCreated(function(obj, process)
@@ -12,10 +13,6 @@ end
 -- multi.debugging.OnObjectDestroyed(function(obj, process)
 -- 	multi.print("Destroyed:", obj.Type, "in", process.Type, process:getFullName())
 -- end)
-
-
-
-
 
 
 -- test = multi:newProcessor("Test")
@@ -102,39 +99,39 @@ end
 
 -- multi:mainloop()
 
-multi:setTaskDelay(.05)
-multi:newTask(function()
-    for i = 1, 10 do
-        multi:newTask(function()
-            print("Task "..i)
-        end)
-    end
-end)
+-- multi:setTaskDelay(.05)
+-- multi:newTask(function()
+--     for i = 1, 10 do
+--         multi:newTask(function()
+--             print("Task "..i)
+--         end)
+--     end
+-- end)
 
-local conn = multi:newConnection()
-conn(function() print("Test 1") end)
-conn(function() print("Test 2") end)
-conn(function() print("Test 3") end)
-conn(function() print("Test 4") end)
+-- local conn = multi:newConnection()
+-- conn(function() print("Test 1") end)
+-- conn(function() print("Test 2") end)
+-- conn(function() print("Test 3") end)
+-- conn(function() print("Test 4") end)
 
-print("Fire 1")
-conn:Fire()
-conn = -conn
-print("Fire 2")
-conn:Fire()
+-- print("Fire 1")
+-- conn:Fire()
+-- conn = -conn
+-- print("Fire 2")
+-- conn:Fire()
 
-print(#conn)
+-- print(#conn)
 
-thread:newThread("Test thread", function()
-    print("Starting thread!")
-    thread.defer(function() -- Runs when the thread finishes execution
-        print("Clean up time!")
-    end)
-    --[[
-        Do lot's of stuff
-    ]]
-    thread.sleep(3)
-end)
+-- thread:newThread("Test thread", function()
+--     print("Starting thread!")
+--     thread.defer(function() -- Runs when the thread finishes execution
+--         print("Clean up time!")
+--     end)
+--     --[[
+--         Do lot's of stuff
+--     ]]
+--     thread.sleep(3)
+-- end)
 
 multi:mainloop()
 

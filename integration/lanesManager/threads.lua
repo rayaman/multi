@@ -88,6 +88,10 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     function THREAD.kill() -- trigger the lane destruction
         error("Thread was killed!\1")
     end
+
+    function THREAD.sync()
+        -- Maybe do something...
+    end
 	
     function THREAD.pushStatus(...)
         local args = multi.pack(...)
@@ -138,13 +142,7 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     end
 
     function THREAD.defer(func)
-        local m = {onexit = function() func() end}
-        if _VERSION >= "Lua 5.2" then
-            setmetatable(m, {__gc = m.onexit})
-        else
-            m.sentinel = newproxy(true)
-            getmetatable(m.sentinel).__gc = m.onexit
-        end
+        table.insert(_DEFER, func)
     end
 
     return GLOBAL, THREAD

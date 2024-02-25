@@ -25,19 +25,76 @@ require("love.timer")
 require("love.system")
 require("love.data")
 require("love.thread")
-local utils = require("multi.integration.loveManager.utils")
 local multi, thread = require("multi"):init()
 
-local NIL = love.data.newByteData("\3")
-
--- If a non table/function is supplied we just return it
-local function packValue(t)
-    return utils.pack(t)
+-- Checks if the given value is a LOVE2D object (i.e. has metatable with __index field) and if that __index field contains functions typical of LOVE2D objects
+function isLoveObject(value)
+    -- Check if the value has metatable
+    if type(value) == "userdata" and getmetatable(value) then
+        -- Check if the metatable has the __index field
+        local index = getmetatable(value).__index
+        if type(index) == "table" then
+            -- Check if the metatable's __index table contains functions typical of LOVE2D objects
+            if index.draw or index.update or index.getWidth or index.getHeight or index.getString or index.getPointer then
+                return true
+            end
+        end
+    end
+    return false
 end
 
--- If a non table/function is supplied we just return it
-local function unpackValue(d)
-    return utils.unpack(d)
+-- Converts any function values in a table to a string with the value "\1\2:func:<function_string>" where <function_string> is the Lua stringified version of the function
+function tableToFunctionString(t)
+    if type(t) == "nil" then return "\1\2:nil:" end
+    if type(t) == "function" then return "\1\2:func:"..string.dump(t) end
+    if type(t) ~= "table" then return t end
+    local newtable = {}
+    for k, v in pairs(t) do
+        if type(v) == "function" then
+            newtable[k] = "\1\2:func:"..string.dump(v)
+        elseif type(v) == "table" then
+            newtable[k] = tableToFunctionString(v)
+        elseif isLoveObject(v) then
+            newtable[k] = v
+        elseif type(v) == "userdata" then
+            newtable[k] = tostring(v)
+        else
+            newtable[k] = v
+        end
+    end
+    return newtable
+end
+
+-- Converts strings with the value "\1\2:func:<function_string>" back to functions
+function functionStringToTable(t)
+    if type(t) == "string" and t:sub(1, 8) == "\1\2:func:" then return loadstring(t:sub(9, -1)) end
+    if type(t) == "string" and t:sub(1, 7) == "\1\2:nil:" then return nil end
+    if type(t) ~= "table" then return t end
+    for k, v in pairs(t) do
+        if type(v) == "string" then
+            if v:sub(1, 8) == "\1\2:func:" then
+                t[k] = loadstring(v:sub(9, -1))
+            else
+                t[k] = v
+            end
+        elseif type(v) == "table" then
+            t[k] = functionStringToTable(v)
+        else
+            t[k] = v
+        end
+    end
+    if t.init then
+        t:init()
+    end
+    return t
+end
+
+local function packValue(t)
+    return tableToFunctionString(t)
+end
+
+local function unpackValue(t)
+    return functionStringToTable(t)
 end
 
 local function createTable(n)
@@ -53,6 +110,11 @@ local function createTable(n)
     end
     local function get(name)
         return unpackValue(love.thread.getChannel(n .. name):peek())
+        -- if type(data) == "table" and data.init then
+        --     return data:init()
+        -- else
+        --     return data
+        -- end
     end
     return setmetatable({},
         {
@@ -67,7 +129,7 @@ local function createTable(n)
 end
 
 function INIT()
-    local GLOBAL, THREAD = createTable("__GLOBAL__"), {}
+    local GLOBAL, THREAD, DEFER = createTable("__GLOBAL__"), {}, {}
     local status_channel, console_channel = love.thread.getChannel("__status_channel__" .. THREAD_ID), 
                                             love.thread.getChannel("__console_channel__")
 
@@ -92,11 +154,7 @@ function INIT()
         repeat
             wait()
         until GLOBAL[name] ~= nil
-        if type(GLOBAL[name].__init) == "function" then
-            return GLOBAL[name]:__init()
-        else
-            return GLOBAL[name]
-        end
+        return GLOBAL[name]
     end, true)
 
     function THREAD.getCores()
@@ -153,10 +211,14 @@ function INIT()
     end
 
     function THREAD.defer(func)
-        multi.OnExit(func)
+        table.insert(DEFER, func)
     end
 
-    return GLOBAL, THREAD
+    function THREAD.sync()
+        -- Maybe do something...
+    end
+
+    return GLOBAL, THREAD, DEFER
 end
 
 return {

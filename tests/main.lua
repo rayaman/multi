@@ -1,12 +1,10 @@
 package.path = "../?/init.lua;../?.lua;"..package.path
-require("runtests")
-require("threadtests")
--- Allows you to run "love tests" which runs the tests
 
-multi, thread = require("multi"):init()
+if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
+    require("lldebugger").start()
+end
+
 GLOBAL, THREAD = require("multi.integration.loveManager"):init()
 
-
-function love.update()
-    multi:uManager()
-end
+require("runtests")
+require("threadtests")
