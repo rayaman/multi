@@ -1,35 +1,18 @@
-if os.getenv("LOCAL_LUA_DEBUGGER_VSCODE") == "1" then
-    package.path="multi/?.lua;multi/?/init.lua;multi/?.lua;multi/?/?/init.lua;"..package.path
-    require("lldebugger").start()
-else
-	package.path = "../?/init.lua;../?.lua;"..package.path
-end
---[[
-    This file runs all tests.
-    Format:
-        Expected:
-            ...
-            ...
-            ...
-        Actual:
-            ...
-            ...
-            ...
-    
-    Each test that is ran should have a 5 second pause after the test is complete
-    The expected and actual should "match" (Might be impossible when playing with threads)
-    This will be pushed directly to the master as tests start existing.
-]]
-local multi, thread = require("multi"):init{print=true}--{priority=true}
+package.path = "../?/init.lua;../?.lua;./init.lua;./?.lua;"..package.path
+
+local multi, thread = require("multi"):init{print=true,warn=true,error=true}--{priority=true}
 local good = false
-local proc = multi:newProcessor("Test",true)
+local proc = multi:newProcessor("Test")
+
+proc.Start()
+
 proc:newAlarm(3):OnRing(function()
 	good = true
 end)
 
 runTest = thread:newFunction(function()
     local alarms,tsteps,steps,loops,tloops,updaters,events=false,0,0,0,0,0,false
-    print("Testing Basic Features. If this fails most other features will probably not work!")
+    multi.print("Testing Basic Features. If this fails most other features will probably not work!")
     proc:newAlarm(2):OnRing(function(a)
         alarms = true
         a:Destroy()
@@ -59,18 +42,18 @@ runTest = thread:newFunction(function()
     event.OnEvent(function(evnt)
 		evnt:Destroy()
         events = true
-        print("Alarms: Ok")
-        print("Events: Ok")
-        if tsteps == 10 then print("TSteps: Ok") else print("TSteps: Bad!") end
-        if steps == 10 then print("Steps: Ok") else print("Steps: Bad!") end
-        if loops > 100 then print("Loops: Ok") else print("Loops: Bad!") end
-        if tloops > 10 then print("TLoops: Ok") else print("TLoops: Bad!") end
-        if updaters > 100 then print("Updaters: Ok") else print("Updaters: Bad!") end
+        multi.success("Alarms: Ok")
+        multi.success("Events: Ok")
+        if tsteps == 10 then multi.success("TSteps: Ok") else multi.error("TSteps: Bad!") end
+        if steps == 10 then multi.success("Steps: Ok") else multi.error("Steps: Bad!") end
+        if loops > 100 then multi.success("Loops: Ok") else multi.error("Loops: Bad!") end
+        if tloops > 10 then multi.success("TLoops: Ok") else multi.error("TLoops: Bad!") end
+        if updaters > 100 then multi.success("Updaters: Ok") else multi.error("Updaters: Bad!") end
     end)
 	thread.hold(event.OnEvent)
-    print("Starting Connection and Thread tests!")
+    multi.print("Starting Connection and Thread tests!")
 	func = thread:newFunction(function(count)
-		print("Starting Status test: ",count)
+		multi.print("Starting Status test: ",count)
 		local a = 0
 		while true do
 			a = a + 1
@@ -85,13 +68,13 @@ runTest = thread:newFunction(function()
     local ret3 = func(20)
 	local s1,s2,s3 = 0,0,0
 	ret.OnError(function(...)
-		print("Func 1:",...)
+		multi.error("Func 1:",...)
 	end)
 	ret2.OnError(function(...)
-		print("Func 2:",...)
+		multi.error("Func 2:",...)
 	end)
 	ret3.OnError(function(...)
-		print("Func 3:",...)
+		multi.error("Func 3:",...)
 	end)
     ret.OnStatus(function(part,whole)
 		s1 = math.ceil((part/whole)*1000)/10
@@ -104,31 +87,31 @@ runTest = thread:newFunction(function()
     end)
 
 	ret.OnReturn(function(...)
-		print("Done 1",...)
+		multi.success("Done 1",...)
 	end)
 	ret2.OnReturn(function(...)
-		print("Done 2",...)
+		multi.success("Done 2",...)
 	end)
 	ret3.OnReturn(function(...)
-		print("Done 3",...)
+		multi.success("Done 3",...)
 	end)
 	
 	local err, timeout = thread.hold(ret.OnReturn * ret2.OnReturn * ret3.OnReturn)
 
 	if s1 == 100 and s2 == 100 and s3 == 100 then
-		print("Threads: All tests Ok")
+		multi.success("Threads: All tests Ok")
 	else
 		if s1>0 and s2>0 and s3 > 0 then
-			print("Thread OnStatus: Ok")
+			multi.success("Thread OnStatus: Ok")
 		else
-			print("Threads OnStatus or thread.hold(conn) Error!")
+			multi.error("Threads OnStatus or thread.hold(conn) Error!")
 		end
 		if timeout then
-			print("Connection Error!")
+			multi.error("Connection Error!")
 		else
-			print("Connection Test 1: Ok")
+			multi.success("Connection Test 1: Ok")
 		end
-		print("Connection holding Error!")
+		multi.error("Connection holding Error!")
 	end
 	
 	conn1 = proc:newConnection()
@@ -157,29 +140,54 @@ runTest = thread:newFunction(function()
 	conn3:Fire()
 
 	if c1 and c2 and c3 and c4 then
-		print("Connection Test 2: Ok")
+		multi.success("Connection Test 2: Ok")
 	else
-		print("Connection Test 2: Error")
+		multi.error("Connection Test 2: Error")
 	end
 	c3 = false
 	c4 = false
-	d:Destroy()
+	conn3:Unconnect(d)
 	conn3:Fire()
 	if c3 and not(c4) then
-		print("Connection Test 3: Ok")
+		multi.success("Connection Test 3: Ok")
 	else
-		print("Connection Test 3: Error removing connection")
+		multi.error("Connection Test 3: Error removing connection")
 	end
-	os.exit() -- End of tests
+	if not love then
+		local ec = 0
+		multi.print("Testing pseudo threading")
+		capture = io.popen("lua tests/threadtests.lua p"):read("*a")
+		if capture:lower():match("error") then
+			ec = ec + 1
+			os.exit(1)
+		else
+			io.write(capture)
+		end
+		multi.print("Testing lanes threading")
+		capture = io.popen("lua tests/threadtests.lua l"):read("*a")
+		if capture:lower():match("error") then
+			ec = ec + 1
+			os.exit(1)
+		else
+			io.write(capture)
+		end
+		os.exit(0)
+	end
 end)
 
-print(runTest().OnError(function(...)
-	print("Error: Something went wrong with the test!")
-	print(...)
-	os.exit(1)
-end))
+local handle = runTest()
 
-print("Pumping proc")
-while true do
-	proc.run()
+handle.OnError(function(...)
+	multi.error("Something went wrong with the test!")
+	print(...)
+end)
+
+if not love then
+	multi:mainloop()
+else
+	local hold = thread:newFunction(function()
+		thread.hold(handle.OnError + handle.OnReturn)
+	end, true)
+	hold()
+	multi.print("Starting Threading tests!")
 end

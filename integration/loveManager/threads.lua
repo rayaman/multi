@@ -25,208 +25,96 @@ require("love.timer")
 require("love.system")
 require("love.data")
 require("love.thread")
-local socket = require("socket")
-local multi, thread = require("multi").init()
-local threads = {}
+local multi, thread = require("multi"):init()
 
-function threads.loadDump(d)
-    return loadstring(d:getString())
-end
-
-function threads.dump(func)
-    return love.data.newByteData(string.dump(func))
-end
-
-local fRef = {"func",nil}
-local function manage(channel, value)
-    channel:clear()
-    if type(value) == "function" then
-        fRef[2] = THREAD.dump(value)
-        channel:push(fRef)
-        return
-    else
-        channel:push(value)
+-- Checks if the given value is a LOVE2D object (i.e. has metatable with __index field) and if that __index field contains functions typical of LOVE2D objects
+function isLoveObject(value)
+    -- Check if the value has metatable
+    if type(value) == "userdata" and getmetatable(value) then
+        -- Check if the metatable has the __index field
+        local index = getmetatable(value).__index
+        if type(index) == "table" then
+            -- Check if the metatable's __index table contains functions typical of LOVE2D objects
+            if index.draw or index.update or index.getWidth or index.getHeight or index.getString or index.getPointer then
+                return true
+            end
+        end
     end
+    return false
 end
 
-local function RandomVariable(length)
-    local res = {}
-    math.randomseed(socket.gettime()*10000)
-	for i = 1, length do
-		res[#res+1] = string.char(math.random(97, 122))
-	end
-	return table.concat(res)
-end
-
-local GNAME = "__GLOBAL_"
-local proxy = {}
-function threads.set(name,val)
-    if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
-    proxy[name]:performAtomic(manage, val) 
-end
-
-function threads.get(name)
-    if not proxy[name] then proxy[name] = love.thread.getChannel(GNAME..name) end
-    local dat = proxy[name]:peek()
-    if type(dat)=="table" and dat[1]=="func" then
-        return THREAD.loadDump(dat[2])
-    else
-        return dat
+-- Converts any function values in a table to a string with the value "\1\2:func:<function_string>" where <function_string> is the Lua stringified version of the function
+function tableToFunctionString(t)
+    if type(t) == "nil" then return "\1\2:nil:" end
+    if type(t) == "function" then return "\1\2:func:"..string.dump(t) end
+    if type(t) ~= "table" then return t end
+    local newtable = {}
+    for k, v in pairs(t) do
+        if type(v) == "function" then
+            newtable[k] = "\1\2:func:"..string.dump(v)
+        elseif type(v) == "table" then
+            newtable[k] = tableToFunctionString(v)
+        elseif isLoveObject(v) then
+            newtable[k] = v
+        elseif type(v) == "userdata" then
+            newtable[k] = tostring(v)
+        else
+            newtable[k] = v
+        end
     end
+    return newtable
 end
 
-function threads.waitFor(name)
-    if thread.isThread() then
-        return thread.hold(function()
-            return threads.get(name)
-        end)
+-- Converts strings with the value "\1\2:func:<function_string>" back to functions
+function functionStringToTable(t)
+    if type(t) == "string" and t:sub(1, 8) == "\1\2:func:" then return loadstring(t:sub(9, -1)) end
+    if type(t) == "string" and t:sub(1, 7) == "\1\2:nil:" then return nil end
+    if type(t) ~= "table" then return t end
+    for k, v in pairs(t) do
+        if type(v) == "string" then
+            if v:sub(1, 8) == "\1\2:func:" then
+                t[k] = loadstring(v:sub(9, -1))
+            else
+                t[k] = v
+            end
+        elseif type(v) == "table" then
+            t[k] = functionStringToTable(v)
+        else
+            t[k] = v
+        end
     end
-    while threads.get(name)==nil do
-        love.timer.sleep(.001)
-    end
-    local dat = threads.get(name)
-    if type(dat) == "table" and dat.init then
-        dat.init = threads.loadDump(dat.init)
-    end
-    return dat
-end
-
-function threads.package(name,val)
-    local init = val.init
-    val.init=threads.dump(val.init)
-    GLOBAL[name]=val
-    val.init=init
-end
-
-function threads.getCores()
-    return love.system.getProcessorCount()
-end
-
-function threads.kill()
-    error("Thread Killed!\1")
-end
-
-function threads.pushStatus(...)
-    local status_channel = love.thread.getChannel("__"..__THREADID__.."__MULTI__STATUS_CHANNEL__")
-    local args = {...}
-    status_channel:push(__THREADID__, args)
-end
-
-function threads.getThreads()
-    local t = {}
-    for i=1,GLOBAL["__THREAD_COUNT"] do
-        t[#t+1]=GLOBAL["__THREAD_"..i]
+    if t.init then
+        t:init()
     end
     return t
 end
 
-function threads.getThread(n)
-    return GLOBAL["__THREAD_"..n]
+local function packValue(t)
+    return tableToFunctionString(t)
 end
 
-function threads.getName()
-    return __THREADNAME__
+local function unpackValue(t)
+    return functionStringToTable(t)
 end
 
-function threads.getID()
-    return __THREADID__
-end
-
-function threads.sleep(n)
-    love.timer.sleep(n)
-end
-
-function threads.getGlobal()
-    return setmetatable({},
-        {
-            __index = function(t, k)
-                return THREAD.get(k)
-            end,
-            __newindex = function(t, k, v)
-                THREAD.set(k,v)
-            end
-        }
-    )
-end
-
-function threads.createTable(n)
-    local _proxy = {}
-    local function set(name,val)
-        if not _proxy[name] then _proxy[name] = love.thread.getChannel(n..name) end
-        _proxy[name]:performAtomic(manage, val) 
+local function createTable(n)
+    if not n then
+        n = "STAB"..multi.randomString(8)
     end
-    local function get(name)
-        if not _proxy[name] then _proxy[name] = love.thread.getChannel(n..name) end
-        local dat = _proxy[name]:peek()
-        if type(dat)=="table" and dat[1]=="func" then
-            return THREAD.loadDump(dat[2])
-        else
-            return dat
-        end
-    end
-    return setmetatable({},
-        {
-            __index = function(t, k)
-                return get(k)
-            end,
-            __newindex = function(t, k, v)
-                set(k,v)
-            end
-        }
-    )
-end
-
-function threads.getConsole()
-    local c = {}
-    c.queue = love.thread.getChannel("__CONSOLE__")
-    function c.print(...)
-        c.queue:push{...}
-    end
-    function c.error(err)
-        c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
-        error(err)
-    end
-    return c
-end
-
-if not ISTHREAD then
-    local clock = os.clock
-    local lastproc = clock()
-    local queue = love.thread.getChannel("__CONSOLE__")
-    thread:newThread("consoleManager",function()
-        while true do
-            thread.yield()
-            dat = queue:pop()
-            if dat then
-                lastproc = clock()
-                print(unpack(dat))
-            end
-            if clock()-lastproc>2 then
-                thread.sleep(.1)
-            end
-        end
-    end)
-end
-
-function threads.createStaticTable(n)
     local __proxy = {}
-    local function set(name,val)
-        if __proxy[name] then return end
-        local chan = love.thread.getChannel(n..name)
-        if chan:getCount()>0 then return end
-        chan:performAtomic(manage, val)
-        __proxy[name] = val
+    local function set(name, val)
+        local chan = love.thread.getChannel(n .. name)
+        if chan:getCount() == 1 then chan:pop() end
+        __proxy[name] = true
+        chan:push(packValue(val))
     end
     local function get(name)
-        if __proxy[name] then return __proxy[name] end
-        local dat = love.thread.getChannel(n..name):peek()
-        if type(dat)=="table" and dat[1]=="func" then
-            __proxy[name] = THREAD.loadDump(dat[2])
-            return __proxy[name]
-        else
-            __proxy[name] = dat
-            return __proxy[name]
-        end
+        return unpackValue(love.thread.getChannel(n .. name):peek())
+        -- if type(data) == "table" and data.init then
+        --     return data:init()
+        -- else
+        --     return data
+        -- end
     end
     return setmetatable({},
         {
@@ -240,11 +128,101 @@ function threads.createStaticTable(n)
     )
 end
 
-function threads.hold(n)
-    local dat
-    while not(dat) do
-        dat = n()
+function INIT()
+    local GLOBAL, THREAD, DEFER = createTable("__GLOBAL__"), {}, {}
+    local status_channel, console_channel = love.thread.getChannel("__status_channel__" .. THREAD_ID), 
+                                            love.thread.getChannel("__console_channel__")
+
+    -- Non portable methods, shouldn't be used unless you know what you are doing
+    THREAD.packValue = packValue
+    THREAD.unpackValue = unpackValue
+    THREAD.createTable = createTable
+
+    function THREAD.set(name, val)
+        GLOBAL[name] = val
     end
+
+    function THREAD.get(name, val)
+        return GLOBAL[name]
+    end
+
+    THREAD.waitFor = thread:newFunction(function(name)
+        local function wait()
+            math.randomseed(os.time())
+            thread.yield()
+        end
+        repeat
+            wait()
+        until GLOBAL[name] ~= nil
+        return GLOBAL[name]
+    end, true)
+
+    function THREAD.getCores()
+        return love.system.getProcessorCount()
+    end
+
+    function THREAD.getConsole()
+        local c = {}
+        c.queue = console_channel
+        function c.print(...)
+            c.queue:push(table.concat(multi.pack(...), "\t"))
+        end
+        function c.error(err)
+            c.queue:push("Error in <"..THREAD_NAME..":" .. THREAD_ID .. ">: ".. err)
+            multi.error(err)
+        end
+        return c
+    end
+
+    function THREAD.getThreads()
+        --
+    end
+
+    function THREAD.kill() -- trigger the lane destruction
+        error("Thread was killed!\1")
+    end
+
+    function THREAD.pushStatus(...)
+        status_channel:push(multi.pack(...))
+    end
+
+    function THREAD.sleep(n)
+        love.timer.sleep(n)
+    end
+
+    THREAD.hold = thread:newFunction(function(n)
+        thread.hold(n)
+    end, true)
+
+    function THREAD.setENV(env, name)
+        GLOBAL[name or "__env"] = env
+    end
+
+    function THREAD.getENV(name)
+        return GLOBAL[name or "__env"]
+    end
+
+    function THREAD.exposeENV(name)
+        name = name or "__env"
+        local env = THREAD.getENV(name)
+        for i,v in pairs(env) do
+            _G[i] = v
+        end
+    end
+
+    function THREAD.defer(func)
+        table.insert(DEFER, func)
+    end
+
+    function THREAD.sync()
+        -- Maybe do something...
+    end
+
+    return GLOBAL, THREAD, DEFER
 end
 
-return threads
+return {
+    init = function()
+        return INIT()
+    end
+}

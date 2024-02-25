@@ -22,29 +22,57 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
 local multi, thread = require("multi"):init()
+
 if not (GLOBAL and THREAD) then
-	local GLOBAL, THREAD = multi.integration.GLOBAL,multi.integration.THREAD
+	GLOBAL, THREAD = multi.integration.GLOBAL, multi.integration.THREAD
 else
 	lanes = require("lanes")
 end
+
 function multi:newSystemThreadedQueue(name)
 	local name = name or multi.randomString(16)
 	local c = {}
 	c.Name = name
 	c.linda = lanes.linda()
+	c.Type = multi.registerType("s_queue")
+
 	function c:push(v)
 		self.linda:send("Q", v)
 	end
+
 	function c:pop()
 		return ({self.linda:receive(0, "Q")})[2]
 	end
+
 	function c:peek()
 		return self.linda:get("Q")
 	end
+
 	function c:init()
 		return self
 	end
-	GLOBAL[name or "_"] = c
+
+	if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
+
+	function c:Hold(opt)
+		local multi, thread = require("multi"):init()
+        if opt.peek then
+            return thread.hold(function()
+                return self:peek()
+            end)
+        else
+            return thread.hold(function()
+                return self:pop()
+            end)
+        end
+	end
+
+	self:create(c)
+
 	return c
 end
 
@@ -53,37 +81,60 @@ function multi:newSystemThreadedTable(name)
     local c = {}
     c.link = lanes.linda()
 	c.Name = name
-    setmetatable(c,{
+	c.Type = multi.registerType("s_table")
+
+    function c:init()
+        return self
+    end
+	
+	setmetatable(c,{
         __index = function(t,k)
             return c.link:get(k)
         end,
         __newindex = function(t,k,v)
-            c.link:set(k,v)
+            c.link:set(k, v)
         end
     })
-    function c:init()
-        return self
+
+    if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
+
+	function c:Hold(opt)
+		local multi, thread = require("multi"):init()
+        if opt.key then
+            return thread.hold(function()
+                return self.tab[opt.key]
+            end)
+        else
+            multi.error("Must provide a key to check opt.key = 'key'")
+        end
     end
-    GLOBAL[name or "_"] = c
+
+	self:create(c)
+
 	return c
 end
 
 function multi:newSystemThreadedJobQueue(n)
     local c = {}
     c.cores = n or THREAD.getCores()*2
+	c.Type = multi.registerType("s_jobqueue")
     c.OnJobCompleted = multi:newConnection()
-    local funcs = multi:newSystemThreadedTable():init()
-    local queueJob = multi:newSystemThreadedQueue():init()
-    local queueReturn = multi:newSystemThreadedQueue():init()
-    local doAll = multi:newSystemThreadedQueue():init()
+    local funcs = multi:newSystemThreadedTable()
+    local queueJob = multi:newSystemThreadedQueue()
+    local queueReturn = multi:newSystemThreadedQueue()
+    local doAll = multi:newSystemThreadedQueue()
     local ID=1
     local jid = 1
     function c:isEmpty()
         return queueJob:peek()==nil
     end
-    function c:doToAll(func)
+    function c:doToAll(func,...)
         for i=1,c.cores do
-            doAll:push{ID,func}
+            doAll:push{ID,func,...}
         end
         ID = ID + 1
         return self
@@ -93,12 +144,12 @@ function multi:newSystemThreadedJobQueue(n)
         return self
     end
     function c:pushJob(name,...)
-        queueJob:push{name,jid,{...}}
+        queueJob:push{name,jid,multi.pack(...)}
         jid = jid + 1
         return jid-1
     end
     local nFunc = 0
-    function c:newFunction(name,func,holup) -- This registers with the queue
+    function c:newFunction(name, func, holup) -- This registers with the queue
         if type(name)=="function" then
             holup = func
             func = name
@@ -112,32 +163,38 @@ function multi:newSystemThreadedJobQueue(n)
             local rets
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
-                    rets = {...}
-                    link:Destroy()
+                    rets = multi.pack(...)
                 end
             end)
             return thread.hold(function()
                 if rets then
-                    return unpack(rets) or multi.NIL
+					if #rets == 0 then
+						return multi.NIL
+					else
+                    	return multi.unpack(rets)
+					end
                 end
             end)
-        end,holup),name
+        end, holup), name
     end
     thread:newThread("JobQueueManager",function()
         while true do
             local job = thread.hold(function()
                 return queueReturn:pop()
             end)
-            local id = table.remove(job,1)
-            c.OnJobCompleted:Fire(id,unpack(job))
+			if job then
+				local id = table.remove(job,1)
+				c.OnJobCompleted:Fire(id,multi.unpack(job))
+			end
         end
     end)
     for i=1,c.cores do
-        multi:newSystemThread("SystemThreadedJobQueue",function(queue)
-            local multi,thread = require("multi"):init()
+        multi:newSystemThread("STJQ_"..multi.randomString(8),function(queue)
+            local multi, thread = require("multi"):init()
             local idle = os.clock()
             local clock = os.clock
             local ref = 0
+			_G["__QR"] = queueReturn
             setmetatable(_G,{__index = funcs})
             thread:newThread("JobHandler",function()
                 while true do
@@ -145,10 +202,12 @@ function multi:newSystemThreadedJobQueue(n)
                         return queueJob:pop()
                     end)
                     idle = clock()
-                    local name = table.remove(dat,1)
-                    local jid = table.remove(dat,1)
-                    local args = table.remove(dat,1)
-                    queueReturn:push{jid, funcs[name](unpack(args)),queue}
+					thread:newThread("JobQueue-Spawn",function()
+						local name = table.remove(dat, 1)
+						local jid = table.remove(dat, 1)
+						local args = table.remove(dat, 1)
+						queueReturn:push{jid, funcs[name](args[1],args[2],args[3],args[4],args[5],args[6],args[7],args[8]), queue}
+					end)
                 end
             end)
             thread:newThread("DoAllHandler",function()
@@ -158,9 +217,10 @@ function multi:newSystemThreadedJobQueue(n)
                     end)
                     if dat then
                         if dat[1]>ref then
+							ref = table.remove(dat, 1)
+							func = table.remove(dat, 1)
                             idle = clock()
-                            ref = dat[1]
-                            dat[2]()
+                            func(unpack(dat))
                             doAll:pop()
                         end
                     end
@@ -175,14 +235,22 @@ function multi:newSystemThreadedJobQueue(n)
                 end
             end)
             multi:mainloop()
-        end,i).priority = thread.Priority_Core
+        end,i)
     end
+
+	function c:Hold(opt)
+        return thread.hold(self.OnJobCompleted)
+    end
+
+	self:create(c)
+
     return c
 end
 
 function multi:newSystemThreadedConnection(name)
 	local name = name or multi.randomString(16)
 	local c = {}
+	c.Type = multi.registerType("s_connection")
 	c.CONN = 0x00
 	c.TRIG = 0x01
 	c.PING = 0x02
@@ -196,7 +264,7 @@ function multi:newSystemThreadedConnection(name)
 		end
 		return r
 	end
-	c.CID = THREAD.getID()
+	c.CID = THREAD_ID
 	c.subscribe = multi:newSystemThreadedQueue("SUB_STC_"..self.Name):init()
 	c.Name = name
 	c.links = {} -- All triggers sent from main connection. When a connection is triggered on another thread, they speak to the main then send stuff out.
@@ -233,7 +301,7 @@ function multi:newSystemThreadedConnection(name)
 
 	local function fire(...)
 		for _, link in pairs(c.links) do
-			link:push {c.TRIG, {...}}
+			link:push {c.TRIG, multi.pack(...)}
 		end
 	end
 
@@ -253,16 +321,16 @@ function multi:newSystemThreadedConnection(name)
 				end)
 				c.links[#c.links+1] = item[2]
 			elseif item[1] == c.TRIG then
-				fire(unpack(item[2]))
-				c.proxy_conn:Fire(unpack(item[2]))
+				fire(multi.unpack(item[2]))
+				c.proxy_conn:Fire(multi.unpack(item[2]))
 			end
 		end
 	end)
 	--- ^^^ This will only exist in the init thread
 
 	function c:Fire(...)
-		local args = {...}
-		if self.CID == THREAD.getID() then -- Host Call
+		local args = multi.pack(...)
+		if self.CID == THREAD_ID then -- Host Call
 			for _, link in pairs(self.links) do
 				link:push {self.TRIG, args}
 			end
@@ -277,8 +345,14 @@ function multi:newSystemThreadedConnection(name)
 		self.links = {}
 		self.proxy_conn = multi:newConnection()
 		local mt = getmetatable(self.proxy_conn)
-		setmetatable(self, {__index = self.proxy_conn, __call = function(t,func) self.proxy_conn(func) end, __add = mt.__add})
-		if self.CID == THREAD.getID() then return self end
+		local tempMT = {}
+		for i,v in pairs(mt) do
+			tempMT[i] = v
+		end
+		tempMT.__index = self.proxy_conn
+		tempMT.__call = function(t,func) self.proxy_conn(func) end
+		setmetatable(self, tempMT)
+		if self.CID == THREAD_ID then return self end
 		thread:newThread("STC_CONN_MAN"..name,function()
 			local item
 			local link_self_ref = multi:newSystemThreadedQueue()
@@ -296,7 +370,7 @@ function multi:newSystemThreadedConnection(name)
 					end
 					link_self_ref:pop()
 				elseif item[1] == self.TRIG then
-					self.proxy_conn:Fire(unpack(item[2]))
+					self.proxy_conn:Fire(multi.unpack(item[2]))
 					link_self_ref:pop()
 				else
 					-- This shouldn't be the case
@@ -306,7 +380,14 @@ function multi:newSystemThreadedConnection(name)
 		return self
 	end
 
-	GLOBAL[name] = c
+	if multi.isMainThread then
+		multi.integration.GLOBAL[name] = c
+	else
+		GLOBAL[name] = c
+	end
+
+	self:create(c)
 
 	return c
 end
+require("multi.integration.sharedExtensions")

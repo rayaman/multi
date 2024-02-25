@@ -48,20 +48,12 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
     end
 
     function THREAD.waitFor(name)
-        local function wait()
+        local multi, thread = require("multi"):init()
+        return multi.hold(function()
             math.randomseed(os.time())
             __SleepingLinda:receive(.001, "__non_existing_variable")
-        end
-        repeat
-            wait()
-        until __GlobalLinda:get(name)
-        return __GlobalLinda:get(name)
-    end
-
-    if getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
+            return __GlobalLinda:get(name)
+        end)
     end
 
     function THREAD.getCores()
@@ -72,11 +64,11 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         local c = {}
         c.queue = __Console
         function c.print(...)
-            c.queue:send("Q", {...})
+            c.queue:push("Q", table.concat(multi.pack(...), "\t"))
         end
         function c.error(err)
-            c.queue:push("Q",{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__})
-            error(err)
+            c.queue:push("Q", "Error in <"..THREAD_NAME..":" .. THREAD_ID .. ">: ".. err)
+            multi.error(err)
         end
         return c
     end
@@ -95,16 +87,12 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
         error("Thread was killed!\1")
     end
 
-    function THREAD.getName()
-        return THREAD_NAME
-    end
-
-    function THREAD.getID()
-        return THREAD_ID
+    function THREAD.sync()
+        -- Maybe do something...
     end
 	
     function THREAD.pushStatus(...)
-        local args = {...}
+        local args = multi.pack(...)
         __StatusLinda:send(nil,THREAD_ID, args)
     end
 
@@ -134,9 +122,30 @@ local function INIT(__GlobalLinda, __SleepingLinda, __StatusLinda, __Console)
 			__GlobalLinda:set(k, v)
 		end
 	})
+
+    function THREAD.setENV(env, name)
+        GLOBAL[name or "__env"] = env
+    end
+
+    function THREAD.getENV(name)
+        return GLOBAL[name or "__env"]
+    end
+
+    function THREAD.exposeENV(name)
+        name = name or "__env"
+        local env = THREAD.getENV(name)
+        for i,v in pairs(env) do
+            _G[i] = v
+        end
+    end
+
+    function THREAD.defer(func)
+        table.insert(_DEFER, func)
+    end
+
     return GLOBAL, THREAD
 end
 
-return {init = function(g,s,st,c)
-    return INIT(g,s,st,c)
+return {init = function(g,s,st,c,onexit)
+    return INIT(g,s,st,c,onexit)
 end}

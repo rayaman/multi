@@ -36,6 +36,9 @@ lanes = require("lanes").configure()
 multi.SystemThreads = {}
 multi.isMainThread = true
 
+_G.THREAD_NAME = "MAIN_THREAD"
+_G.THREAD_ID = 0
+
 function multi:canSystemThread()
 	return true
 end
@@ -55,10 +58,10 @@ local count = 1
 local started = false
 local livingThreads = {}
 
-function THREAD:newFunction(func,holdme)
+function THREAD:newFunction(func, holdme)
 	return thread:newFunctionBase(function(...)
 		return multi:newSystemThread("TempSystemThread",func,...)
-	end,holdme)()
+	end, holdme, multi.registerType("s_function"))()
 end
 
 function multi:newSystemThread(name, func, ...)
@@ -67,35 +70,43 @@ function multi:newSystemThread(name, func, ...)
 	local rand = math.random(1, 10000000)
 	local return_linda = lanes.linda()
 	c = {}
-	c.name = name
 	c.Name = name
-	c.Id = count
+	c.ID = count
 	c.loadString = {"base","package","os","io","math","table","string","coroutine"}
 	livingThreads[count] = {true, name}
 	c.returns = return_linda
-	c.Type = "sthread"
+	c.Type = multi.registerType("s_thread")
 	c.creationTime = os.clock()
 	c.alive = true
 	c.priority = THREAD.Priority_Normal
 	local multi_settings = multi.defaultSettings
-	for i,v in pairs(multi_settings) do
-		print(i,v)
+	local globe = {
+		THREAD_NAME = name,
+		THREAD_ID = count,
+		THREAD = THREAD,
+		GLOBAL = GLOBAL,
+		_Console = __ConsoleLinda,
+		_DEFER = {}
+	}
+	if GLOBAL["__env"] then
+		for i,v in pairs(GLOBAL["__env"]) do
+			globe[i] = v
+		end
 	end
 	c.thread = lanes.gen("*",
 	{
-		globals={ -- Set up some globals
-			THREAD_NAME = name,
-			THREAD_ID = count,
-			THREAD = THREAD,
-			GLOBAL = GLOBAL,
-			_Console = __ConsoleLinda
-		},
-		priority=c.priority
+		globals = globe,
+		priority = c.priority
 	},function(...)
-		require("multi"):init(multi_settings)
+		multi, thread = require("multi"):init(multi_settings)
 		require("multi.integration.lanesManager.extensions")
+		require("multi.integration.sharedExtensions")
 		local has_error = true
-		return_linda:set("returns",{func(...)})
+		returns = {pcall(func, ...)}
+		return_linda:set("returns", returns)
+		for i,v in pairs(_DEFER) do
+			pcall(v)
+		end
 		has_error = false
 	end)(...)
 	count = count + 1
@@ -110,10 +121,20 @@ function multi:newSystemThread(name, func, ...)
 	c.OnDeath = multi:newConnection()
 	c.OnError = multi:newConnection()
 	GLOBAL["__THREADS__"] = livingThreads
+	c.OnError(multi.error)
+
+	if self.isActor then
+		self:create(c)
+	else
+		multi.create(multi, c)
+	end
+
 	return c
 end
 
-THREAD.newSystemThread = multi.newSystemThread
+THREAD.newSystemThread = function(...)
+    multi:newSystemThread(...)
+end
 
 function multi.InitSystemThreadErrorHandler()
 	if started == true then
@@ -126,18 +147,26 @@ function multi.InitSystemThreadErrorHandler()
 		while true do
 			thread.yield()
 			_,data = __ConsoleLinda:receive(0, "Q")
-			if data then print(unpack(data)) end
+			if data then
+				--print(data[1])
+			end
 			for i = #threads, 1, -1 do
 				temp = threads[i]
 				status = temp.thread.status
-				push = __StatusLinda:get(temp.Id)
+				push = __StatusLinda:get(temp.ID)
 				if push then
-					temp.statusconnector:Fire(unpack(({__StatusLinda:receive(nil, temp.Id)})[2]))
+					temp.statusconnector:Fire(multi.unpack(({__StatusLinda:receive(nil, temp.ID)})[2]))
 				end
 				if status == "done" or temp.returns:get("returns") then
-					livingThreads[temp.Id] = {false, temp.Name}
+					returns = ({temp.returns:receive(0, "returns")})[2]
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
-					temp.OnDeath:Fire(unpack(({temp.returns:receive(0, "returns")})[2]))
+					if returns[1] == false then
+						temp.OnError:Fire(temp, returns[2])
+					else
+						table.remove(returns,1)
+						temp.OnDeath:Fire(multi.unpack(returns))
+					end
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "running" then
@@ -145,19 +174,15 @@ function multi.InitSystemThreadErrorHandler()
 				elseif status == "waiting" then
 					--
 				elseif status == "error" then
-					livingThreads[temp.Id] = {false, temp.Name}
-					temp.alive = false
-					temp.OnError:Fire(temp,unpack(temp.returns:receive(0,"returns") or {"Thread Killed!"}))
-					GLOBAL["__THREADS__"] = livingThreads
-					table.remove(threads, i)
+					-- The thread never really errors, we handle this through our linda object
 				elseif status == "cancelled" then
-					livingThreads[temp.Id] = {false, temp.Name}
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,"thread_cancelled")
 					GLOBAL["__THREADS__"] = livingThreads
 					table.remove(threads, i)
 				elseif status == "killed" then
-					livingThreads[temp.Id] = {false, temp.Name}
+					livingThreads[temp.ID] = {false, temp.Name}
 					temp.alive = false
 					temp.OnError:Fire(temp,"thread_killed")
 					GLOBAL["__THREADS__"] = livingThreads
@@ -165,10 +190,10 @@ function multi.InitSystemThreadErrorHandler()
 				end
 			end
 		end
-	end)
+	end).OnError(multi.error)
 end
 
-multi.print("Integrated Lanes!")
+multi.print("Integrated Lanes Threading!")
 multi.integration = {} -- for module creators
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD

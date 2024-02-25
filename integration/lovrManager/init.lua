@@ -36,12 +36,14 @@ __THREADNAME__=table.remove(__IMPORTS,1)
 stab = THREAD.createStaticTable(__THREADNAME__)
 GLOBAL = THREAD.getGlobal()
 multi, thread = require("multi").init()
-stab["returns"] = {THREAD.loadDump(__FUNC__)(unpack(__IMPORTS))}
+stab["returns"] = {THREAD.loadDump(__FUNC__)(multi.unpack(__IMPORTS))}
 ]]
 local multi, thread = require("multi.compat.lovr2d"):init()
 local THREAD = {}
 __THREADID__ = 0
 __THREADNAME__ = "MainThread"
+_G.THREAD_NAME = "MAIN_THREAD"
+_G.THREAD_ID = 0
 multi.integration={}
 multi.integration.lovr2d={}
 local THREAD = require("multi.integration.lovrManager.threads")
@@ -58,7 +60,7 @@ function THREAD:newFunction(func,holup)
                 if t.stab["returns"] then
                     local dat = t.stab.returns
                     t.stab.returns = nil
-                    return unpack(dat)
+                    return multi.unpack(dat)
                 end
 			end)
 		end,holup)()
@@ -74,16 +76,23 @@ function multi:newSystemThread(name,func,...)
     GLOBAL["__THREAD_"..c.ID] = {ID=c.ID,Name=c.name,Thread=c.thread}
     GLOBAL["__THREAD_COUNT"] = THREAD_ID
     THREAD_ID=THREAD_ID+1
+    	
+	if self.isActor then
+		self:create(c)
+	else
+		multi.create(multi, c)
+	end
+
     return c
 end
 THREAD.newSystemThread = multi.newSystemThread
 function lovr.threaderror(thread, errorstr)
-  print("Thread error!\n"..errorstr)
+    multi.print("Thread error!\n"..errorstr)
 end
 multi.integration.GLOBAL = GLOBAL
 multi.integration.THREAD = THREAD
 require("multi.integration.lovrManager.extensions")
-print("Integrated lovr Threading!")
+multi.print("Integrated lovr Threading!")
 return {init=function()
     return GLOBAL,THREAD
 end}

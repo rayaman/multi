@@ -1,2 +1,3 @@
 *.code-workspace
 lua5.4/*
+test.lua

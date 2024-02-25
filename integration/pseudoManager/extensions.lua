@@ -21,77 +21,95 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ]]
-local multi, thread = require("multi").init()
-GLOBAL = multi.integration.GLOBAL
-THREAD = multi.integration.THREAD
+local multi, thread = require("multi"):init()
+local GLOBAL, THREAD = multi.integration.GLOBAL, multi.integration.THREAD
+
+local function stripUpValues(func)
+    local dmp = string.dump(func)
+    if setfenv then
+        return loadstring(dmp,"IsolatedThread_PesudoThreading")
+    else
+        return load(dmp,"IsolatedThread_PesudoThreading","bt")
+    end
+end
+
 function multi:newSystemThreadedQueue(name)
 	local c = {}
-	c.Name = name
-	local fRef = {"func",nil}
-	function c:init()
-		local q = {}
-		q.chan = lovr.thread.getChannel(self.Name)
-		function q:push(dat)
-			if type(dat) == "function" then
-				fRef[2] = THREAD.dump(dat)
-				self.chan:push(fRef)
-				return
-			else
-				self.chan:push(dat)
-			end
-		end
-		function q:pop()
-			local dat = self.chan:pop()
-			if type(dat)=="table" and dat[1]=="func" then
-				return THREAD.loadDump(dat[2])
-			else
-				return dat
-			end
-		end
-		function q:peek()
-			local dat = self.chan:peek()
-			if type(dat)=="table" and dat[1]=="func" then
-				return THREAD.loadDump(dat[2])
-			else
-				return dat
-			end
-		end
-		return q
+	c.data = {}
+	c.Type = multi.registerType("s_queue")
+	function c:push(v)
+		table.insert(self.data,v)
 	end
-	THREAD.package(name,c)
+	function c:pop()
+		return table.remove(self.data,1)
+	end
+	function c:peek()
+		return self.data[1]
+	end
+	function c:init()
+		return self
+	end
+    function c:Hold(opt)
+        if opt.peek then
+            return thread.hold(function()
+                return self:peek()
+            end)
+        else
+            return thread.hold(function()
+                return self:pop()
+            end)
+        end
+	end
+	GLOBAL[name or "_"] = c
 	return c
 end
+
 function multi:newSystemThreadedTable(name)
     local c = {}
-    c.name = name
+	c.Type = multi.registerType("s_table")
     function c:init()
-        return THREAD.createTable(self.name)
+        return self
     end
-    THREAD.package(name,c)
+    function c:Hold(opt)
+        if opt.key then
+            return thread.hold(function()
+                return self.tab[opt.key]
+            end)
+        else
+            multi.error("Must provide a key to check opt.key = 'key'")
+        end
+    end
+    GLOBAL[name or "_"] = c
 	return c
 end
+
+local setfenv = multi.isolateFunction
+
 local jqc = 1
 function multi:newSystemThreadedJobQueue(n)
 	local c = {}
+
 	c.cores = n or THREAD.getCores()
 	c.registerQueue = {}
-	c.funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
-	c.queue = lovr.thread.getChannel("__JobQueue_"..jqc.."_queue")
-	c.queueReturn = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
-	c.queueAll = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
+	c.Type = multi.registerType("s_jobqueue")
+	c.funcs = multi:newSystemThreadedTable("__JobQueue_"..jqc.."_table")
+	c.queue = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queue")
+	c.queueReturn = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueReturn")
+	c.queueAll = multi:newSystemThreadedQueue("__JobQueue_"..jqc.."_queueAll")
 	c.id = 0
 	c.OnJobCompleted = multi:newConnection()
+
 	local allfunc = 0
+
 	function c:doToAll(func)
-		local f = THREAD.dump(func)
 		for i = 1, self.cores do
-			self.queueAll:push({allfunc,f})
+			self.queueAll:push({allfunc, func})
 		end
 		allfunc = allfunc + 1
 	end
-	function c:registerFunction(name,func)
+	function c:registerFunction(name, func)
 		if self.funcs[name] then
-			error("A function by the name "..name.." has already been registered!") 
+			multi.error("A function by the name "..name.." has already been registered!") 
 		end
 		self.funcs[name] = func
 	end
@@ -119,7 +137,6 @@ function multi:newSystemThreadedJobQueue(n)
             link = c.OnJobCompleted(function(jid,...)
                 if id==jid then
                     rets = multi.pack(...)
-                    link:Destroy()
                 end
             end)
             return thread.hold(function()
@@ -139,18 +156,14 @@ function multi:newSystemThreadedJobQueue(n)
 		end
 	end)
 	for i=1,c.cores do
-		multi:newSystemThread("JobQueue_"..jqc.."_worker_"..i,function(jqc)
+		multi:newSystemThread("STJQ_"..multi.randomString(8),function(jqc)
+			local GLOBAL, THREAD = require("multi.integration.pseudoManager"):init()
 			local multi, thread = require("multi"):init()
-			require("lovr.timer")
-			local function atomic(channel)
-				return channel:pop()
-			end
 			local clock = os.clock
-			local funcs = THREAD.createStaticTable("__JobQueue_"..jqc.."_table")
-			local queue = lovr.thread.getChannel("__JobQueue_"..jqc.."_queue")
-			local queueReturn = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueReturn")
-			local lastProc = clock()
-			local queueAll = lovr.thread.getChannel("__JobQueue_"..jqc.."_queueAll")
+			local funcs = THREAD.waitFor("__JobQueue_"..jqc.."_table")
+			local queue = THREAD.waitFor("__JobQueue_"..jqc.."_queue")
+			local queueReturn = THREAD.waitFor("__JobQueue_"..jqc.."_queueReturn")
+			local queueAll = THREAD.waitFor("__JobQueue_"..jqc.."_queueAll")
 			local registry = {}
 			_G["__QR"] = queueReturn
 			setmetatable(_G,{__index = funcs})
@@ -159,8 +172,7 @@ function multi:newSystemThreadedJobQueue(n)
 					thread.yield()
 					local all = queueAll:peek()
 					if all and not registry[all[1]] then
-						lastProc = os.clock()
-						THREAD.loadDump(queueAll:pop()[2])()
+						queueAll:pop()[2]()
 					end
 				end
 			end)
@@ -170,35 +182,40 @@ function multi:newSystemThreadedJobQueue(n)
 					thread.yield()
 					local all = queueAll:peek()
 					if all and not registry[all[1]] then
-						lastProc = os.clock()
-						THREAD.loadDump(queueAll:pop()[2])()
+						queueAll:pop()[2]()
 					end
-					local dat = queue:performAtomic(atomic)
+					local dat = thread.hold(queue)
 					if dat then
-						lastProc = os.clock()
-						local name = table.remove(dat,1)
-						local id = table.remove(dat,1)
-						local tab = {funcs[name](multi.unpack(dat))}
-						table.insert(tab,1,id)
-						queueReturn:push(tab)
-					end
-				end
-			end):OnError(function(...)
-				error(...)
-			end)
-			thread:newThread("Idler",function()
-				while true do
-					thread.yield()
-					if clock()-lastProc> 2 then
-						THREAD.sleep(.05)
-					else
-						THREAD.sleep(.001)
+						multi:newThread("JobSubRunner",function()
+							local name = table.remove(dat,1)
+							local id = table.remove(dat,1)
+							local tab = {multi.isolateFunction(funcs[name],_G)(multi.unpack(dat))}
+							table.insert(tab,1,id)
+							queueReturn:push(tab)
+						end)
 					end
 				end
 			end)
 			multi:mainloop()
-		end,jqc)
+		end, jqc)
 	end
+
+    function c:Hold(opt)
+        return thread.hold(self.OnJobCompleted)
+    end
+
 	jqc = jqc + 1
+
+	self:create(c)
+
 	return c
 end
+
+function multi:newSystemThreadedConnection(name)
+	local conn = multi:newConnection()
+	conn.init = function(self) return self end
+	GLOBAL[name or "_"] = conn
+	return conn
+end
+
+require("multi.integration.sharedExtensions")

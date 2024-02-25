@@ -156,7 +156,7 @@ function threads.getConsole()
     local c = {}
     c.queue = lovr.thread.getChannel("__CONSOLE__")
     function c.print(...)
-        c.queue:push{...}
+        c.queue:push(multi.pack(...))
     end
     function c.error(err)
         c.queue:push{"ERROR in <"..__THREADNAME__..">: "..err,__THREADID__}
@@ -174,7 +174,7 @@ if not ISTHREAD then
             dat = queue:pop()
             if dat then
                 lastproc = clock()
-                print(unpack(dat))
+                print(multi.unpack(dat))
             end
             if clock()-lastproc>2 then
                 thread.sleep(.1)

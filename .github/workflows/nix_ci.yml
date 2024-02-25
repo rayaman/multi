@@ -1,0 +1,41 @@
+name: Build & Run tests Ubuntu
+
+on:
+  push:
+    branches: [ master ]
+  pull_request:
+    branches: [ master ]
+
+jobs:
+  build:
+    strategy:
+      fail-fast: false
+      matrix:
+        build-type: [Release] # Debug
+        lua: ["lua 5.1", "lua 5.2", "lua 5.3", "lua 5.4", "luajit 2.1.0-beta3"]
+        os: ["ubuntu-latest"]
+    runs-on: ${{ matrix.os }}
+    steps:
+    - uses: actions/checkout@v2
+      with:
+        submodules: recursive
+
+    - uses: actions/setup-python@v2
+      with:
+        python-version: '3.10'
+
+    - name: Setup env
+      run: |
+        pip install hererocks
+        hererocks lua-pkg --${{ matrix.lua }} -rlatest
+
+    - name: Install lanes and multi
+      run: |
+        source ${{github.workspace}}/lua-pkg/bin/activate
+        luarocks install lanes
+        luarocks install rockspecs/multi-16.0-0.rockspec
+
+    - name: Run Tests
+      run: |
+        source ${{github.workspace}}/lua-pkg/bin/activate
+        lua tests/runtests.lua

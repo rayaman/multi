@@ -33,6 +33,7 @@ end
 local function INIT(thread)
     local THREAD = {}
     local GLOBAL = {}
+
     THREAD.Priority_Core = 3
     THREAD.Priority_High = 2
     THREAD.Priority_Above_Normal = 1
@@ -80,31 +81,42 @@ local function INIT(thread)
 
     THREAD.pushStatus = thread.pushStatus
 
-    if os.getOS() == "windows" then
-        THREAD.__CORES = tonumber(os.getenv("NUMBER_OF_PROCESSORS"))
-    else
-        THREAD.__CORES = tonumber(io.popen("nproc --all"):read("*n"))
-    end
-
     function THREAD.kill()
         error("Thread was killed!")
-    end
-
-    function THREAD.getName()
-        return GLOBAL["$THREAD_NAME"]
-    end
-
-    function THREAD.getID()
-        return GLOBAL["$THREAD_ID"]
     end
 
     THREAD.sleep = thread.sleep
 
     THREAD.hold = thread.hold
 
+    THREAD.defer = thread.defer
+	
+	function THREAD.setENV(env, name)
+        name = name or "__env"
+        GLOBAL[name] = env
+    end
+
+    function THREAD.getENV(name)
+        name = name or "__env"
+        return GLOBAL[name]
+    end
+
+    function THREAD.exposeENV(name)
+        name = name or "__env"
+        local env = THREAD.getENV(name)
+        for i,v in pairs(env) do
+            -- This may need to be reworked!
+            local_global[i] = v
+        end
+    end
+
+    function THREAD.sync()
+        thread.sleep(.5)
+    end
+
     return GLOBAL, THREAD
 end
 
-return {init = function(thread)
-    return INIT(thread)
+return {init = function(thread, global)
+    return INIT(thread, global)
 end}

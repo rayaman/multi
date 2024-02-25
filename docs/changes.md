@@ -1,10 +1,584 @@
 # Changelog
 Table of contents
 ---
+[Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
 [Update 15.2.1 - Bug fix](#update-1521---bug-fix)</br>
-[Update 15.2.0 - Upgrade Complete](#update-1520---upgrade-complete)</br>[Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>[Update: 1.11.0](#update-1110)</br>[Update: 1.10.0](#update-1100)</br>[Update: 1.9.2](#update-192)</br>[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>[Update: 1.9.0](#update-190)</br>[Update: 1.8.7](#update-187)</br>[Update: 1.8.6](#update-186)</br>[Update: 1.8.5](#update-185)</br>[Update: 1.8.4](#update-184)</br>[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>[Update: 1.8.2](#update-182)</br>[Update: 1.8.1](#update-181)</br>[Update: 1.7.6](#update-176)</br>[Update: 1.7.5](#update-175)</br>[Update: 1.7.4](#update-174)</br>[Update: 1.7.3](#update-173)</br>[Update: 1.7.2](#update-172)</br>[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>[Update: 1.6.0](#update-160)</br>[Update: 1.5.0](#update-150)</br>[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>[Update: 1.1.0](#update-110)</br>[Update: 1.0.0](#update-100)</br>[Update: 0.6.3](#update-063)</br>[Update: 0.6.2](#update-062)</br>[Update: 0.6.1-6](#update-061-6)</br>[Update: 0.5.1-6](#update-051-6)</br>[Update: 0.4.1](#update-041)</br>[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>[Update: EventManager 2.0.0](#update-eventmanager-200)</br>[Update: EventManager 1.2.0](#update-eventmanager-120)</br>[Update: EventManager 1.1.0](#update-eventmanager-110)</br>[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+[Update 15.2.0 - Upgrade Complete](#update-1520---upgrade-complete)</br>
+[Update 15.1.0 - Hold the thread!](#update-1510---hold-the-thread)</br>
+[Update 15.0.0 - The art of faking it](#update-1500---the-art-of-faking-it)</br>
+[Update 14.2.0 - Bloatware Removed](#update-1420---bloatware-removed)</br>
+[Update 14.1.0 - A whole new world of possibilities](#update-1410---a-whole-new-world-of-possibilities)</br>
+[Update 14.0.0 - Consistency, Additions and Stability](#update-1400---consistency-additions-and-stability)</br>
+[Update 13.1.0 - Bug fixes and features added](#update-1310---bug-fixes-and-features-added)</br>
+[Update 13.0.0 - Added some documentation, and some new features too check it out!](#update-1300---added-some-documentation-and-some-new-features-too-check-it-out)</br>
+[Update 12.2.2 - Time for some more bug fixes!](#update-1222---time-for-some-more-bug-fixes)</br>
+[Update 12.2.1 - Time for some bug fixes!](#update-1221---time-for-some-bug-fixes)</br>
+[Update 12.2.0 - The chains of binding](#update-1220---the-chains-of-binding)</br>
+[Update 12.1.0 - Threads just can't hold on anymore](#update-1210---threads-just-cant-hold-on-anymore)</br>
+[Update: 12.0.0 - Big update (Lots of additions some changes)](#update-1200---big-update-lots-of-additions-some-changes)</br>
+[Update: 1.11.1 - Small Clarification on Love](#update-1111---small-clarification-on-love)</br>
+[Update: 1.11.0](#update-1110)</br>
+[Update: 1.10.0](#update-1100)</br>
+[Update: 1.9.2](#update-192)</br>
+[Update: 1.9.1 - Threads can now argue](#update-191---threads-can-now-argue)</br>
+[Update: 1.9.0](#update-190)</br>
+[Update: 1.8.7](#update-187)</br>
+[Update: 1.8.6](#update-186)</br>
+[Update: 1.8.5](#update-185)</br>
+[Update: 1.8.4](#update-184)</br>
+[Update: 1.8.3 - Mainloop recieves some needed overhauling](#update-183---mainloop-recieves-some-needed-overhauling)</br>
+[Update: 1.8.2](#update-182)</br>
+[Update: 1.8.1](#update-181)</br>
+[Update: 1.7.6](#update-176)</br>
+[Update: 1.7.5](#update-175)</br>
+[Update: 1.7.4](#update-174)</br>
+[Update: 1.7.3](#update-173)</br>
+[Update: 1.7.2](#update-172)</br>
+[Update: 1.7.1 - Bug Fixes Only](#update-171---bug-fixes-only)</br>
+[Update: 1.7.0 - Threading the systems](#update-170---threading-the-systems)</br>
+[Update: 1.6.0](#update-160)</br>
+[Update: 1.5.0](#update-150)</br>
+[Update: 1.4.1 (4/10/2017) - First Public release of the library](#update-141-4102017---first-public-release-of-the-library)</br>
+[Update: 1.4.0 (3/20/2017)](#update-140-3202017)</br>
+[Update: 1.3.0 (1/29/2017)](#update-130-1292017)</br>
+[Update: 1.2.0 (12.31.2016)](#update-120-12312016)</br>
+[Update: 1.1.0](#update-110)</br>
+[Update: 1.0.0](#update-100)</br>
+[Update: 0.6.3](#update-063)</br>
+[Update: 0.6.2](#update-062)</br>
+[Update: 0.6.1-6](#update-061-6)</br>
+[Update: 0.5.1-6](#update-051-6)</br>
+[Update: 0.4.1](#update-041)</br>
+[Update: 0.3.0 - The update that started it all](#update-030---the-update-that-started-it-all)</br>
+[Update: EventManager 2.0.0](#update-eventmanager-200)</br>
+[Update: EventManager 1.2.0](#update-eventmanager-120)</br>
+[Update: EventManager 1.1.0](#update-eventmanager-110)</br>
+[Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
+[Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.0.0 - Getting the priorities straight
+
+## Added New Integration: **priorityManager**
+
+Allows the user to have multi auto set priorities (Requires chronos). Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed all other features will still work!
+- Allows the creation of custom priorityManagers
+
+Added
+---
+- thread.defer(func) -- When using a co-routine thread or co-routine threaded function, defer will call it's function at the end of the the threads life through normal execution or an error. In the case of a threaded function, when the function returns or errors.
+- multi:setTaskDelay(delay), Tasks which are now tied to a processor can have an optional delay between the execution between each task. Useful perhaps for rate limiting. Without a delay all grouped tasks will be handled in one step. `delay` can be a function as well and will be processed as if thread.hold was called.
+- processor's now have a boost function which causes it to run its processes the number of times specified in the `boost(count)` function
+- thread.hold will now use a custom hold method for objects with a `Hold` method. This is called like `obj:Hold(opt)`. The only argument passed is the optional options table that thread.hold can pass. There is an exception for connection objects. While they do contain a Hold method, the Hold method isn't used and is there for proxy objects, though they can be used in non proxy/thread situations. Hold returns all the arguments that the connection object was fired with.
+- shared_table = STP:newSharedTable(tbl_name) -- Allows you to create a shared table that all system threads in a process have access to. Returns a reference to that table for use on the main thread. Sets `_G[tbl_name]` on the system threads so you can access it there.
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor(8)
+
+	local shared = stp:newSharedTable("shared")
+
+	shared["test"] = "We work!"
+
+	for i=1,5 do
+		-- There is a bit of overhead when creating threads on a process. Takes some time, mainly because we are creating a proxy.
+		stp:newThread(function()
+			local multi, thread = require("multi"):init()
+			local shared = _G["shared"]
+			print(THREAD_NAME, shared.test, shared.test2)
+			multi:newAlarm(.5):OnRing(function() -- Play around with the time. System threads do not create instantly. They take quite a bit of time to get spawned.
+				print(THREAD_NAME, shared.test, shared.test2)
+			end)
+		end)
+	end
+
+	shared["test2"] = "We work!!!"
+
+	multi:mainloop()
+	```
+
+	Output:
+	```
+	INFO: Integrated Lanes Threading!
+	STJQ_cPXT8GOx   We work!        nil
+	STJQ_hmzdYDVr   We work!        nil
+	STJQ_3lwMhnfX   We work!        nil
+	STJQ_hmzdYDVr   We work!        nil
+	STJQ_cPXT8GOx   We work!        nil
+	STJQ_cPXT8GOx   We work!        We work!!!
+	STJQ_hmzdYDVr   We work!        We work!!!
+	STJQ_3lwMhnfX   We work!        We work!!!
+	STJQ_hmzdYDVr   We work!        We work!!!
+	STJQ_cPXT8GOx   We work!        We work!!!
+	```
+
+- multi:chop(obj) -- We cannot directly interact with a local object on lanes, so we chop the object and set some globals on the thread side. Should use like: `mulit:newProxy(multi:chop(multi:newThread(function() ...  end)))`
+- multi:newProxy(ChoppedObject) -- Creates a proxy object that allows you to interact with an object on a thread
+	
+	**Note:** Objects with __index=table do not work with the proxy object! The object must have that function in it's own table for proxy to pick it up and have it work properly. Connections on a proxy allow you to subscribe to an event on the thread side of things. The function that is being connected to happens on the thread!
+- multi:newSystemThreadedProcessor(name) -- Works like newProcessor(name) each object created returns a proxy object that you can use to interact with the objects on the system thread
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor("Test STP")
+
+	alarm = stp:newAlarm(3)
+
+	alarm._OnRing:Connect(function(alarm)
+		print("Hmm...", THREAD_NAME)
+	end)
+	```
+	Output:
+	```
+	Hmm...  SystemThreadedJobQueue_A5tp
+	```
+	Internally the SystemThreadedProcessor uses a JobQueue to handle things. The proxy function allows you to interact with these objects as if they were on the main thread, though there actions are carried out on the main thread.
+
+	Proxies can also be shared between threads, just remember to use proxy:getTransferable() before transferring and proxy:init() on the other end. (We need to avoid copying over coroutines)
+
+	The work done with proxies negates the usage of multi:newSystemThreadedConnection(), the only difference is you lose the metatables from connections.
+
+	You cannot connect directly to a proxy connection on the non proxy thread, you can however use proxy_conn:Hold() or thread.hold(proxy_conn) to emulate this, see below.
+
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true, warn=true, error=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor(8)
+
+	tloop = stp:newTLoop(nil, 1)
+
+	multi:newSystemThread("Testing proxy copy",function(tloop)
+		local function tprint (tbl, indent)
+			if not indent then indent = 0 end
+			for k, v in pairs(tbl) do
+				formatting = string.rep("  ", indent) .. k .. ": "
+				if type(v) == "table" then
+					print(formatting)
+					tprint(v, indent+1)
+				else
+					print(formatting .. tostring(v))      
+				end
+			end
+		end
+		local multi, thread = require("multi"):init()
+		tloop = tloop:init()
+		print("tloop type:",tloop.Type)
+		print("Testing proxies on other threads")
+		thread:newThread(function()
+			while true do
+				thread.hold(tloop.OnLoop)
+				print(THREAD_NAME,"Loopy")
+			end
+		end)
+		tloop.OnLoop(function(a)
+			print(THREAD_NAME, "Got loop...")
+		end)
+		multi:mainloop()
+	end, tloop:getTransferable()).OnError(multi.error)
+
+	print("tloop", tloop.Type)
+
+	thread:newThread(function()
+		print("Holding...")
+		thread.hold(tloop.OnLoop)
+		print("Held on proxied no proxy connection 1")
+	end).OnError(print)
+
+	thread:newThread(function()
+		tloop.OnLoop:Hold()
+		print("held on proxied no proxy connection 2")
+	end)
+
+	tloop.OnLoop(function()
+		print("OnLoop",THREAD_NAME)
+	end)
+
+	thread:newThread(function()
+		while true do
+			tloop.OnLoop:Hold()
+			print("OnLoop",THREAD_NAME)
+		end
+	end).OnError(multi.error)
+
+	multi:mainloop()
+	```
+	Output:
+	```
+	INFO: Integrated Lanes Threading! 1
+	tloop   proxy
+	Holding...
+	tloop type:     proxy
+	Testing proxies on other threads
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+	OnLoop  MAIN_THREAD
+	Testing proxy copy      Loopy
+	Held on proxied no proxy connection 1
+	held on proxied no proxy connection 2
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+	Testing proxy copy      Loopy
+	OnLoop  MAIN_THREAD
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+
+	... (Will repeat every second)
+
+	Testing proxy copy      Loopy
+	OnLoop  MAIN_THREAD
+	OnLoop  STJQ_W9SZGB6Y
+	STJQ_W9SZGB6Y   Got loop...
+
+	...
+	```
+
+	The proxy version can only subscribe to events on the proxy thread, which means that connection metamethods will not work with the proxy version (`_OnRing` on the non proxy thread side), but the (`OnRing`) version will work. Cleverly handling the proxy thread and the non proxy thread will allow powerful connection logic. Also this is not a full system threaded connection. **Proxies should only be used between 2 threads!** To keep things fast I'm using simple queues to transfer data. There is no guarantee that things will work!
+
+	Currently supporting:
+	- proxyLoop = STP:newLoop(...)
+	- proxyTLoop = STP:newTLoop(...)
+	- proxyUpdater = STP:newUpdater(...)
+	- proxyEvent = STP:newEvent(...)
+	- proxyAlarm = STP:newAlarm(...)
+	- proxyStep = STP:newStep(...)
+	- proxyTStep = STP:newTStep(...)
+	- proxyThread = STP:newThread(...)
+	- proxyService = STP:newService(...)
+	- threadedFunction = STP:newFunction(...)
+
+	Unique:
+	- STP:newSharedTable(name)
+	
+	</br>
+
+	**STP** functions (The ones above) cannot be called within coroutine based thread when using lanes. This causes thread.hold to break. Objects(proxies) returned by these functions are ok to use in coroutine based threads!
+	```lua
+	package.path = "?/init.lua;?.lua;"..package.path
+
+	multi, thread = require("multi"):init({print=true})
+	THREAD, GLOBAL = require("multi.integration.lanesManager"):init()
+
+	stp = multi:newSystemThreadedProcessor()
+
+	alarm = stp:newAlarm(3)
+
+	alarm.OnRing:Connect(function(alarm)
+		print("Hmm...", THREAD_NAME)
+	end)
+
+	thread:newThread(function()
+		print("Holding...")
+		local a = thread.hold(alarm.OnRing) -- it works :D
+		print("We work!")
+	end)
+
+	multi:mainloop()
+	```
+
+- multi.OnObjectDestroyed(func(obj, process)) now supplies obj, process just like OnObjectCreated
+- thread:newProcessor(name) -- works mostly like a normal process, but all objects are wrapped within a thread. So if you create a few loops, you can use thread.hold() call threaded functions and wait and use all features that using coroutines provide.
+- multi.Processors:getHandler() -- returns the thread handler for a process
+- multi.OnPriorityChanged(self, priority) -- Connection is triggered whenever the priority of an object is changed!
+- multi.setClock(clock_func) -- If you have access to a clock function that works like os.clock() you can set it using this function. The priorityManager if chronos is installed sets the clock to it's current version.
+- multi:setCurrentTask() -- Used to set the current processor. Used in custom processors.
+- multi:setCurrentProcess() -- Used to set the current processor. It should only be called on a processor object
+- multi.success(...) -- Sends a success. Green `SUCCESS` mainly used for tests
+- multi.warn(...) -- Sends a warning. Yellow `WARNING`
+- multi.error(err) -- When called this function will gracefully kill multi, cleaning things up. Red `ERROR`
+	
+	**Note:** If you want to have multi.print, multi.warn and multi.error to work you need to enable them in settings 
+	```lua
+	multi, thread = require("multi"):init {
+		print=true,
+		warn=true,
+		error=true -- Errors will throw regardless. Setting to true will
+		-- cause the library to force hard crash itself!
+	}
+	```
+- THREAD.exposeEnv(name) -- Merges set env into the global namespace of the system thread it was called in.
+- THREAD.setENV(table [, name]) -- Set a simple table that will be merged into the global namespace. If a name is supplied the global namespace will not be merged. Call THREAD.exposeEnv(name) to expose that namespace within a thread. 
+	
+	**Note:** To maintain compatibility between each integration use simple tables. No self references, and string indices only.
+	```lua
+	THREAD.setENV({
+		shared_function = function()
+			print("I am shared!")
+		end
+	})
+	```
+	When this function is used it writes to a special variable that is read at thread spawn time. If this function is then ran later it can be used to set a different env and be applied to future spawned threads.
+- THREAD.getENV() can be used to manage advanced uses of the setENV() functionality
+- Connection objects now support the % function. This supports a function % connection object. What it does is allow you to **mod**ify the incoming arguments of a connection event.
+	```lua
+	local conn1 = multi:newConnection()
+	local conn2 = function(a,b,c) return a*2, b*2, c*2 end % conn1
+	conn2(function(a,b,c)
+		print("Conn2",a,b,c)
+	end)
+	conn1(function(a,b,c)
+		print("Conn1",a,b,c)
+	end)
+	conn1:Fire(1,2,3)
+	conn2:Fire(1,2,3)
+	```
+	Output:
+	```
+	Conn2   2       4       6
+	Conn1   1       2       3
+	Conn2	1		2		3
+	```
+	**Note:** Conn1 does not get modified, however firing conn1 will also fire conn2 and have it's arguments modified. Also firing conn2 directly **does not** modify conn2's arguments!
+	See it's implementation below:
+	```lua
+	__mod = function(obj1, obj2)
+		local cn = multi:newConnection()
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				cn:Fire(obj1(...))
+			end)
+		else
+			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+		end
+		return cn
+	end
+	```
+- The len operator `#` will return the number of connections in the object!
+	```
+		local conn = multi:newConnection()
+		conn(function() print("Test 1") end)
+		conn(function() print("Test 2") end)
+		conn(function() print("Test 3") end)
+		conn(function() print("Test 4") end)
+		print(#conn)
+	```
+	Output:
+	```
+	4
+	```
+- Connection objects can be negated -conn returns self so conn = -conn, reverses the order of connection events
+	```lua
+	local conn = multi:newConnection()
+	conn(function() print("Test 1") end)
+	conn(function() print("Test 2") end)
+	conn(function() print("Test 3") end)
+	conn(function() print("Test 4") end)
+
+	print("Fire 1")
+	conn:Fire()
+	conn = -conn
+	print("Fire 2")
+	conn:Fire()
+	```
+	Output:
+	```
+	Fire 1
+	Test 1
+	Test 2
+	Test 3
+	Test 4
+	Fire 2
+	Test 4
+	Test 3
+	Test 2
+	Test 1
+	```
+- Connection objects can be divided, function / connection
+	This is a mix between the behavior between mod and concat, where the original connection can forward it's events to the new one as well as do a check like concat can. View it's implementation below:
+	```lua
+	__div = function(obj1, obj2) -- /
+		local cn = self:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			obj2(function(...)
+				local args = {obj1(...)}
+				if args[1] then
+					cn:Fire(multi.unpack(args))
+				end
+			end)
+		else
+			multi.error("Invalid divide! ", type(obj1), type(obj2)," Expected function/connection(table)")
+		end
+		return cn
+	end
+	```
+- Connection objects can now be concatenated with functions, not each other. For example:
+	```lua
+	multi, thread = require("multi"):init{print=true,findopt=true}
+
+	local conn1, conn2 = multi:newConnection(), multi:newConnection()
+	conn3 = conn1 + conn2
+
+	conn1(function()
+		print("Hi 1")
+	end)
+
+	conn2(function()
+		print("Hi 2")
+	end)
+
+	conn3(function()
+		print("Hi 3")
+	end)
+
+	function test(a,b,c)
+		print("I run before all and control if execution should continue!")
+		return a>b
+	end
+
+	conn4 = test .. conn1
+
+	conn5 = conn2 .. function() print("I run after it all!") end
+
+	conn4:Fire(3,2,3)
+
+	-- This second one won't trigger the Hi's	
+	conn4:Fire(1,2,3)
+
+	conn5(function()
+		print("Test 1")
+	end)
+
+	conn5(function()
+		print("Test 2")
+	end)
+
+	conn5(function()
+		print("Test 3")
+	end)
+
+	conn5:Fire()
+	```
+
+	Output:
+	```
+	I run before all and control if things go!
+	Hi 3
+	Hi 1
+	Test 1
+	Test 2
+	Test 3
+	I run after it all!
+	```
+
+	**Note:** Concat of connections does modify internal events on both connections depending on the direction func .. conn or conn .. func See implemention below:
+	```lua
+	__concat = function(obj1, obj2)
+		local cn = multi:newConnection()
+		local ref
+		if type(obj1) == "function" and type(obj2) == "table" then
+			cn(function(...)
+				if obj1(...) then
+					obj2:Fire(...)
+				end
+			end)
+			cn.__connectionAdded = function(conn, func)
+				cn:Unconnect(conn)
+				obj2:Connect(func)
+			end
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			ref = cn(function(...)
+				obj1:Fire(...)
+				obj2(...)
+			end)
+			cn.__connectionAdded = function()
+				cn.rawadd = true
+				cn:Unconnect(ref)
+				ref = cn(function(...)
+					if obj2(...) then
+						obj1:Fire(...)
+					end
+				end)
+			end
+		else
+			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
+		end
+		return cn
+	end
+	```
+
+Changed
+---
+- multi:newTask(task) is not tied to the processor it is created on.
+- `multi:getTasks()` renamed to `multi:getRunners()`, should help with confusion between multi:newTask()
+- changed how multi adds unpack to the global namespace. Instead we capture that value into multi.unpack.
+- multi:newUpdater(skip, func) -- Now accepts func as the second argument. So you don't need to call OnUpdate(func) after creation. 
+- multi errors now internally call `multi.error` instead of `multi.print`
+- Actors Act() method now returns true when the main event is fired. Steps/Loops always return true. Nil is returned otherwise.
+- Connection:Connect(func, name) Now you can supply a name and name the connection.
+- Connection:getConnection(name) This will return the connection function which you can do what you will with it.
+- Fast connections are the only connections. Legacy connections have been removed completely. Not much should change on the users end. Perhaps some minor changes.
+- conn:Lock(conn) When supplied with a connection reference (What is returned by Connect(func)) it will only lock that connection Reference and not the entire connection. Calling without any arguments will lock the entire connection.
+- connUnlock(conn) When supplied with a connection reference it restores that reference and it can be fired again. When no arguments are supplied it unlocks the entire connection.
+
+	**Note:** Lock and Unlock when supplied with arguments and not supplied with arguments operate on different objects. If you unlock an entire connection. Individual connection refs will not unlock. The same applies with locking. The entire connection and references are treated differently.
+
+- multi.OnObjectCreated is only called when an object is created in a particular process. Proc.OnObjectCreated is needed to detect when an object is created within a process.
+- multi.print shows "INFO" before it's message. Blue `INFO`
+- Connections internals changed, not too much changed on the surface.
+- newConnection(protect, func, kill)
+	- `protect` disables fastmode, but protects the connection
+	- `func` uses `..` and appends func to the connection so it calls it after all connections run. There is some internal overhead added when using this, but it isn't much.
+	- `kill` removes the connection when fired
+	
+	**Note:** When using protect/kill connections are triggered in reverse order
+
+Removed
+---
+- multi.CONNECTOR_LINK -- No longer used
+- multi:newConnector() -- No longer used
+- THREAD.getName() use THREAD_NAME instead
+- THREAD.getID() use THREAD_ID instead
+- conn:SetHelper(func) -- With the removal of old Connect this function is no longer needed
+- connection events can no longer can be chained with connect. Connect only takes a function that you want to connect
+
+Fixed
+---
+- Issue with luajit w/5.2 compat breaking with coroutine.running(), fixed the script to properly handle so thread.isThread() returns as expected!
+- Issue with coroutine based threads where they weren't all being scheduled due to a bad for loop. Replaced with a while to ensure all threads are consumed properly. If a thread created a thread that created a thread that may or may not be on the same process, things got messed up due to the original function not being built with these abstractions in mind.
+- Issue with thread:newFunction() where a threaded function will keep a record of their returns and pass them to future calls of the function.
+- Issue with multi:newTask(func) not properly handling tasks to be removed. Now uses a thread internally to manage things.
+- multi.isMainThread was not properly handled in each integration. This has been resolved.
+- Issue with pseudo threading env's being messed up. Required removal of getName and getID!
+- connections being multiplied together would block the entire connection object from pushing events! This is not the desired effect I wanted. Now only the connection reference involved in the multiplication is locked!
+- multi:reallocate(processor, index) has been fixed to work with the current changes of the library.
+- Issue with lanes not handling errors properly. This is now resolved
+- Oversight with how pushStatus worked with nesting threaded functions, connections and forwarding events. Changes made and this works now!
+	```lua
+	func = thread:newFunction(function()
+		for i=1,10 do
+			thread.sleep(1)
+			thread.pushStatus(i)
+		end
+	end)
+
+	func2 = thread:newFunction(function()
+		local ref = func()
+		ref.OnStatus(function(num)
+			-- do stuff with this data
+
+			thread.pushStatus(num*2) -- Technically this is not ran within a thread. This is ran outside of a thread inside the thread handler. 
+		end)
+	end)
+
+	local handler = func2()
+	handler.OnStatus(function(num)
+		print(num)
+	end)
+	```
+
+ToDo
+---
+- Network Manager, I know I said it will be in this release, but I'm still planning it out.
 
 # Update 15.3.1 - Bug fix
 Fixed
@@ -23,7 +597,7 @@ conn2:Fire()
 -- Looks like this is triggering a response. It shouldn't. We need to account for this
 conn1:Fire()
 conn1:Fire()
--- Triggering conn1 twice counted as a valid way to trigger the phantom connection (conn1 * conn2)
+-- Triggering conn1 twice counted as a valid way to trigger the virtual connection (conn1 * conn2)
 
 -- Now in 15.3.1, this works properly and the above doesn't do anything. Internally connections are locked until the conditions are met.
 conn2:Fire()
@@ -1705,7 +2279,7 @@ L: 2120906
 I: 2120506
 ```
 
-Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting.
+Auto Priority works by seeing what should be set high or low. Due to lua not having more persicion than milliseconds, I was unable to have a detailed manager that can set things to high, above normal, normal, ect. This has either high or low. If a process takes longer than .001 millisecond it will be set to low priority. You can change this by using the setting auto_lowest = multi.Priority_[PLevel] the defualt is low, not idle, since idle tends to get about 1 process each second though you can change it to idle using that setting. This is nolonger the case in version 16.0.0 multi has evolved ;)
 
 **Improved:**
 - Performance at the base level has been doubled! On my machine benchmark went from ~9mil to ~20 mil steps/s.

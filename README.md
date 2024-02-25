@@ -1,7 +1,10 @@
-# Multi Version: 15.3.1 A world of Connections
+# Multi Version: 16.0.0 - Connecting the dots
 **Key Changes**
-- SystemThreadedConnections
-- Restructured the directory structure of the repo (Allows for keeping multi as a submodule and being able to require it as is)
+- Expanded connection logic
+- New integration priorityManager
+- Tests for threads
+- Consistent behavior between the threading integrations
+- Improved love2d threading
 - Bug fixes
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
@@ -18,9 +21,19 @@ Progress is being made in [v16.0.0](https://github.com/rayaman/multi/tree/v16.0.
 INSTALLING
 ----------
 Link to optional dependencies:
-- [lanes](https://github.com/LuaLanes/lanes)
+- [lanes](https://github.com/LuaLanes/lanes) `luarocks install lanes`
+
+- [chronos](https://github.com/ldrumm/chronos) `luarocks install chronos`
 
 - [love2d](https://love2d.org/)
+	
+   When using love2d add multi:uManager() or any processor to love.update()
+
+   ```lua
+   function love.update(dt)
+		multi:uManager()
+   end
+   ```
 
 To install copy the multi folder into your environment and you are good to go</br>
 If you want to use the system threads, then you'll need to install lanes or love2d game engine!
@@ -36,11 +49,17 @@ https://discord.gg/U8UspuA
 
 Planned features/TODO
 ---------------------
-- [ ] Create test suite (In progress, mostly done)
+- [x] ~~Create test suite (In progress, mostly done)~~
 - [ ] Network Parallelism rework
 
 Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)
 -----
+
+You can run tests in 2 ways:
+```
+lua tests/runtests.lua (Runs all tests, attempts to use lanes)
+love tests (Runs all tests in love2d env)
+```
 
 ```lua
 local multi, thread = require("multi"):init()
