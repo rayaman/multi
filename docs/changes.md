@@ -68,23 +68,14 @@ multi, thread = require("multi"):init{print=true}
 GLOBAL, THREAD = require("multi.integration.lanesManager"):init()
 ```
 
-```lua
-package.path = "?/init.lua;?.lua;"..package.path
-
-local multi, thread = require("multi"):init({print=true, warn=true, error=true})
-local THREAD, GLOBAL = require("multi.integration.effilManager"):init()
-
--- Code as you would
-```
-
 ## Added New Integration: **priorityManager**
 
 Allows the user to have multi auto set priorities (Requires chronos). Also adds the functionality to create your own runners (multi:mainloop(), multi:umanager()) that you can set using the priority manager. Even if you do not have `chronos` installed all other features will still work!
-- Allows the creation of custom priorityManagers for example:
+- Allows the creation of custom priorityManagers
 
 Added
 ---
-- thread.defer(func) -- When using a co-routine thread or co-routine threaded function, defer will call it's function at the end of the the threads life through normal execution or an error. In the case of a function, when the function returns or errors.
+- thread.defer(func) -- When using a co-routine thread or co-routine threaded function, defer will call it's function at the end of the the threads life through normal execution or an error. In the case of a threaded function, when the function returns or errors.
 - multi:setTaskDelay(delay), Tasks which are now tied to a processor can have an optional delay between the execution between each task. Useful perhaps for rate limiting. Without a delay all grouped tasks will be handled in one step. `delay` can be a function as well and will be processed as if thread.hold was called.
 - processor's now have a boost function which causes it to run its processes the number of times specified in the `boost(count)` function
 - thread.hold will now use a custom hold method for objects with a `Hold` method. This is called like `obj:Hold(opt)`. The only argument passed is the optional options table that thread.hold can pass. There is an exception for connection objects. While they do contain a Hold method, the Hold method isn't used and is there for proxy objects, though they can be used in non proxy/thread situations. Hold returns all the arguments that the connection object was fired with.
