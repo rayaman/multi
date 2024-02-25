@@ -36,6 +36,7 @@ build = {
       ["multi.integration.luvitManager"] = "integration/luvitManager.lua",
       ["multi.integration.threading"] = "integration/threading.lua",
       ["multi.integration.sharedExtensions"] = "integration/sharedExtensions/init.lua",
+      ["multi.integration.priorityManager"] = "integration/priorityManager/init.lua",
       --["multi.integration.networkManager"] = "integration/networkManager.lua",
    }
 }

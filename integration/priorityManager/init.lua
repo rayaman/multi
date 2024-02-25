@@ -45,31 +45,22 @@ end
 local function getPriority(obj)
 	local avg = average(obj.__profiling)
 	if avg < 0.0002 then
-		multi.print("Setting priority to: core")
 		return PList[1]
 	elseif avg < 0.0004 then
-		multi.print("Setting priority to: very high")
 		return PList[2]
 	elseif avg < 0.0008 then
-		multi.print("Setting priority to: high")
 		return PList[3]
 	elseif avg < 0.001 then
-		multi.print("Setting priority to: above normal")
 		return PList[4]
 	elseif avg < 0.0025 then
-		multi.print("Setting priority to: normal")
 		return PList[5]
 	elseif avg < 0.005 then
-		multi.print("Setting priority to: below normal")
 		return PList[6]
 	elseif avg < 0.008 then
-		multi.print("Setting priority to: low")
 		return PList[7]
 	elseif avg < 0.01 then
-		multi.print("Setting priority to: very low")
 		return PList[8]
 	else
-		multi.print("Setting priority to: idle")
 		return PList[9]
 	end
 end
