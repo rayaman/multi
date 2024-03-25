@@ -447,6 +447,7 @@ function multi:newConnection(protect,func,kill)
 			func = function(...)
 				__CurrentConnectionThread = th
 				fref(...)
+				__CurrentConnectionThread = nil
 			end
 		end
 		table.insert(fast, func)
@@ -1435,7 +1436,7 @@ local function cleanReturns(...)
 end
 
 function thread.pushStatus(...)
-	local t = thread.getRunningThread() or __CurrentConnectionThread
+	local t = __CurrentConnectionThread or thread.getRunningThread()
 	t.statusconnector:Fire(...)
 end
 
