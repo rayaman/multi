@@ -1,6 +1,7 @@
 # Changelog
 Table of contents
 ---
+[Update 16.0.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
@@ -57,6 +58,35 @@ Table of contents
 [Update: EventManager 1.1.0](#update-eventmanager-110)</br>
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.0.1 - Bug fix
+Fixed
+---
+- thread.pushStatus() wasn't properly working when forwarding events from THREAD.pushStatus OnStatus connection. This bug also caused stack overflow errors with the following code
+```lua
+func = thread:newFunction(function()
+	for i=1,10 do
+		thread.sleep(1)
+		thread.pushStatus(i)
+	end
+end)
+
+func2 = thread:newFunction(function()
+	local ref = func()
+	ref.OnStatus(function(num)
+		-- do stuff with this data
+
+		thread.pushStatus(num*2) -- Technically this is not ran within a thread. This is ran outside of a thread inside the thread handler. 
+	end)
+end)
+
+local handler = func2()
+handler.OnStatus(function(num)
+	print(num)
+end)
+
+multi:mainloop()
+```
 
 # Update 16.0.0 - Getting the priorities straight
 
