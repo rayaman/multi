@@ -1,11 +1,4 @@
-# Multi Version: 16.0.0 - Connecting the dots
-**Key Changes**
-- Expanded connection logic
-- New integration priorityManager
-- Tests for threads
-- Consistent behavior between the threading integrations
-- Improved love2d threading
-- Bug fixes
+# Multi Version: 16.0.1 - Bug fix
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
