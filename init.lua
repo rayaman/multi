@@ -86,7 +86,7 @@ function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.0.0"
+multi.Version = "16.0.1"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
