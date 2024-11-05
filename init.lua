@@ -95,7 +95,7 @@ multi.Children = {}
 multi.Active = true
 multi.Type = multi.registerType("rootprocess")
 multi.LinkedPath = multi
-multi.TIMEOUT = "TIMEOUT"
+multi.TIMEOUT = multi.registerType("TIMEOUT", "timeouts")
 multi.TID = 0
 multi.defaultSettings = {}
 
@@ -700,6 +700,12 @@ function multi:newBase(ins)
 	end
 	_tid = _tid + 1
 	return c
+end
+
+function multi:newTimeout(timeout)
+	local c={}
+	c.Type = multi.registerType(multi.TIMEOUT, "timeouts")
+	return function(self) self:Destroy() return c end % self:newAlarm(timeout).OnRing
 end
 
 function multi:newTimer()

@@ -1,19 +1,13 @@
-# Multi Version: 16.0.0 - Connecting the dots
+# Multi Version: 16.1.0 - 
 **Key Changes**
-- Expanded connection logic
-- New integration priorityManager
-- Tests for threads
-- Consistent behavior between the threading integrations
-- Improved love2d threading
-- Bug fixes
-
+- 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
 My multitasking library for lua. It is a pure lua binding, with exceptions of the integrations.
 
 </br>
 
-Progress is being made in [v16.0.0](https://github.com/rayaman/multi/tree/v16.0.0)
+Progress is being made in [v16.1.0](https://github.com/rayaman/multi/tree/v16.1.0)
 ---
 
 </br>
