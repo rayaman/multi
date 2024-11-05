@@ -1,7 +1,8 @@
 # Changelog
 Table of contents
 ---
-[Update 16.0.1 - Bug fix](#update-1531---bug-fix)</br>
+[Update 16.1.0 - TBA](#update-1610---tba)</br>
+[Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
 [Update 15.3.0 - A world of connections](#update-1530---a-world-of-connections)</br>
@@ -58,6 +59,36 @@ Table of contents
 [Update: EventManager 1.1.0](#update-eventmanager-110)</br>
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.1.0 - TBA
+Added
+---
+- `multi.isTimeout(res)` returns true if the response it gets is a timeout type or a string equal to `multi.TIMEOUT`'s value
+- `multi:newTimeout(seconds)` returns a connection that will trigger after a certain amount of time. See example below:
+```lua
+local multi, thread = require("multi"):init()
+
+data = multi:newConnection()
+
+-- This alarm takes too long... We will timeout
+multi:newAlarm(4):OnRing(function()
+    sitedata:Fire({Type="request"},"data is tasty")
+end)
+
+multi:newThread(function()
+    res, data = thread.hold(data + multi:newTimeout(3))
+    if multi.isTimeout(res) then
+        print("We timed out!")
+    else
+        print("We got the data:", data)
+    end
+	os.exit()
+end)
+
+multi:mainloop()
+```
+
+If the alarm takes longer the the timeout: `We timed out!` If the alarm is shorter: `We got the data:	data is tasty`
 
 # Update 16.0.1 - Bug fix
 Fixed

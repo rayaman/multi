@@ -2234,6 +2234,13 @@ end
 -- UTILS
 --------
 
+function multi.isTimeout(res)
+	if type(res) == "table" then
+		return res.Type == multi.TIMEOUT
+	end
+	return res == multi.TIMEOUT
+end
+
 function table.merge(t1, t2)
 	for k,v in pairs(t2) do
 		if type(v) == 'table' then
