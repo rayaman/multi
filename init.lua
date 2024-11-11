@@ -76,10 +76,16 @@ end
 
 local types = {}
 function multi.registerType(typ, p)
-	if multi[typ:upper():gsub("_","")] then return typ end
-	multi[typ:upper():gsub("_","")] = typ
+	if multi["$"..typ:upper():gsub("_","")] then return typ end
+	multi["$"..typ:upper():gsub("_","")] = typ
 	table.insert(types, {typ, p or typ})
 	return typ
+end
+
+function multi.hasType(typ)
+	if multi["$"..typ:upper():gsub("_","")] then 
+		return multi["$"..typ:upper():gsub("_","")] 
+	end
 end
 
 function multi.getTypes()
@@ -185,6 +191,25 @@ function multi.randomString(n)
 	return str
 end
 
+function multi.isMulitObj(obj)
+	if type(obj)=="table" then
+		if obj.Type ~= nil then
+			return multi.hasType(obj.Type) ~= nil
+		end
+	end
+	return false
+end
+
+function multi.forwardConnection(src, dest)
+	if multi.isMulitObj(src) and multi.isMulitObj(dest) then
+		src(function(...)
+			dest:Fire(...)
+		end)
+	else
+		multi.error("Cannot forward non-connection objects")
+	end
+end
+
 local optimization_stats = {}
 local ignoreconn = true
 local empty_func = function() end
@@ -221,6 +246,7 @@ function multi:newConnection(protect,func,kill)
 		for i = #conns, 1, -1 do
 			obj.rawadd = true
 			obj(conns[i])
+			obj.rawadd = false
 		end
 		return obj
 	end,
@@ -230,6 +256,22 @@ function multi:newConnection(protect,func,kill)
 			obj2(function(...)
 				cn:Fire(obj1(...))
 			end)
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			local conns = obj1:Bind({})
+			for i = 1,#conns do
+				obj1(function(...)
+					conns[i](obj2(...))
+				end)
+			end
+			obj1.__connectionAdded = function(conn, func)
+				obj1:Unconnect(conn)
+				obj1.rawadd = true
+				obj1:Connect(function(...)
+					func(obj2(...))
+				end)
+				obj1.rawadd = false
+			end
+			return obj1
 		else
 			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
 		end
@@ -277,6 +319,7 @@ function multi:newConnection(protect,func,kill)
 					end
 				end)
 			end
+			return obj1
 		elseif type(obj1) == "table" and type(obj2) == "table" then
 			-- 
 		else
@@ -490,6 +533,10 @@ function multi:newConnection(protect,func,kill)
 		local temp = fast
 		fast=t
 		return temp
+	end
+
+	function c:Get()
+		return fast
 	end
 
 	function c:Remove()

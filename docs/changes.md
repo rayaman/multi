@@ -63,6 +63,9 @@ Table of contents
 # Update 16.1.0 - TBA
 Added
 ---
+- `multi.hasType(typ)` returns true if a type has been registered
+- `multi.isMultiObj(obj)` returns true if the object is a multi object
+- `multi.forwardConnection(src, dest)` forwards events from one connection to another connection. Doesn't modify anything and both connections are triggered when src is Fired, but not when dest is fired.
 - `multi.isTimeout(res)` returns true if the response it gets is a timeout type or a string equal to `multi.TIMEOUT`'s value
 - `multi:newTimeout(seconds)` returns a connection that will trigger after a certain amount of time. See example below:
 ```lua
@@ -83,6 +86,24 @@ multi:newThread(function()
         print("We got the data:", data)
     end
 	os.exit()
+end)
+
+multi:mainloop()
+```
+- `connection % function` can now modify the arguments of a connection. See above example modified below
+```lua
+local multi, thread = require("multi"):init()
+
+local data = multi:newAlarm(1).OnRing % function() return {Type="request"}, "data is tasty" end
+
+multi:newThread(function()
+    res, data = thread.hold(data + multi:newTimeout(3))
+    if multi.isTimeout(res) then
+        print("We timed out!")
+    else
+        print("We got the data:", data)
+    end
+    os.exit()
 end)
 
 multi:mainloop()
