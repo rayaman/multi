@@ -92,7 +92,7 @@ function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.0.1"
+multi.Version = "16.1.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -213,6 +213,7 @@ end
 local optimization_stats = {}
 local ignoreconn = true
 local empty_func = function() end
+
 function multi:newConnection(protect,func,kill)
 	local processor = self
 	local c={}
