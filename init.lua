@@ -698,8 +698,49 @@ function multi:isDone()
 	return self.Active~=true
 end
 
+local time = os.time
+local ok, chronos = pcall(require, "chronos") -- hpc
+
+if ok then
+	math.randomseed(chronos.nanotime()*1000000000)
+else
+	math.randomseed(time())
+end
+
+function multi.UUID()
+	
+    -- random bytes
+    local value = {}
+    for i = 1, 16 do
+        value[i] = math.random(0, 255)
+    end
+
+    -- current timestamp in ms
+    local timestamp = time() * 1000
+
+    -- timestamp
+    value[1] = (timestamp >> 40) & 0xFF
+    value[2] = (timestamp >> 32) & 0xFF
+    value[3] = (timestamp >> 24) & 0xFF
+    value[4] = (timestamp >> 16) & 0xFF
+    value[5] = (timestamp >> 8) & 0xFF
+    value[6] = timestamp & 0xFF
+
+    -- version and variant
+    value[7] = (value[7] & 0x0F) | 0x70
+    value[9] = (value[9] & 0x3F) | 0x80
+	res = ""
+	for i = 1, #value do
+		res = res .. string.format('%02x', value[i])
+		if i == 4 or i == 6 or i == 8 or i == 10 then
+			res = res .. "-"
+		end
+	end
+    return res
+end
+
 function multi:create(ref)
-	ref.UID = "U"..multi.randomString(12)
+	ref.UID = self.UUID()
 	self.OnObjectCreated:Fire(ref, self)
 	return self
 end

@@ -63,6 +63,7 @@ Table of contents
 # Update 16.1.0 - The Flow State
 Added
 ---
+- `multi.UUID()` generates a uuid7, if chronos is installed that will be used as the initial time seed
 - `More control over processors`
 	- `multi:newProcessor(name, opts, priority)` -- Now accepts a opts table. Old param still works
 	
@@ -140,11 +141,11 @@ data = multi:newConnection()
 
 -- This alarm takes too long... We will timeout
 multi:newAlarm(4):OnRing(function()
-    sitedata:Fire({Type="request"},"data is tasty")
+    data:Fire({Type="request"},"data is tasty")
 end)
 
 multi:newThread(function()
-    res, data = thread.hold(data + multi:newTimeout(3))
+    res, data = thread.hold(data + multi:newTimeout(3)) -- combined connections allow this to work
     if multi.isTimeout(res) then
         print("We timed out!")
     else
