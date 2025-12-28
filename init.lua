@@ -602,8 +602,7 @@ end
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
-	local c=self:newBase()
-	c.Type=multi.registerType("timemaster")
+	local c,err=self:newBase(multi.registerType("timemaster"))
 	c.timer=self:newTimer()
 	c.timer:Start()
 	c.set=n
@@ -619,7 +618,7 @@ function multi:SetTime(n)
 			return true
 		end
 	end
-	return self
+	return self,err
 end
 
 function multi:ResolveTimer(...)
@@ -712,7 +711,7 @@ end
 
 --Constructors [CORE]
 local _tid = 0
-function multi:newBase(ins)
+function multi:newBase(tp,ins,callback)
 	if not(self.Type==multi.registerType("rootprocess") or self.Type==multi.registerType("process", "processes")) then multi.error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
 	if self.Type==multi.registerType("process", "processes") then
@@ -730,6 +729,7 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.creationTime = clock()
+	c.Type = tp
 
 	function c:Pause()
 		c.Parent.Pause(self)
@@ -740,13 +740,21 @@ function multi:newBase(ins)
 		c.Parent.Resume(self)
 		return self
 	end
+
+	_tid = _tid + 1 -- Even if the task isn't scheduled, we want to increment this
+
+	if type(callback) == "function" then
+		local res, err = callback(tp)
+		if not res then
+			return c, err
+		end
+	end
 	
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
 		table.insert(self.Mainloop,c)
 	end
-	_tid = _tid + 1
 	return c
 end
 
@@ -790,8 +798,7 @@ end
 
 --Core Actors
 function multi:newEvent(task, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("event", "events")
+	local c,err=self:newBase(multi.registerType("event", "events"))
 	local task = task or function() end
 	function c:Act()
 		local t = task(self)
@@ -813,12 +820,11 @@ function multi:newEvent(task, func)
 	self:setPriority("core")
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newUpdater(skip, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("updater", "updaters")
+	local c,err=self:newBase(multi.registerType("updater", "updaters"))
 	local pos = 1
 	local skip = skip or 1
 	function c:Act()
@@ -839,12 +845,11 @@ function multi:newUpdater(skip, func)
 		c.OnUpdate(func)
 	end
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newAlarm(set, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("alarm", "alarms")
+	local c,err=self:newBase(multi.registerType("alarm", "alarms"))
 	c:setPriority("Low")
 	c.set=set or 0
 	local count = 0
@@ -880,12 +885,11 @@ function multi:newAlarm(set, func)
 	end
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newLoop(func, notime)
-	local c=self:newBase()
-	c.Type = multi.registerType("loop", "loops")
+	local c,err=self:newBase(multi.registerType("loop", "loops"))
 	local start=clock()
 	if notime then
 		function c:Act()
@@ -907,13 +911,12 @@ function multi:newLoop(func, notime)
 	
 	self:create(c)
 	c:setName(c.Type)
-	return c
+	return c,err
 end
 
 function multi:newStep(start,reset,count,skip)
-	local c=self:newBase()
+	local c,err=self:newBase(multi.registerType("step", "steps"))
 	think=1
-	c.Type=multi.registerType("step", "steps")
 	c.pos=start or 1
 	c.endAt=reset or math.huge
 	c.skip=skip or 0
@@ -967,12 +970,11 @@ function multi:newStep(start,reset,count,skip)
 	end
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newTLoop(func, set)
-	local c=self:newBase()
-	c.Type=multi.registerType("tloop", "tloops")
+	local c,err=self:newBase(multi.registerType("tloop", "tloops"))
 	c.set=set or 0
 	c.timer=self:newTimer()
 	c.life=0
@@ -1013,7 +1015,7 @@ function multi:newTLoop(func, set)
 
 	self:create(c)
 
-	return c
+	return c,err
 end
 
 function multi:setTimeout(func, t)
@@ -1133,10 +1135,38 @@ end
 
 local sandcount = 1
 
-function multi:newProcessor(name, nothread, priority)
+function multi:newProcessor(name, opts, priority)
+	local nothread, attach
+	if type(opts) ~= "table" then
+		attach = not opts
+		nothread = opts -- support old params
+	end
 	local c = {}
+	c.Status = {}
 	setmetatable(c,{__index = multi})
 	local name = name or "Processor_" .. sandcount
+	local maxThreads = -1
+	local maxObjects = -1
+	local taskhandler = true
+
+	rootBase = multi.newBase
+
+	local function setStatus(status)
+		table.insert(c.Status,status)
+		return status
+	end
+
+	local callback = function(tp)
+		if maxObjects <0 or #c.Mainloop < maxObjects then
+			return true
+		end
+		return false, setStatus(string.format("Unable to create [%s]: MAX_OBJECTS: '%d' current scheduled objects: '%d'", tp, maxObjects, #c.Mainloop))
+	end
+
+	function c:newBase(tp,ins)
+		return rootBase(self,tp,ins,callback)
+	end
+
 	sandcount = sandcount + 1
 	c.Mainloop = {}
 	c.Type = multi.registerType("process", "processes")
@@ -1152,13 +1182,25 @@ function multi:newProcessor(name, nothread, priority)
 	local boost = 1
 	local handler
 
+	if type(opts) == "table" then
+		priority = opts.Priority or false
+		Active = opts.Start or false
+		maxThreads = opts.MaxThreads or -1
+		maxObjects = opts.MaxObjects or -1
+		task_delay = opts.TaskDelay or 0
+		attach = opts.Attach or false
+		if opts.TaskHandler == false then -- The default was true
+			taskhandler = false
+		end
+	end
+
 	if priority then
 		handler = c:createPriorityHandler(c)
 	else
 		handler = c:createHandler(c)
 	end
 
-	if not nothread then -- Don't create a loop if we are triggering this manually
+	if attach then -- Don't create a loop if we are triggering this manually
 		c.process = self:newLoop(function()
 			if Active then
 				c:uManager(true)
@@ -1192,13 +1234,34 @@ function multi:newProcessor(name, nothread, priority)
 	end
 
 	function c:newThread(name, func,...)
-		return thread.newThread(c, name, func, ...)
+		if maxThreads < 0 or (#c.threads+#c.startme < maxThreads) then
+			return thread.newThread(c, name, func, ...)
+		end
+		return nil, setStatus(string.format("Unable to create [thread]: '%s' MAX_THREADS: '%d' current scheduled threads: '%d'",name,maxThreads,#c.threads+#c.startme))
 	end
 
 	function c:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
 			return c:newThread("Process Threaded Function Handler", func, ...)
 		end, holdme)()
+	end
+
+	function c:getMaxThreads()
+		return maxThreads
+	end
+
+	function c:setMaxThreads(n)
+		maxThreads = n
+		return c
+	end
+
+	function c:getMaxObjects()
+		return maxObjects
+	end
+
+	function c:setMaxObjects(n)
+		maxObjects = n
+		return c
 	end
 
 	function c:boost(count)
@@ -1256,22 +1319,24 @@ function multi:newProcessor(name, nothread, priority)
 		end
 	end
 
-	c:newThread("Task Handler", function()
-		local self = multi:getCurrentProcess()
-		local function task_holder()
-			return #self.tasks > 0
-		end
-		while true do
-			if #self.tasks > 0 then
-				table.remove(self.tasks,1)()
-			else
-				thread.hold(task_holder)
+	if taskhandler then
+		c:newThread("Task Handler", function()
+			local self = multi:getCurrentProcess()
+			local function task_holder()
+				return #self.tasks > 0
 			end
-			if task_delay~=0 then
-				thread.hold(task_delay)
+			while true do
+				if #self.tasks > 0 then
+					table.remove(self.tasks,1)()
+				else
+					thread.hold(task_holder)
+				end
+				if task_delay~=0 then
+					thread.hold(task_delay)
+				end
 			end
-		end
-	end).OnError(multi.error)
+		end).OnError(multi.error)
+	end
 	
 	table.insert(processes,c)
 	self:create(c)

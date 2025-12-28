@@ -1,7 +1,7 @@
 # Changelog
 Table of contents
 ---
-[Update 16.1.0 - TBA](#update-1610---tba)</br>
+[Update 16.1.0 - The Flow State](#update-1610---the-flow-state)</br>
 [Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
 [Update 15.3.1 - Bug fix](#update-1531---bug-fix)</br>
@@ -60,9 +60,74 @@ Table of contents
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
-# Update 16.1.0 - TBA
+# Update 16.1.0 - The Flow State
 Added
 ---
+- `More control over processors`
+	- `multi:newProcessor(name, opts, priority)` -- Now accepts a opts table. Old param still works
+	
+		| Option | Description | Default |
+		| --- | --- | --- |
+		| Attach | If true a hook will be attached to the parent process and will run when Start is called or Start is set | false |
+		| MaxObjects | Maximum number of objects that a processor can spawn | -1 (disabled) |
+		| MaxThreads | Maximum number of threads that a processor can spawn | -1 (disabled) |
+		| Start | If true the processor will start instantlly | false |
+		| Priority | If true the processor will use the priority handler | false |
+		| TaskDelay | Sets the task delay in seconds between each tasks execution | 0 |
+		| TashHandler | If false will disable the task feature of a processor | true |
+	- `proc:newThread()` returns nil, "errorstring" if it was unable to create a thread
+	- `proc:new[Object]` now returns {unscheduled}, "errorstring", used to just return the {scheduledObject} and no errorstring
+	- `proc:getMaxThreads()` -- returns the max thread limit
+	- `proc:setMaxThreads(n)` -- sets the max thread limit
+	- `proc:getMaxObjects()` -- gets the max object limit
+	- `proc:setMaxObjects(n)` -- sets the max object limit
+	- `proc.Status` -- A table that contains all status errors that occured in a process
+	Example:
+	```lua
+		local multi, thread = require("multi"):init()
+
+		proc = multi:newProcessor("thread test",{
+			Start = true,
+			MaxThreads = 1,
+			MaxObjects = 1,
+			Attach = true,
+			TaskDelay = .1,
+			Priority = true,
+			TaskHandler = false
+		})
+
+		print(proc:newThread("testing",function()
+			while true do 
+				print("STATUS:\n---")
+				for i,v in ipairs(proc.Status) do
+					print(i,v)
+				end
+				thread.sleep(1)
+			end
+		end))
+		proc:newThread("testing 2",function()
+			while true do 
+				print("testing 2...")
+				thread.sleep(1)
+			end
+		end)
+		proc:newThread("testing 3",function()
+			while true do 
+				print("testing 3...")
+				thread.sleep(1)
+			end
+		end)
+
+		proc:newLoop(function()
+			--
+		end)
+
+		print(proc:newLoop(function()
+			--
+		end))
+
+		multi:mainloop()
+	```
 - `multi.hasType(typ)` returns true if a type has been registered
 - `multi.isMultiObj(obj)` returns true if the object is a multi object
 - `multi.forwardConnection(src, dest)` forwards events from one connection to another connection. Doesn't modify anything and both connections are triggered when src is Fired, but not when dest is fired.
@@ -110,6 +175,12 @@ multi:mainloop()
 ```
 
 If the alarm takes longer the the timeout: `We timed out!` If the alarm is shorter: `We got the data:	data is tasty`
+
+Changed
+---
+- `multi:newBase(tp,ins,callback)` now accepts a tp param and a callback function. Callback is expected to return true/false, errorstring. If callback is false it will cancel scheduling of an object. If type is set the type of the object will be set. 
+
+	**Note:** This is all internal functionality
 
 # Update 16.0.1 - Bug fix
 Fixed
