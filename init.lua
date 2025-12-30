@@ -76,17 +76,23 @@ end
 
 local types = {}
 function multi.registerType(typ, p)
-	if multi[typ:upper():gsub("_","")] then return typ end
-	multi[typ:upper():gsub("_","")] = typ
+	if multi["$"..typ:upper():gsub("_","")] then return typ end
+	multi["$"..typ:upper():gsub("_","")] = typ
 	table.insert(types, {typ, p or typ})
 	return typ
+end
+
+function multi.hasType(typ)
+	if multi["$"..typ:upper():gsub("_","")] then 
+		return multi["$"..typ:upper():gsub("_","")] 
+	end
 end
 
 function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.0.1"
+multi.Version = "16.1.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -95,7 +101,7 @@ multi.Children = {}
 multi.Active = true
 multi.Type = multi.registerType("rootprocess")
 multi.LinkedPath = multi
-multi.TIMEOUT = "TIMEOUT"
+multi.TIMEOUT = multi.registerType("TIMEOUT", "timeouts")
 multi.TID = 0
 multi.defaultSettings = {}
 
@@ -185,9 +191,29 @@ function multi.randomString(n)
 	return str
 end
 
+function multi.isMulitObj(obj)
+	if type(obj)=="table" then
+		if obj.Type ~= nil then
+			return multi.hasType(obj.Type) ~= nil
+		end
+	end
+	return false
+end
+
+function multi.forwardConnection(src, dest)
+	if multi.isMulitObj(src) and multi.isMulitObj(dest) then
+		src(function(...)
+			dest:Fire(...)
+		end)
+	else
+		multi.error("Cannot forward non-connection objects")
+	end
+end
+
 local optimization_stats = {}
 local ignoreconn = true
 local empty_func = function() end
+
 function multi:newConnection(protect,func,kill)
 	local processor = self
 	local c={}
@@ -221,6 +247,7 @@ function multi:newConnection(protect,func,kill)
 		for i = #conns, 1, -1 do
 			obj.rawadd = true
 			obj(conns[i])
+			obj.rawadd = false
 		end
 		return obj
 	end,
@@ -230,6 +257,22 @@ function multi:newConnection(protect,func,kill)
 			obj2(function(...)
 				cn:Fire(obj1(...))
 			end)
+		elseif type(obj1) == "table" and type(obj2) == "function" then
+			local conns = obj1:Bind({})
+			for i = 1,#conns do
+				obj1(function(...)
+					conns[i](obj2(...))
+				end)
+			end
+			obj1.__connectionAdded = function(conn, func)
+				obj1:Unconnect(conn)
+				obj1.rawadd = true
+				obj1:Connect(function(...)
+					func(obj2(...))
+				end)
+				obj1.rawadd = false
+			end
+			return obj1
 		else
 			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
 		end
@@ -277,6 +320,7 @@ function multi:newConnection(protect,func,kill)
 					end
 				end)
 			end
+			return obj1
 		elseif type(obj1) == "table" and type(obj2) == "table" then
 			-- 
 		else
@@ -492,6 +536,10 @@ function multi:newConnection(protect,func,kill)
 		return temp
 	end
 
+	function c:Get()
+		return fast
+	end
+
 	function c:Remove()
 		local temp = fast
 		fast={}
@@ -554,8 +602,7 @@ end
 -- Advance Timer stuff
 function multi:SetTime(n)
 	if not n then n=3 end
-	local c=self:newBase()
-	c.Type=multi.registerType("timemaster")
+	local c,err=self:newBase(multi.registerType("timemaster"))
 	c.timer=self:newTimer()
 	c.timer:Start()
 	c.set=n
@@ -571,7 +618,7 @@ function multi:SetTime(n)
 			return true
 		end
 	end
-	return self
+	return self,err
 end
 
 function multi:ResolveTimer(...)
@@ -651,8 +698,49 @@ function multi:isDone()
 	return self.Active~=true
 end
 
+local time = os.time
+local ok, chronos = pcall(require, "chronos") -- hpc
+
+if ok then
+	math.randomseed(chronos.nanotime()*1000000000)
+else
+	math.randomseed(time())
+end
+
+function multi.UUID()
+	
+    -- random bytes
+    local value = {}
+    for i = 1, 16 do
+        value[i] = math.random(0, 255)
+    end
+
+    -- current timestamp in ms
+    local timestamp = time() * 1000
+
+    -- timestamp
+    value[1] = (timestamp >> 40) & 0xFF
+    value[2] = (timestamp >> 32) & 0xFF
+    value[3] = (timestamp >> 24) & 0xFF
+    value[4] = (timestamp >> 16) & 0xFF
+    value[5] = (timestamp >> 8) & 0xFF
+    value[6] = timestamp & 0xFF
+
+    -- version and variant
+    value[7] = (value[7] & 0x0F) | 0x70
+    value[9] = (value[9] & 0x3F) | 0x80
+	res = ""
+	for i = 1, #value do
+		res = res .. string.format('%02x', value[i])
+		if i == 4 or i == 6 or i == 8 or i == 10 then
+			res = res .. "-"
+		end
+	end
+    return res
+end
+
 function multi:create(ref)
-	ref.UID = "U"..multi.randomString(12)
+	ref.UID = self.UUID()
 	self.OnObjectCreated:Fire(ref, self)
 	return self
 end
@@ -664,7 +752,7 @@ end
 
 --Constructors [CORE]
 local _tid = 0
-function multi:newBase(ins)
+function multi:newBase(tp,ins,callback)
 	if not(self.Type==multi.registerType("rootprocess") or self.Type==multi.registerType("process", "processes")) then multi.error('Can only create an object on multi or an interface obj') return false end
 	local c = {}
 	if self.Type==multi.registerType("process", "processes") then
@@ -682,6 +770,7 @@ function multi:newBase(ins)
 	c.Act=function() end
 	c.Parent=self
 	c.creationTime = clock()
+	c.Type = tp
 
 	function c:Pause()
 		c.Parent.Pause(self)
@@ -692,14 +781,28 @@ function multi:newBase(ins)
 		c.Parent.Resume(self)
 		return self
 	end
+
+	_tid = _tid + 1 -- Even if the task isn't scheduled, we want to increment this
+
+	if type(callback) == "function" then
+		local res, err = callback(tp)
+		if not res then
+			return c, err
+		end
+	end
 	
 	if ins then
 		table.insert(self.Mainloop,ins,c)
 	else
 		table.insert(self.Mainloop,c)
 	end
-	_tid = _tid + 1
 	return c
+end
+
+function multi:newTimeout(timeout)
+	local c={}
+	c.Type = multi.registerType(multi.TIMEOUT, "timeouts")
+	return function(self) self:Destroy() return c end % self:newAlarm(timeout).OnRing
 end
 
 function multi:newTimer()
@@ -736,8 +839,7 @@ end
 
 --Core Actors
 function multi:newEvent(task, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("event", "events")
+	local c,err=self:newBase(multi.registerType("event", "events"))
 	local task = task or function() end
 	function c:Act()
 		local t = task(self)
@@ -759,12 +861,11 @@ function multi:newEvent(task, func)
 	self:setPriority("core")
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newUpdater(skip, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("updater", "updaters")
+	local c,err=self:newBase(multi.registerType("updater", "updaters"))
 	local pos = 1
 	local skip = skip or 1
 	function c:Act()
@@ -785,12 +886,11 @@ function multi:newUpdater(skip, func)
 		c.OnUpdate(func)
 	end
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newAlarm(set, func)
-	local c=self:newBase()
-	c.Type=multi.registerType("alarm", "alarms")
+	local c,err=self:newBase(multi.registerType("alarm", "alarms"))
 	c:setPriority("Low")
 	c.set=set or 0
 	local count = 0
@@ -826,12 +926,11 @@ function multi:newAlarm(set, func)
 	end
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newLoop(func, notime)
-	local c=self:newBase()
-	c.Type = multi.registerType("loop", "loops")
+	local c,err=self:newBase(multi.registerType("loop", "loops"))
 	local start=clock()
 	if notime then
 		function c:Act()
@@ -853,13 +952,12 @@ function multi:newLoop(func, notime)
 	
 	self:create(c)
 	c:setName(c.Type)
-	return c
+	return c,err
 end
 
 function multi:newStep(start,reset,count,skip)
-	local c=self:newBase()
+	local c,err=self:newBase(multi.registerType("step", "steps"))
 	think=1
-	c.Type=multi.registerType("step", "steps")
 	c.pos=start or 1
 	c.endAt=reset or math.huge
 	c.skip=skip or 0
@@ -913,12 +1011,11 @@ function multi:newStep(start,reset,count,skip)
 	end
 	c:setName(c.Type)
 	self:create(c)
-	return c
+	return c,err
 end
 
 function multi:newTLoop(func, set)
-	local c=self:newBase()
-	c.Type=multi.registerType("tloop", "tloops")
+	local c,err=self:newBase(multi.registerType("tloop", "tloops"))
 	c.set=set or 0
 	c.timer=self:newTimer()
 	c.life=0
@@ -959,7 +1056,7 @@ function multi:newTLoop(func, set)
 
 	self:create(c)
 
-	return c
+	return c,err
 end
 
 function multi:setTimeout(func, t)
@@ -1079,10 +1176,38 @@ end
 
 local sandcount = 1
 
-function multi:newProcessor(name, nothread, priority)
+function multi:newProcessor(name, opts, priority)
+	local nothread, attach
+	if type(opts) ~= "table" then
+		attach = not opts
+		nothread = opts -- support old params
+	end
 	local c = {}
+	c.Status = {}
 	setmetatable(c,{__index = multi})
 	local name = name or "Processor_" .. sandcount
+	local maxThreads = -1
+	local maxObjects = -1
+	local taskhandler = true
+
+	rootBase = multi.newBase
+
+	local function setStatus(status)
+		table.insert(c.Status,status)
+		return status
+	end
+
+	local callback = function(tp)
+		if maxObjects <0 or #c.Mainloop < maxObjects then
+			return true
+		end
+		return false, setStatus(string.format("Unable to create [%s]: MAX_OBJECTS: '%d' current scheduled objects: '%d'", tp, maxObjects, #c.Mainloop))
+	end
+
+	function c:newBase(tp,ins)
+		return rootBase(self,tp,ins,callback)
+	end
+
 	sandcount = sandcount + 1
 	c.Mainloop = {}
 	c.Type = multi.registerType("process", "processes")
@@ -1098,13 +1223,25 @@ function multi:newProcessor(name, nothread, priority)
 	local boost = 1
 	local handler
 
+	if type(opts) == "table" then
+		priority = opts.Priority or false
+		Active = opts.Start or false
+		maxThreads = opts.MaxThreads or -1
+		maxObjects = opts.MaxObjects or -1
+		task_delay = opts.TaskDelay or 0
+		attach = opts.Attach or false
+		if opts.TaskHandler == false then -- The default was true
+			taskhandler = false
+		end
+	end
+
 	if priority then
 		handler = c:createPriorityHandler(c)
 	else
 		handler = c:createHandler(c)
 	end
 
-	if not nothread then -- Don't create a loop if we are triggering this manually
+	if attach then -- Don't create a loop if we are triggering this manually
 		c.process = self:newLoop(function()
 			if Active then
 				c:uManager(true)
@@ -1138,13 +1275,34 @@ function multi:newProcessor(name, nothread, priority)
 	end
 
 	function c:newThread(name, func,...)
-		return thread.newThread(c, name, func, ...)
+		if maxThreads < 0 or (#c.threads+#c.startme < maxThreads) then
+			return thread.newThread(c, name, func, ...)
+		end
+		return nil, setStatus(string.format("Unable to create [thread]: '%s' MAX_THREADS: '%d' current scheduled threads: '%d'",name,maxThreads,#c.threads+#c.startme))
 	end
 
 	function c:newFunction(func, holdme)
 		return thread:newFunctionBase(function(...)
 			return c:newThread("Process Threaded Function Handler", func, ...)
 		end, holdme)()
+	end
+
+	function c:getMaxThreads()
+		return maxThreads
+	end
+
+	function c:setMaxThreads(n)
+		maxThreads = n
+		return c
+	end
+
+	function c:getMaxObjects()
+		return maxObjects
+	end
+
+	function c:setMaxObjects(n)
+		maxObjects = n
+		return c
 	end
 
 	function c:boost(count)
@@ -1202,22 +1360,24 @@ function multi:newProcessor(name, nothread, priority)
 		end
 	end
 
-	c:newThread("Task Handler", function()
-		local self = multi:getCurrentProcess()
-		local function task_holder()
-			return #self.tasks > 0
-		end
-		while true do
-			if #self.tasks > 0 then
-				table.remove(self.tasks,1)()
-			else
-				thread.hold(task_holder)
+	if taskhandler then
+		c:newThread("Task Handler", function()
+			local self = multi:getCurrentProcess()
+			local function task_holder()
+				return #self.tasks > 0
 			end
-			if task_delay~=0 then
-				thread.hold(task_delay)
+			while true do
+				if #self.tasks > 0 then
+					table.remove(self.tasks,1)()
+				else
+					thread.hold(task_holder)
+				end
+				if task_delay~=0 then
+					thread.hold(task_delay)
+				end
 			end
-		end
-	end).OnError(multi.error)
+		end).OnError(multi.error)
+	end
 	
 	table.insert(processes,c)
 	self:create(c)
@@ -2227,6 +2387,13 @@ end
 --------
 -- UTILS
 --------
+
+function multi.isTimeout(res)
+	if type(res) == "table" then
+		return res.Type == multi.TIMEOUT
+	end
+	return res == multi.TIMEOUT
+end
 
 function table.merge(t1, t2)
 	for k,v in pairs(t2) do

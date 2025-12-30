@@ -1,4 +1,10 @@
-# Multi Version: 16.0.1 - Bug fix
+# Multi Version: 16.1.0 - The Flow State
+**Key Changes**
+- Updated Processors to have more controlled over scheduled processes
+- Forwarding connections
+- New Timeout handling
+
+Refer to the [Change Log](https://github.com/rayaman/multi/blob/master/docs/changes.md) for more infromation
 
 Found an issue? Please [submit it](https://github.com/rayaman/multi/issues) and someone will look into it!
 
@@ -45,7 +51,7 @@ Planned features/TODO
 - [x] ~~Create test suite (In progress, mostly done)~~
 - [ ] Network Parallelism rework
 
-Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/Documentation.md)
+Usage: [Check out the documentation for more info](https://github.com/rayaman/multi/blob/master/docs/Documentation.md)
 -----
 
 You can run tests in 2 ways:

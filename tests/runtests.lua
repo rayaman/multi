@@ -4,6 +4,8 @@ local multi, thread = require("multi"):init{print=true,warn=true,error=true}--{p
 local good = false
 local proc = multi:newProcessor("Test")
 
+print("Version: "..multi.Version)
+
 proc.Start()
 
 proc:newAlarm(3):OnRing(function()
