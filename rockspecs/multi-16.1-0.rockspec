@@ -18,7 +18,7 @@ dependencies = {
 }
 build = {
    type = "builtin",
-   modules = {
+   modules = { 
       ["multi"] = "init.lua",
       ["multi.integration.lanesManager"] = "integration/lanesManager/init.lua",
       ["multi.integration.lanesManager.extensions"] = "integration/lanesManager/extensions.lua",
