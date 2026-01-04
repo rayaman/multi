@@ -12,7 +12,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 </br>
 
-Progress is being made in [v16.1.0](https://github.com/rayaman/multi/tree/v16.1.0)
+Progress is being made in [v16.2.0](https://github.com/rayaman/multi/tree/v16.2.0)
 ---
 
 </br>
