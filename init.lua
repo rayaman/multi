@@ -707,42 +707,14 @@ else
 	math.randomseed(time())
 end
 
-function multi.UUID()
-	
-    -- random bytes
-    local value = {}
-    for i = 1, 16 do
-        value[i] = math.random(0, 255)
-    end
-
-    -- current timestamp in ms
-    local timestamp = time() * 1000
-
-    -- timestamp
-    value[1] = (timestamp >> 40) & 0xFF
-    value[2] = (timestamp >> 32) & 0xFF
-    value[3] = (timestamp >> 24) & 0xFF
-    value[4] = (timestamp >> 16) & 0xFF
-    value[5] = (timestamp >> 8) & 0xFF
-    value[6] = timestamp & 0xFF
-
-    -- version and variant
-    value[7] = (value[7] & 0x0F) | 0x70
-    value[9] = (value[9] & 0x3F) | 0x80
-	res = ""
-	for i = 1, #value do
-		res = res .. string.format('%02x', value[i])
-		if i == 4 or i == 6 or i == 8 or i == 10 then
-			res = res .. "-"
-		end
-	end
-    return res
-end
-
 function multi:create(ref)
-	ref.UID = self.UUID()
+	ref.UID = multi.generate_uuid7()
 	self.OnObjectCreated:Fire(ref, self)
 	return self
+end
+
+function multi:GetCreationTimestamp()
+	return multi.extract_uuid7_timestamp(self.UID).iso8601
 end
 
 function multi:setName(name)
@@ -1602,7 +1574,10 @@ end
 
 function thread:newFunctionBase(generator, holdme, TYPE)
 	return function()
-		local tfunc = {}
+		local UID = multi.generate_uuid7()
+		local tfunc = {
+			GetCreationTimestamp = function() return multi.extract_uuid7_timestamp(UID).iso8601 end,
+		}
 		tfunc.Active = true
 		function tfunc:Pause()
 			self.Active = false
@@ -1808,6 +1783,10 @@ function thread:newThread(name, func, ...)
 
 	function c:isPaused()
 		return self._isPaused
+	end
+
+	function c:GetCreationTimestamp()
+		return multi.extract_uuid7_timestamp(self.UID).iso8601
 	end
 
 	local resumed = false
@@ -2675,6 +2654,144 @@ function multi.success(...)
 	local t = {}
 	for i,v in ipairs(multi.pack(...)) do t[#t+1] = tostring(v) end
 	io.write("\x1b[92mSUCCESS:\x1b[0m " .. table.concat(t," ") .. "\n")
+end
+
+-- UUID Handling
+local function get_timestamp_ms()
+	-- os.time() gives seconds, we need milliseconds
+	-- For sub-second precision, we'd need a C extension in real use
+	-- Here we'll use seconds * 1000 + a pseudo-random millisecond component
+	local sec = os.time()
+	return sec * 1000
+end
+
+-- Convert number to hex string with specified length
+local function to_hex(num, len)
+	local hex = string.format("%x", num)
+	return string.rep("0", len - #hex) .. hex
+end
+
+-- Generate random hex string of specified length
+local function random_hex(len)
+	local result = ""
+	for i = 1, len do
+		result = result .. string.format("%x", math.random(0, 15))
+	end
+	return result
+end
+
+multi.generate_uuid7 = function()
+    -- Seed random number generator with current time
+    math.randomseed(os.time() * os.clock() * 1000000)
+    
+    -- Get timestamp in milliseconds
+    local timestamp_ms = get_timestamp_ms()
+    
+    -- Convert timestamp to 12 hex characters (48 bits)
+    -- Split into high and low parts
+    local high = math.floor(timestamp_ms / 16777216)  -- Upper 24 bits
+    local low = timestamp_ms % 16777216               -- Lower 24 bits
+    
+    local time_high = to_hex(high, 6)
+    local time_low = to_hex(low, 6)
+    
+    -- Version and random bits (4 bits version + 12 bits random = 16 bits = 4 hex)
+    local ver_rand = random_hex(3)
+    local version_field = "7" .. ver_rand  -- Version 7
+    
+    -- Variant and random bits (2 bits variant + 14 bits random = 16 bits = 4 hex)
+    local rand_val = math.random(0, 16383)  -- 14 bits of random
+    local variant_field = to_hex(0x8000 + rand_val, 4)  -- Set variant bits to 10
+    
+    -- Remaining random bits (48 bits = 12 hex)
+    local random_field = random_hex(12)
+    
+    -- Assemble UUID: xxxxxxxx-xxxx-7xxx-xxxx-xxxxxxxxxxxx
+    local uuid = string.format("%s%s-%s-%s-%s-%s",
+        time_high:sub(1, 2),
+        time_high:sub(3, 6) .. time_low:sub(1, 2),
+        time_low:sub(3, 6),
+        version_field,
+        variant_field,
+        random_field
+    )
+    return uuid
+end
+
+local function is_leap(y)
+	return (y % 4 == 0 and y % 100 ~= 0) or (y % 400 == 0)
+end
+
+local function format_date(seconds)
+	local days = math.floor(seconds / 86400)
+	local remainder = seconds % 86400
+	local hours = math.floor(remainder / 3600)
+	remainder = remainder % 3600
+	local minutes = math.floor(remainder / 60)
+	local secs = remainder % 60
+	
+	-- Calculate year, month, day from days since epoch (1970-01-01)
+	local year = 1970
+	local month = 1
+	local day = 1 + days
+	
+	local days_in_month = {31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+	
+	while true do
+		local days_in_year = is_leap(year) and 366 or 365
+		if day <= days_in_year then break end
+		day = day - days_in_year
+		year = year + 1
+	end
+	
+	while true do
+		local dim = days_in_month[month]
+		if month == 2 and is_leap(year) then dim = 29 end
+		if day <= dim then break end
+		day = day - dim
+		month = month + 1
+	end
+	
+	return string.format("%04d-%02d-%02d %02d:%02d:%02d", 
+						year, month, day, hours, minutes, secs)
+end
+
+multi.extract_uuid7_timestamp = function(uuid_str)
+    -- Remove hyphens from UUID
+    local hex = uuid_str:gsub("-", "")
+    
+    -- Validate length
+    if #hex ~= 32 then
+        return nil, "Invalid UUID length"
+    end
+    
+    -- Extract first 12 hex characters (48 bits = timestamp in ms)
+    local timestamp_hex = hex:sub(1, 12)
+    
+    -- Convert hex to decimal - need to handle large numbers
+    -- Break into two parts to avoid overflow
+    local high = tonumber(timestamp_hex:sub(1, 6), 16)
+    local low = tonumber(timestamp_hex:sub(7, 12), 16)
+    local timestamp_ms = high * 16777216 + low  -- 16^6 = 16777216
+    
+    if not timestamp_ms then
+        return nil, "Failed to parse timestamp"
+    end
+    
+    -- Convert milliseconds to seconds
+    local timestamp_sec = math.floor(timestamp_ms / 1000)
+    local ms_remainder = timestamp_ms % 1000
+    
+    -- Manual date calculation for large timestamps
+    
+    local date_str = format_date(timestamp_sec)
+    
+    return {
+        milliseconds = timestamp_ms,
+        seconds = timestamp_sec,
+        date = date_str,
+        iso8601 = date_str:gsub(" ", "T") .. string.format(".%03dZ", ms_remainder)
+    }
 end
 
 -- Old things for compatability
