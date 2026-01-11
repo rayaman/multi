@@ -629,13 +629,15 @@ Added
 
 	Output:
 	```
-	I run before all and control if things go!
+	I run before all and control if execution should continue!
 	Hi 3
 	Hi 1
+	I run before all and control if execution should continue!
+	Hi 3
+	Hi 2
 	Test 1
 	Test 2
 	Test 3
-	I run after it all!
 	```
 
 	**Note:** Concat of connections does modify internal events on both connections depending on the direction func .. conn or conn .. func See implemention below:
