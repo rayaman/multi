@@ -1,7 +1,7 @@
 # Changelog
 Table of contents
 ---
-[Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids)</br>
+[Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids-and-bugfixes)</br>
 [Update 16.1.0 - The Flow State](#update-1610---the-flow-state)</br>
 [Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
