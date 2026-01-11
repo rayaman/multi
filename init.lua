@@ -702,7 +702,7 @@ local time = os.time
 local ok, chronos = pcall(require, "chronos") -- hpc
 
 if ok then
-	math.randomseed(chronos.nanotime()*1000000000)
+	math.randomseed(chronos.nanotime()*100000000)
 else
 	math.randomseed(time())
 end
