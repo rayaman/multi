@@ -1,6 +1,7 @@
 # Changelog
 Table of contents
 ---
+[Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids)</br>
 [Update 16.1.0 - The Flow State](#update-1610---the-flow-state)</br>
 [Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
@@ -59,6 +60,19 @@ Table of contents
 [Update: EventManager 1.1.0](#update-eventmanager-110)</br>
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.2.0 - TimeStamps and UUIDs and bugfixes
+Added
+---
+- threadedfunctions, multiobjs and threads contain new method: `GetCreationTimestamp()` With will return a string formated date time using ISO 8601
+
+Changed
+---
+- Internal uuid functions to not use bitwise operators
+
+Fixed
+---
+- [Bitwise operations break lua 5.1/luajit](https://github.com/rayaman/multi/issues/73)
 
 # Update 16.1.0 - The Flow State
 Added
