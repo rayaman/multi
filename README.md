@@ -1,8 +1,6 @@
-# Multi Version: 16.1.0 - The Flow State
+# Multi Version: 16.3.0 - 
 **Key Changes**
-- Updated Processors to have more controlled over scheduled processes
-- Forwarding connections
-- New Timeout handling
+- Fixed connection multiplying
 
 Refer to the [Change Log](https://github.com/rayaman/multi/blob/master/docs/changes.md) for more infromation
 
@@ -12,7 +10,7 @@ My multitasking library for lua. It is a pure lua binding, with exceptions of th
 
 </br>
 
-Progress is being made in [v16.2.0](https://github.com/rayaman/multi/tree/v16.2.0)
+Progress is being made in [v16.3.0](https://github.com/rayaman/multi/tree/v16.3.0)
 ---
 
 </br>

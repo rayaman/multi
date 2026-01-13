@@ -92,7 +92,7 @@ function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.2.0"
+multi.Version = "16.3.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -298,7 +298,7 @@ function multi:newConnection(protect,func,kill)
 		local ref
 		if type(obj1) == "function" and type(obj2) == "table" then
 			cn(function(...)
-				if obj1(...) then
+				if obj1(...) == true then
 					obj2:Fire(...)
 				end
 			end)
@@ -320,7 +320,7 @@ function multi:newConnection(protect,func,kill)
 					end
 				end)
 			end
-			return obj1
+			return cn
 		elseif type(obj1) == "table" and type(obj2) == "table" then
 			-- 
 		else
@@ -367,8 +367,6 @@ function multi:newConnection(protect,func,kill)
 			if cn.__count[1] == cn.__hasInstances[1] then
 				cn:Fire(...)
 				cn.__count[1] = 0
-				c1:Unlock(ref1)
-				c2:Unlock(ref2)
 			end
 		end)
 		return cn
@@ -696,15 +694,6 @@ end
 
 function multi:isDone()
 	return self.Active~=true
-end
-
-local time = os.time
-local ok, chronos = pcall(require, "chronos") -- hpc
-
-if ok then
-	math.randomseed(chronos.nanotime()*100000000)
-else
-	math.randomseed(time())
 end
 
 function multi:create(ref)
@@ -1517,8 +1506,9 @@ function thread.skip(n)
 	return yield(CMD, t_skip, n or 1)
 end
 
-function thread.kill()
-	multi.error("thread killed!")
+function thread.kill(msg)
+	msg = msg or "thread killed!"
+	multi.error(msg)
 end
 
 function thread.yield()

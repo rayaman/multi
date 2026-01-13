@@ -1,4 +1,4 @@
-package.path = "D:/VSCWorkspace/?/init.lua;D:/VSCWorkspace/?.lua;"..package.path
+package.path = "../?/init.lua;../?.lua;./init.lua;./?.lua;" .. package.path
 package.cpath = "C:/luaInstalls/lua5.4/lib/lua/5.4/?/core.dll;" .. package.cpath
 multi, thread = require("multi"):init{error=true,warning=true,print=true, priority=true}
 proc = multi:newProcessor("Thread Test",true)
