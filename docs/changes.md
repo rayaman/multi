@@ -1,7 +1,8 @@
 # Changelog
 Table of contents
 ---
-[Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids-and-bugfixes)</br>
+[Update 16.3.0 - Bug Fixes](#update-1620---bug-fixes)</br>
+[Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids)</br>
 [Update 16.1.0 - The Flow State](#update-1610---the-flow-state)</br>
 [Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
 [Update 16.0.0 - Connecting the dots](#update-1600---getting-the-priorities-straight)</br>
@@ -60,6 +61,20 @@ Table of contents
 [Update: EventManager 1.1.0](#update-eventmanager-110)</br>
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
+
+# Update 16.3.0 - Bug Fixes
+
+Added
+---
+
+Changed
+---
+- `thread.kill(msg)` now accepts a message. If omitted will use default `thread killed!`
+
+Fixed
+---
+- [Issue](https://github.com/rayaman/multi/issues/77) with concat of connections where conn .. func did not work properly
+- [Issue](https://github.com/rayaman/multi/issues/67) with connection multiplying
 
 # Update 16.2.0 - TimeStamps and UUIDs and bugfixes
 Added
@@ -629,15 +644,13 @@ Added
 
 	Output:
 	```
-	I run before all and control if execution should continue!
+	I run before all and control if things go!
 	Hi 3
 	Hi 1
-	I run before all and control if execution should continue!
-	Hi 3
-	Hi 2
 	Test 1
 	Test 2
 	Test 3
+	I run after it all!
 	```
 
 	**Note:** Concat of connections does modify internal events on both connections depending on the direction func .. conn or conn .. func See implemention below:
