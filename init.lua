@@ -158,7 +158,7 @@ function multi:getStats()
 	local stats = {
 		[multi.Name] = {
 			threads = multi:getThreads(),
-			tasks = multi:getTasks()
+			tasks = multi.Mainloop
 		}
 	}
 	local procs = multi:getProcessors()
@@ -166,7 +166,7 @@ function multi:getStats()
 		local proc = procs[i]
 		stats[proc:getFullName()] = {
 			threads = proc:getThreads(),
-			tasks = proc:getTasks()
+			tasks = proc.Mainloop
 		}
 	end
 	return stats
@@ -253,11 +253,11 @@ function multi:newConnection(protect,func,kill)
 	end,
 	__mod = function(obj1, obj2) -- %
 		local cn = self:newConnection()
-		if type(obj1) == "function" and type(obj2) == "table" then
+		if (type(obj1) == "function" or type(obj1) == "table" and obj1.Type == multi.registerType("function", "functions")) and type(obj2) == "table" then
 			obj2(function(...)
 				cn:Fire(obj1(...))
 			end)
-		elseif type(obj1) == "table" and type(obj2) == "function" then
+		elseif type(obj1) == "table" and (type(obj2) == "function" or type(obj2) == "table" and obj2.Type == multi.registerType("function", "functions")) then
 			local conns = obj1:Bind({})
 			for i = 1,#conns do
 				obj1(function(...)
@@ -274,7 +274,7 @@ function multi:newConnection(protect,func,kill)
 			end
 			return obj1
 		else
-			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
+			multi.error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
 		end
 		return cn
 	end,
@@ -285,6 +285,7 @@ function multi:newConnection(protect,func,kill)
 			obj2(function(...)
 				local args = {obj1(...)}
 				if args[1] then
+					table.remove(args,1)
 					cn:Fire(multi.unpack(args))
 				end
 			end)
@@ -608,10 +609,10 @@ function multi:SetTime(n)
 	c.OnTimedOut = self:newConnection()
 	c.OnTimerResolved = self:newConnection()
 	self._timer=c.timer
-	function c:Act()
+	function c:Act(dt)
 		if self.timer:Get()>=self.set then
 			self.link:Pause()
-			self.OnTimedOut:Fire(self.link)
+			self.OnTimedOut:Fire(self.link,dt)
 			self:Destroy()
 			return true
 		end
@@ -802,12 +803,12 @@ end
 function multi:newEvent(task, func)
 	local c,err=self:newBase(multi.registerType("event", "events"))
 	local task = task or function() end
-	function c:Act()
+	function c:Act(dt)
 		local t = task(self)
 		if t then
 			self:Pause()
 			self.returns = t
-			self.OnEvent:Fire(self)
+			self.OnEvent:Fire(self,dt)
 			return true
 		end
 	end
@@ -829,10 +830,10 @@ function multi:newUpdater(skip, func)
 	local c,err=self:newBase(multi.registerType("updater", "updaters"))
 	local pos = 1
 	local skip = skip or 1
-	function c:Act()
+	function c:Act(dt)
 		if pos >= skip then
 			pos = 0
-			self.OnUpdate:Fire(self)
+			self.OnUpdate:Fire(self,dt)
 			return true
 		end
 		pos = pos+1
@@ -856,11 +857,11 @@ function multi:newAlarm(set, func)
 	c.set=set or 0
 	local count = 0
 	local t = clock()
-	function c:Act()
+	function c:Act(dt)
 		if clock()-t>=self.set then
 			self:Pause()
 			self.Active=false
-			self.OnRing:Fire(self)
+			self.OnRing:Fire(self,dt)
 			t = clock()
 			return true
 		end
@@ -894,13 +895,13 @@ function multi:newLoop(func, notime)
 	local c,err=self:newBase(multi.registerType("loop", "loops"))
 	local start=clock()
 	if notime then
-		function c:Act()
-			self.OnLoop:Fire(self)
+		function c:Act(dt)
+			self.OnLoop:Fire(self,nil,dt)
 			return true
 		end
 	else
-		function c:Act()
-			self.OnLoop:Fire(self,clock()-start)
+		function c:Act(dt)
+			self.OnLoop:Fire(self,clock()-start,dt)
 			return true
 		end
 	end
@@ -930,13 +931,13 @@ function multi:newStep(start,reset,count,skip)
 			think=-1
 		end
 	end
-	function c:Act()
+	function c:Act(dt)
 		if self~=nil then
 			if self.spos==0 then
 				if self.pos==self.start then
 					self.OnStart:Fire(self)
 				end
-				self.OnStep:Fire(self,self.pos)
+				self.OnStep:Fire(self,self.pos,dt)
 				self.pos=self.pos+self.count
 				if self.pos-self.count==self.endAt then
 					self:Pause()
@@ -982,11 +983,11 @@ function multi:newTLoop(func, set)
 	c.life=0
 	c:setPriority("Low")
 
-	function c:Act()
+	function c:Act(dt)
 		if self.timer:Get() >= self.set then
 			self.life=self.life+1
 			self.timer:Reset()
-			self.OnLoop:Fire(self, self.life)
+			self.OnLoop:Fire(self, self.life,dt)
 			return true
 		end
 	end
@@ -1041,13 +1042,13 @@ function multi:newTStep(start,reset,count,set)
 		self:Resume()
 		return self
 	end
-	function c:Act()
+	function c:Act(dt)
 		if clock()-self.timer>=self.set then
 			self:Reset()
 			if self.pos==self.start then
 				self.OnStart:Fire(self)
 			end
-			self.OnStep:Fire(self,self.pos)
+			self.OnStep:Fire(self,self.pos,dt)
 			self.pos=self.pos+self.count
 			if self.pos-self.count==self.endAt then
 				self:Pause()
@@ -1269,27 +1270,27 @@ function multi:newProcessor(name, opts, priority)
 	function c:boost(count)
 		boost = count or 1
 		if boost > 1 then
-			self.run = function()
+			self.run = function(dt)
 				if not Active then return end
 				for i=1,boost do
-					c:uManager(true)
+					c:uManager(dt)
 					handler()
 				end
 				return c
 			end
 		else
-			self.run = function()
+			self.run = function(dt)
 				if not Active then return end
-				c:uManager(true)
+				c:uManager(dt)
 				handler()
 				return c
 			end
 		end
 	end
 
-	function c.run()
+	function c.run(dt)
 		if not Active then return end
-		c:uManager(true)
+		c:uManager(dt)
 		handler()
 		return c
 	end
@@ -2316,7 +2317,7 @@ function multi.init(settings, realsettings)
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 
-function multi:uManager()
+function multi:uManager(dt)
 	if self.Active then
 		__CurrentProcess = self
 		multi.OnPreLoad:Fire()
@@ -2325,7 +2326,7 @@ function multi:uManager()
 	end
 end
 
-function multi:uManagerRefP1()
+function multi:uManagerRefP1(dt)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
@@ -2333,7 +2334,7 @@ function multi:uManagerRefP1()
 			__CurrentTask = Loop[_D]
 			for P=1,9 do
 				if PList[P]%__CurrentTask.Priority==0 then
-					__CurrentTask:Act()
+					__CurrentTask:Act(dt)
 					__CurrentProcess = self
 				end
 			end
@@ -2341,13 +2342,13 @@ function multi:uManagerRefP1()
 	end
 end
 
-function multi:uManagerRef()
+function multi:uManagerRef(dt)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
 		for _D=#Loop,1,-1 do
 			__CurrentTask = Loop[_D]
-			__CurrentTask:Act()
+			__CurrentTask:Act(dt)
 			__CurrentProcess = self
 		end
 	end
@@ -2672,7 +2673,7 @@ end
 
 multi.generate_uuid7 = function()
     -- Seed random number generator with current time
-    math.randomseed(os.time() * os.clock() * 1000000)
+    math.randomseed(os.time())
     
     -- Get timestamp in milliseconds
     local timestamp_ms = get_timestamp_ms()
