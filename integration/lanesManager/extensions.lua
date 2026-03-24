@@ -58,16 +58,20 @@ function multi:newSystemThreadedQueue(name)
 		GLOBAL[name] = c
 	end
 
+	local peek = function()
+		return c:peek()
+	end
+
+	local pop = function()
+		return c:pop()
+	end
+
 	function c:Hold(opt)
 		local multi, thread = require("multi"):init()
         if opt.peek then
-            return thread.hold(function()
-                return self:peek()
-            end)
+            return thread.hold(peek)
         else
-            return thread.hold(function()
-                return self:pop()
-            end)
+            return thread.hold(pop)
         end
 	end
 

@@ -66,10 +66,19 @@ Table of contents
 
 Added
 ---
+- New processor scoped to track connections that exist
+- Better Destroy logic for connections
+- Added UPTIME to all objects in the library via the create hook
+- added `proc:isPaused()` to processors
 
 Changed
 ---
 - `thread.kill(msg)` now accepts a message. If omitted will use default `thread killed!`
+- Modified multiple locations to not create a function during a thread.hold() and reuse. Only functions containing an upvalue currently have functions being created during hold. This will eventually be fixed
+- Updated `multi:getStats()` with more information
+- `multi.forwardConnection()` now returns the link to the source connection so you can do cleanup
+- When connecting to a connection you can unconnect using ref:Unconnect() it has an internal reference to the root connection
+- Unnamed threads have a shorter postfix of only 4 random characters
 
 Fixed
 ---
