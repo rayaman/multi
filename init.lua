@@ -800,6 +800,9 @@ end
 function multi:create(ref)
 	ref.UID = multi.generate_uuid7()
 	ref.UPTIME = clock()
+	if ref.setPriority then
+		ref:setPriority("normal")
+	end
 	self.OnObjectCreated:Fire(ref, self)
 	return self
 end
@@ -1289,7 +1292,7 @@ function multi:newProcessor(name, opts, priority)
 	local handler
 
 	if type(opts) == "table" then
-		priority = opts.Priority or false
+		priority = opts.Priority
 		Active = opts.Start or false
 		maxThreads = opts.MaxThreads or -1
 		maxObjects = opts.MaxObjects or -1
@@ -1300,7 +1303,7 @@ function multi:newProcessor(name, opts, priority)
 		end
 	end
 
-	if priority then
+	if priority or multi.defaultSettings.priority then
 		handler = c:createPriorityHandler(c)
 	else
 		handler = c:createHandler(c)
