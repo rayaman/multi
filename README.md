@@ -1,6 +1,8 @@
 # Multi Version: 16.3.0 - 
 **Key Changes**
 - Fixed connection multiplying
+- Optimizing the library
+- Updated task management support
 
 Refer to the [Change Log](https://github.com/rayaman/multi/blob/master/docs/changes.md) for more infromation
 

@@ -1,7 +1,7 @@
 # Changelog
 Table of contents
 ---
-[Update 16.3.0 - Bug Fixes](#update-1620---bug-fixes)</br>
+[Update 16.3.0 - Proper Priorities](#update-1620---proper-priorities)</br>
 [Update 16.2.0 - TimeStamps and UUIDs](#update-1620---timestamps-and-uuids)</br>
 [Update 16.1.0 - The Flow State](#update-1610---the-flow-state)</br>
 [Update 16.0.1 - Bug fix](#update-1601---bug-fix)</br>
@@ -62,7 +62,7 @@ Table of contents
 [Update: EventManager 1.0.0 - Error checking](#update-eventmanager-100---error-checking)</br>
 [Version: EventManager 0.0.1 - In The Beginning things were very different](#version-eventmanager-001---in-the-beginning-things-were-very-different)
 
-# Update 16.3.0 - Bug Fixes
+# Update 16.3.0 - Proper Priorities
 
 Added
 ---
