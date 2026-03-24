@@ -1421,7 +1421,9 @@ function multi:newProcessor(name, opts, priority)
 
 	function c:Destroy()
 		Active = false
-		c.process:Destroy()
+		if c.process then
+			c.process:Destroy()
+		end
 	end
 
 	function c:setTaskDelay(delay)
@@ -2647,8 +2649,8 @@ function multi:benchMark(sec,p,pt)
 end
 
 function multi.Round(num, numDecimalPlaces)
-	local mult = 10^(numDecimalPlaces or 0)
-	return math.floor(num * mult + 0.5) / mult
+	local mult = 10 ^ (numDecimalPlaces or 0)
+    return math.floor((num * mult) + 0.5 + 1e-10) / mult
 end
   
 function multi.AlignTable(tab)
@@ -2697,6 +2699,12 @@ end
 function multi:reallocate(processor, index)
 	index=index or #processor.Mainloop+1
 	local int=self.Parent
+	for i = #int.Mainloop, 1, -1 do
+		if int.Mainloop[i] == self then
+			table.remove(int.Mainloop,i)
+			break
+		end
+	end
 	self.Parent=processor
 	if index then
 		table.insert(processor.Mainloop, index, self)
@@ -2794,11 +2802,8 @@ local function random_hex(len)
 	end
 	return result
 end
-
+math.randomseed(os.time())
 multi.generate_uuid7 = function()
-    -- Seed random number generator with current time
-    math.randomseed(os.time())
-    
     -- Get timestamp in milliseconds
     local timestamp_ms = get_timestamp_ms()
     
