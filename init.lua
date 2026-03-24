@@ -92,7 +92,7 @@ function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.2.0"
+multi.Version = "16.3.0"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -154,11 +154,18 @@ function multi:isType(type)
 	return self.Type == type
 end
 
+multi.connection_count = 0
+multi.connection_subscriptions = 0
+
 function multi:getStats()
 	local stats = {
 		[multi.Name] = {
 			threads = multi:getThreads(),
-			tasks = multi:getTasks()
+			tasks = multi.Mainloop,
+			name = "root",
+			fullName = "root",
+			connections = self.connection_count,
+			subscriptions = self.connection_subscriptions
 		}
 	}
 	local procs = multi:getProcessors()
@@ -166,7 +173,11 @@ function multi:getStats()
 		local proc = procs[i]
 		stats[proc:getFullName()] = {
 			threads = proc:getThreads(),
-			tasks = proc:getTasks()
+			tasks = proc.Mainloop,
+			name = proc:getName(),
+			fullName = proc:getFullName(),
+			connections = proc.connection_count,
+			subscriptions = proc.connection_subscriptions
 		}
 	end
 	return stats
@@ -202,7 +213,7 @@ end
 
 function multi.forwardConnection(src, dest)
 	if multi.isMulitObj(src) and multi.isMulitObj(dest) then
-		src(function(...)
+		return src(function(...)
 			dest:Fire(...)
 		end)
 	else
@@ -215,164 +226,243 @@ local ignoreconn = true
 local empty_func = function() end
 
 function multi:newConnection(protect,func,kill)
-	local processor = self
-	local c={}
-	local lock = false
-	local fast = {}
-	c.__connectionAdded = function() end
-	c.rawadd = false
-	c.Parent = self
+	self.connection_count = self.connection_count + 1
+    local processor = self
+    local c = {}
+    local lock = false
+    local fast = {}
+    c.__connectionAdded = function() end
+    c.rawadd = false
+    c.Parent = self
+    c._child_conns = {}   -- tracks connections spawned by operators
+    c.destroyed = false
 
-	setmetatable(c,{
-		__call=function(self,...)
-		local t = ...
-		if type(t)=="table" then
-			for i,v in pairs(t) do
-				if v==self then
-					local ref = self:Connect(select(2,...))
-					if ref then
-						ref.root_link = select(1,...)
-						return ref
-					end
-					return self
-				end
-			end
-			return self:Connect(...)
-		else
-			return self:Connect(...)
-		end
-	end,
-	__unm = function(obj) -- -obj Reverses the order of connected events
-		local conns = obj:Bind({})
-		for i = #conns, 1, -1 do
-			obj.rawadd = true
-			obj(conns[i])
-			obj.rawadd = false
-		end
-		return obj
-	end,
-	__mod = function(obj1, obj2) -- %
-		local cn = self:newConnection()
-		if type(obj1) == "function" and type(obj2) == "table" then
-			obj2(function(...)
-				cn:Fire(obj1(...))
-			end)
-		elseif type(obj1) == "table" and type(obj2) == "function" then
-			local conns = obj1:Bind({})
-			for i = 1,#conns do
-				obj1(function(...)
-					conns[i](obj2(...))
-				end)
-			end
-			obj1.__connectionAdded = function(conn, func)
-				obj1:Unconnect(conn)
-				obj1.rawadd = true
-				obj1:Connect(function(...)
-					func(obj2(...))
-				end)
-				obj1.rawadd = false
-			end
-			return obj1
-		else
-			error("Invalid mod!", type(obj1), type(obj2),"Expected function, connection(table)")
-		end
-		return cn
-	end,
-	__div = function(obj1, obj2) -- /
-		local cn = self:newConnection()
-		local ref
-		if type(obj1) == "function" and type(obj2) == "table" then
-			obj2(function(...)
-				local args = {obj1(...)}
-				if args[1] then
-					cn:Fire(multi.unpack(args))
-				end
-			end)
-		else
-			multi.error("Invalid divide!", type(obj1), type(obj2),"Expected function/connection(table)")
-		end
-		return cn
-	end,
-	__concat = function(obj1, obj2) -- ..
-		local cn = self:newConnection()
-		local ref
-		if type(obj1) == "function" and type(obj2) == "table" then
-			cn(function(...)
-				if obj1(...) then
-					obj2:Fire(...)
-				end
-			end)
-			cn.__connectionAdded = function(conn, func)
-				cn:Unconnect(conn)
-				obj2:Connect(func)
-			end
-		elseif type(obj1) == "table" and type(obj2) == "function" then
-			ref = cn(function(...)
-				obj1:Fire(...)
-				obj2(...)
-			end)
-			cn.__connectionAdded = function()
-				cn.rawadd = true
-				cn:Unconnect(ref)
-				ref = cn(function(...)
-					if obj2(...) then
-						obj1:Fire(...)
-					end
-				end)
-			end
-			return obj1
-		elseif type(obj1) == "table" and type(obj2) == "table" then
-			-- 
-		else
-			error("Invalid concat!", type(obj1), type(obj2),"Expected function/connection(table), connection(table)/function")
-		end
-		return cn
-	end,
-	__add = function(c1,c2) -- Or
-		local cn = self:newConnection()
-		c1(function(...)
-			cn:Fire(...)
-		end)
-		c2(function(...)
-			cn:Fire(...)
-		end)
-		return cn
-	end,
-	__mul = function(c1,c2) -- And
-		local cn = self:newConnection()
-		local ref1, ref2
-		if c1.__hasInstances == nil then
-			cn.__hasInstances = {2}
-			cn.__count = {0}
-		else
-			cn.__hasInstances = c1.__hasInstances
-			cn.__hasInstances[1] = cn.__hasInstances[1] + 1
-			cn.__count = c1.__count
-		end
+    -- Helper: register a child connection for cleanup
+    local function trackChild(cn)
+        c._child_conns[#c._child_conns + 1] = cn
+        return cn
+    end
 
-		ref1 = c1(function(...)
-			cn.__count[1] = cn.__count[1] + 1
-			c1:Lock(ref1)
-			if cn.__count[1] == cn.__hasInstances[1] then
-				cn:Fire(...)
-				cn.__count[1] = 0
-				c1:Unlock(ref1)
-				c2:Unlock(ref2)
-			end
-		end)
+    setmetatable(c, {
+        __call = function(self, ...)
+            local t = ...
+            if type(t) == "table" then
+                for i, v in pairs(t) do
+                    if v == self then
+                        local ref = self:Connect(select(2, ...))
+                        if ref then
+                            ref.root_link = select(1, ...)
+                            return ref
+                        end
+                        return self
+                    end
+                end
+                return self:Connect(...)
+            else
+                return self:Connect(...)
+            end
+        end,
 
-		ref2 = c2(function(...)
-			cn.__count[1] = cn.__count[1] + 1
-			c2:Lock(ref2)
-			if cn.__count[1] == cn.__hasInstances[1] then
-				cn:Fire(...)
-				cn.__count[1] = 0
-				c1:Unlock(ref1)
-				c2:Unlock(ref2)
-			end
-		end)
-		return cn
-	end})
+        __unm = function(obj)
+            local conns = obj:Bind({})
+            for i = #conns, 1, -1 do
+                obj.rawadd = true
+                obj(conns[i])
+                obj.rawadd = false
+            end
+            return obj
+        end,
+
+        __mod = function(obj1, obj2)
+            local cn = trackChild(self:newConnection())
+            if (type(obj1) == "function" or type(obj1) == "table" and obj1.Type == multi.registerType("function", "functions")) and type(obj2) == "table" then
+                obj2(function(...)
+                    cn:Fire(obj1(...))
+                end)
+            elseif type(obj1) == "table" and (type(obj2) == "function" or type(obj2) == "table" and obj2.Type == multi.registerType("function", "functions")) then
+                local conns = obj1:Bind({})
+                for i = 1, #conns do
+                    obj1(function(...)
+                        conns[i](obj2(...))
+                    end)
+                end
+                obj1.__connectionAdded = function(conn, func)
+                    obj1:Unconnect(conn)
+                    obj1.rawadd = true
+                    obj1:Connect(function(...)
+                        func(obj2(...))
+                    end)
+                    obj1.rawadd = false
+                end
+                return obj1
+            else
+                multi.error("Invalid mod!", type(obj1), type(obj2), "Expected function, connection(table)")
+            end
+            return cn
+        end,
+
+        __div = function(obj1, obj2)
+            local cn = trackChild(self:newConnection())
+            if type(obj1) == "function" and type(obj2) == "table" then
+                obj2(function(...)
+                    local args = { obj1(...) }
+                    if args[1] then
+                        table.remove(args, 1)
+                        cn:Fire(multi.unpack(args))
+                    end
+                end)
+            else
+                multi.error("Invalid divide!", type(obj1), type(obj2), "Expected function/connection(table)")
+            end
+            return cn
+        end,
+
+        __concat = function(obj1, obj2)
+            local cn = trackChild(self:newConnection())
+            local ref
+            if type(obj1) == "function" and type(obj2) == "table" then
+                cn(function(...)
+                    if obj1(...) == true then
+                        obj2:Fire(...)
+                    end
+                end)
+                cn.__connectionAdded = function(conn, func)
+                    cn:Unconnect(conn)
+                    obj2:Connect(func)
+                end
+            elseif type(obj1) == "table" and type(obj2) == "function" then
+                ref = cn(function(...)
+                    obj1:Fire(...)
+                    obj2(...)
+                end)
+                cn.__connectionAdded = function()
+                    cn.rawadd = true
+                    cn:Unconnect(ref)
+                    ref = cn(function(...)
+                        if obj2(...) then
+                            obj1:Fire(...)
+                        end
+                    end)
+                end
+                return cn
+            elseif type(obj1) == "table" and type(obj2) == "table" then
+                -- reserved
+            else
+                error("Invalid concat!", type(obj1), type(obj2), "Expected function/connection(table), connection(table)/function")
+            end
+            return cn
+        end,
+
+        __add = function(c1, c2)  -- Or
+            local cn = trackChild(self:newConnection())
+            c1(function(...) cn:Fire(...) end)
+            c2(function(...) cn:Fire(...) end)
+            return cn
+        end,
+
+        __mul = function(c1, c2)  -- And
+            local cn = trackChild(self:newConnection())
+            local ref1, ref2
+            if c1.__hasInstances == nil then
+                cn.__hasInstances = {2}
+                cn.__count = {0}
+            else
+                cn.__hasInstances = c1.__hasInstances
+                cn.__hasInstances[1] = cn.__hasInstances[1] + 1
+                cn.__count = c1.__count
+            end
+
+            ref1 = c1(function(...)
+                cn.__count[1] = cn.__count[1] + 1
+                c1:Lock(ref1)
+                if cn.__count[1] == cn.__hasInstances[1] then
+                    cn:Fire(...)
+                    cn.__count[1] = 0
+                    c1:Unlock(ref1)
+                    c2:Unlock(ref2)
+                end
+            end)
+
+            ref2 = c2(function(...)
+                cn.__count[1] = cn.__count[1] + 1
+                c2:Lock(ref2)
+                if cn.__count[1] == cn.__hasInstances[1] then
+                    cn:Fire(...)
+                    cn.__count[1] = 0
+                end
+            end)
+            return cn
+        end,
+    })
+
+    -- ... (Type, ID, FC setup, Lock/Unlock, Fire, Connect, Bind, etc. unchanged) ...
+
+    --- Destroy this connection and all resources it owns.
+    -- Recursively destroys any connections created by operator overloads (+, *, %, /, ..).
+    -- Safe to call multiple times.
+    function c:Destroy()
+        if self.destroyed then return end
+        self.destroyed = true
+
+        -- Unlock first so any in-progress Fire() calls drain cleanly
+        lock = false
+
+        -- Destroy operator-spawned child connections recursively
+        for i = 1, #self._child_conns do
+            local child = self._child_conns[i]
+            if child and type(child.Destroy) == "function" and not child.destroyed then
+                child:Destroy()
+            end
+        end
+        self._child_conns = {}
+
+        -- Null out root_link back-references on all connection handles
+        for key, _ in pairs(fast) do
+            if type(key) == "string" then
+                local handle = fast[key]
+                if type(handle) == "table" and rawget(handle, "root_link") then
+                    handle.root_link = nil
+                end
+            end
+        end
+
+        -- Adjust subscription count on parent before wiping fast[]
+        if self.Parent and self.Parent.connection_subscriptions then
+            self.Parent.connection_subscriptions =
+                math.max(0, self.Parent.connection_subscriptions - #fast)
+        end
+
+        -- Clear all stored callbacks
+        fast = {}
+
+        -- Remove from parent's object list
+        if self.Parent then
+            for i = 1, #self.Parent do
+                if self.Parent[i] == self then
+                    table.remove(self.Parent, i)
+                    break
+                end
+            end
+        end
+
+        -- Detach hooks so stale references can't re-fire into dead state
+        self.__connectionAdded = function() end
+        self.Connect    = function() multi:warning("Connect called on destroyed connection") end
+        self.Fire       = function() end
+        self.Bind       = function() return {} end
+        self.Unconnect  = function() end
+        self.Lock       = function() return self end
+        self.Unlock     = function() return self end
+
+        if self.Parent and self.Parent.connection_count then
+            self.Parent.connection_count = math.max(0, self.Parent.connection_count - 1)
+        end
+
+        self.Parent = nil
+    end
+
+    -- Alias
+    c.destroy = c.Destroy
 
 	c.Type=multi.registerType("connector", "connections")
 	c.func={}
@@ -448,6 +538,7 @@ function multi:newConnection(protect,func,kill)
 		for i = 1, #fast do
 			if fast[conn.ref] == fast[i] then
 				table.remove(self)
+				self.Parent.connection_subscriptions = self.Parent.connection_subscriptions - 1
 				return table.remove(fast, i), i
 			end
 		end
@@ -482,6 +573,7 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Connect(func, name)
+		self.Parent.connection_subscriptions = self.Parent.connection_subscriptions + 1
 		local th 
 		if thread.getRunningThread then
 			th = thread.getRunningThread()
@@ -521,6 +613,10 @@ function multi:newConnection(protect,func,kill)
 		temp.ref = multi.randomString(24)
 		fast[temp.ref] = func
 		temp.name = name
+		temp.link = self
+		function temp:Unconnect()
+			self.link:Unconnect(self)
+		end
 		if self.rawadd then
 			self.rawadd = false
 		else
@@ -532,7 +628,9 @@ function multi:newConnection(protect,func,kill)
 
 	function c:Bind(t)
 		local temp = fast
+		self.Parent.connection_subscriptions = self.Parent.connection_subscriptions - #fast
 		fast=t
+		self.Parent.connection_subscriptions = self.Parent.connection_subscriptions + #t
 		return temp
 	end
 
@@ -542,6 +640,7 @@ function multi:newConnection(protect,func,kill)
 
 	function c:Remove()
 		local temp = fast
+		self.Parent.connection_subscriptions = self.Parent.connection_subscriptions - #fast
 		fast={}
 		return temp
 	end
@@ -610,10 +709,10 @@ function multi:SetTime(n)
 	c.OnTimedOut = self:newConnection()
 	c.OnTimerResolved = self:newConnection()
 	self._timer=c.timer
-	function c:Act()
+	function c:Act(dt)
 		if self.timer:Get()>=self.set then
 			self.link:Pause()
-			self.OnTimedOut:Fire(self.link)
+			self.OnTimedOut:Fire(self.link,dt)
 			self:Destroy()
 			return true
 		end
@@ -698,17 +797,12 @@ function multi:isDone()
 	return self.Active~=true
 end
 
-local time = os.time
-local ok, chronos = pcall(require, "chronos") -- hpc
-
-if ok then
-	math.randomseed(chronos.nanotime()*100000000)
-else
-	math.randomseed(time())
-end
-
 function multi:create(ref)
 	ref.UID = multi.generate_uuid7()
+	ref.UPTIME = clock()
+	if ref.setPriority then
+		ref:setPriority("normal")
+	end
 	self.OnObjectCreated:Fire(ref, self)
 	return self
 end
@@ -813,12 +907,12 @@ end
 function multi:newEvent(task, func)
 	local c,err=self:newBase(multi.registerType("event", "events"))
 	local task = task or function() end
-	function c:Act()
+	function c:Act(dt)
 		local t = task(self)
 		if t then
 			self:Pause()
 			self.returns = t
-			self.OnEvent:Fire(self)
+			self.OnEvent:Fire(self,dt)
 			return true
 		end
 	end
@@ -840,10 +934,10 @@ function multi:newUpdater(skip, func)
 	local c,err=self:newBase(multi.registerType("updater", "updaters"))
 	local pos = 1
 	local skip = skip or 1
-	function c:Act()
+	function c:Act(dt)
 		if pos >= skip then
 			pos = 0
-			self.OnUpdate:Fire(self)
+			self.OnUpdate:Fire(self,dt)
 			return true
 		end
 		pos = pos+1
@@ -867,11 +961,11 @@ function multi:newAlarm(set, func)
 	c.set=set or 0
 	local count = 0
 	local t = clock()
-	function c:Act()
+	function c:Act(dt)
 		if clock()-t>=self.set then
 			self:Pause()
 			self.Active=false
-			self.OnRing:Fire(self)
+			self.OnRing:Fire(self,dt)
 			t = clock()
 			return true
 		end
@@ -905,13 +999,13 @@ function multi:newLoop(func, notime)
 	local c,err=self:newBase(multi.registerType("loop", "loops"))
 	local start=clock()
 	if notime then
-		function c:Act()
-			self.OnLoop:Fire(self)
+		function c:Act(dt)
+			self.OnLoop:Fire(self,nil,dt)
 			return true
 		end
 	else
-		function c:Act()
-			self.OnLoop:Fire(self,clock()-start)
+		function c:Act(dt)
+			self.OnLoop:Fire(self,clock()-start,dt)
 			return true
 		end
 	end
@@ -941,13 +1035,13 @@ function multi:newStep(start,reset,count,skip)
 			think=-1
 		end
 	end
-	function c:Act()
+	function c:Act(dt)
 		if self~=nil then
 			if self.spos==0 then
 				if self.pos==self.start then
 					self.OnStart:Fire(self)
 				end
-				self.OnStep:Fire(self,self.pos)
+				self.OnStep:Fire(self,self.pos,dt)
 				self.pos=self.pos+self.count
 				if self.pos-self.count==self.endAt then
 					self:Pause()
@@ -993,11 +1087,11 @@ function multi:newTLoop(func, set)
 	c.life=0
 	c:setPriority("Low")
 
-	function c:Act()
+	function c:Act(dt)
 		if self.timer:Get() >= self.set then
 			self.life=self.life+1
 			self.timer:Reset()
-			self.OnLoop:Fire(self, self.life)
+			self.OnLoop:Fire(self, self.life,dt)
 			return true
 		end
 	end
@@ -1052,13 +1146,13 @@ function multi:newTStep(start,reset,count,set)
 		self:Resume()
 		return self
 	end
-	function c:Act()
+	function c:Act(dt)
 		if clock()-self.timer>=self.set then
 			self:Reset()
 			if self.pos==self.start then
 				self.OnStart:Fire(self)
 			end
-			self.OnStep:Fire(self,self.pos)
+			self.OnStep:Fire(self,self.pos,dt)
 			self.pos=self.pos+self.count
 			if self.pos-self.count==self.endAt then
 				self:Pause()
@@ -1181,9 +1275,11 @@ function multi:newProcessor(name, opts, priority)
 	end
 
 	sandcount = sandcount + 1
+	c.connection_count = 0
+	c.connection_subscriptions = 0
 	c.Mainloop = {}
 	c.Type = multi.registerType("process", "processes")
-	local Active =  nothread or false
+	local Active = nothread or false
 	local task_delay = 0
 	c.Name = name or ""
 	c.tasks = {}
@@ -1196,7 +1292,7 @@ function multi:newProcessor(name, opts, priority)
 	local handler
 
 	if type(opts) == "table" then
-		priority = opts.Priority or false
+		priority = opts.Priority
 		Active = opts.Start or false
 		maxThreads = opts.MaxThreads or -1
 		maxObjects = opts.MaxObjects or -1
@@ -1207,7 +1303,7 @@ function multi:newProcessor(name, opts, priority)
 		end
 	end
 
-	if priority then
+	if priority or multi.defaultSettings.priority then
 		handler = c:createPriorityHandler(c)
 	else
 		handler = c:createHandler(c)
@@ -1280,33 +1376,37 @@ function multi:newProcessor(name, opts, priority)
 	function c:boost(count)
 		boost = count or 1
 		if boost > 1 then
-			self.run = function()
+			self.run = function(dt)
 				if not Active then return end
 				for i=1,boost do
-					c:uManager(true)
+					c:uManager(dt)
 					handler()
 				end
 				return c
 			end
 		else
-			self.run = function()
+			self.run = function(dt)
 				if not Active then return end
-				c:uManager(true)
+				c:uManager(dt)
 				handler()
 				return c
 			end
 		end
 	end
 
-	function c.run()
+	function c.run(dt)
 		if not Active then return end
-		c:uManager(true)
+		c:uManager(dt)
 		handler()
 		return c
 	end
 
 	function c.isActive()
 		return Active
+	end
+
+	function c:isPaused()
+		return not(Active)
 	end
 
 	function c.Start()
@@ -1321,7 +1421,9 @@ function multi:newProcessor(name, opts, priority)
 
 	function c:Destroy()
 		Active = false
-		c.process:Destroy()
+		if c.process then
+			c.process:Destroy()
+		end
 	end
 
 	function c:setTaskDelay(delay)
@@ -1517,8 +1619,9 @@ function thread.skip(n)
 	return yield(CMD, t_skip, n or 1)
 end
 
-function thread.kill()
-	multi.error("thread killed!")
+function thread.kill(msg)
+	msg = msg or "thread killed!"
+	multi.error(msg)
 end
 
 function thread.yield()
@@ -1550,7 +1653,8 @@ function thread.get(name)
 end
 
 function thread.waitFor(name)
-	thread.hold(function() return thread.get(name)~=nil end)
+	local check = function() return thread.get(name)~=nil end
+	thread.hold(check)
 	return thread.get(name)
 end
 
@@ -1578,6 +1682,7 @@ function thread:newFunctionBase(generator, holdme, TYPE)
 		local tfunc = {
 			GetCreationTimestamp = function() return multi.extract_uuid7_timestamp(UID).iso8601 end,
 		}
+		tfunc.UPTIME = clock()
 		tfunc.Active = true
 		function tfunc:Pause()
 			self.Active = false
@@ -1592,17 +1697,18 @@ function thread:newFunctionBase(generator, holdme, TYPE)
 			return nil, "Function is paused"
 		end
 		local rets, err
+		local check = function()
+			if err then
+				return multi.NIL, err
+			elseif rets then
+				local g = rets
+				rets = nil
+				return cleanReturns((g[1] or multi.NIL),g[2],g[3],g[4],g[5],g[6],g[7],g[8],g[9],g[10],g[11],g[12],g[13],g[14],g[15],g[16])
+			end
+		end
 		local function wait()
 			if thread.isThread() then
-				return thread.hold(function()
-					if err then
-						return multi.NIL, err
-					elseif rets then
-						local g = rets
-						rets = nil
-						return cleanReturns((g[1] or multi.NIL),g[2],g[3],g[4],g[5],g[6],g[7],g[8],g[9],g[10],g[11],g[12],g[13],g[14],g[15],g[16])
-					end
-				end)
+				return thread.hold(check)
 			else
 				while not rets and not err do
 					multi:uManager()
@@ -1751,7 +1857,7 @@ function thread:newThread(name, func, ...)
 	multi.OnLoad:Fire() -- This was done incase a threaded function was called before mainloop/uManager was called
 	if type(name) == "function" then
 		func = name
-		name = "UnnamedThread_"..multi.randomString(16)
+		name = "UnnamedThread_"..multi.randomString(4)
 	end
 	local c={nil,nil,nil,nil,nil,nil,nil}
 	c.TempRets = {nil,nil,nil,nil,nil,nil,nil,nil,nil,nil}
@@ -2326,7 +2432,7 @@ function multi.init(settings, realsettings)
 	return _G["$multi"].multi,_G["$multi"].thread
 end
 
-function multi:uManager()
+function multi:uManager(dt)
 	if self.Active then
 		__CurrentProcess = self
 		multi.OnPreLoad:Fire()
@@ -2335,7 +2441,7 @@ function multi:uManager()
 	end
 end
 
-function multi:uManagerRefP1()
+function multi:uManagerRefP1(dt)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
@@ -2343,7 +2449,7 @@ function multi:uManagerRefP1()
 			__CurrentTask = Loop[_D]
 			for P=1,9 do
 				if PList[P]%__CurrentTask.Priority==0 then
-					__CurrentTask:Act()
+					__CurrentTask:Act(dt)
 					__CurrentProcess = self
 				end
 			end
@@ -2351,13 +2457,13 @@ function multi:uManagerRefP1()
 	end
 end
 
-function multi:uManagerRef()
+function multi:uManagerRef(dt)
 	if self.Active then
 		__CurrentProcess = self
 		local Loop=self.Mainloop
 		for _D=#Loop,1,-1 do
 			__CurrentTask = Loop[_D]
-			__CurrentTask:Act()
+			__CurrentTask:Act(dt)
 			__CurrentProcess = self
 		end
 	end
@@ -2397,7 +2503,7 @@ function multi:enableLoadDetection()
 	local temp = self:newProcessor()
 	local t = clock()
 	local stop = false
-	temp:benchMark(.01):OnBench(function(time,steps)
+	temp:benchMark(.1):OnBench(function(time,steps)
 		stop = steps
 	end)
 	while not stop do
@@ -2410,28 +2516,39 @@ end
 local lastVal = 0
 local last_step = 0
 
-function multi:getLoad()
-	if not multi.maxSpd then multi:enableLoadDetection() end
+function multi:getLoad(loops)
+	local proc = proc or multi
+	if not proc.maxSpd then proc:enableLoadDetection() end
 	local val = nil
 	local bench
 	local bb
-	self:benchMark(.01).OnBench(function(time,steps)
-		bench = steps
-		bb = steps
-	end)
-	_,timeout = multi.hold(function()
-		return bench
-	end,{sleep=.012})
+	local avg = 0
+	local loops = loops or 5
+	for i=1,loops do
+		self:benchMark(1).OnBench(function(time,steps)
+			bench = steps
+			bb = steps
+			avg = avg + steps
+			if steps > proc.maxSpd then
+				proc.maxSpd = steps
+			end
+		end)
+		_,timeout = multi.hold(function()
+			return bench
+		end,{sleep=1.1})
+	end
+	avg = avg/loops
 	if timeout or not bench then
 		bench = 0
 		bb = 0
 	end
 	bench = bench^1.5
-	val = math.ceil((1-(bench/(multi.maxSpd/2.2)))*100)
+	val = math.ceil((1-(bench/(proc.maxSpd/2.2)))*100)
 	if val<0 then val = 0 end
 	if val > 100 then val = 100 end
 	lastVal = val
 	last_step = bb*100
+	print(proc.maxSpd, bench, bench/proc.maxSpd/2.2,val)
 	return val,last_step
 end
 
@@ -2532,8 +2649,8 @@ function multi:benchMark(sec,p,pt)
 end
 
 function multi.Round(num, numDecimalPlaces)
-	local mult = 10^(numDecimalPlaces or 0)
-	return math.floor(num * mult + 0.5) / mult
+	local mult = 10 ^ (numDecimalPlaces or 0)
+    return math.floor((num * mult) + 0.5 + 1e-10) / mult
 end
   
 function multi.AlignTable(tab)
@@ -2582,6 +2699,12 @@ end
 function multi:reallocate(processor, index)
 	index=index or #processor.Mainloop+1
 	local int=self.Parent
+	for i = #int.Mainloop, 1, -1 do
+		if int.Mainloop[i] == self then
+			table.remove(int.Mainloop,i)
+			break
+		end
+	end
 	self.Parent=processor
 	if index then
 		table.insert(processor.Mainloop, index, self)
@@ -2679,11 +2802,8 @@ local function random_hex(len)
 	end
 	return result
 end
-
+math.randomseed(os.time())
 multi.generate_uuid7 = function()
-    -- Seed random number generator with current time
-    math.randomseed(os.time() * os.clock() * 1000000)
-    
     -- Get timestamp in milliseconds
     local timestamp_ms = get_timestamp_ms()
     
