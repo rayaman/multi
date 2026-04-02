@@ -92,7 +92,11 @@ function multi.getTypes()
 	return types
 end
 
-multi.Version = "16.3.0"
+function multi.setClock(c)
+	clock = c
+end
+
+multi.Version = "16.3.0-testing"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
 local NIL = multi.NIL
@@ -567,7 +571,9 @@ function multi:newConnection(protect,func,kill)
 		function c:Fire(...)
 			if lock then return end
 			for i=1,#fast do
-				fast[i](...)
+				if fast[i] then
+					fast[i](...)
+				end
 			end
 		end
 	end

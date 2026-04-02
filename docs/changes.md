@@ -70,6 +70,7 @@ Added
 - Better Destroy logic for connections
 - Added UPTIME to all objects in the library via the create hook
 - added `proc:isPaused()` to processors
+- `multi.setClock(c)` allows you to set the internal clock used by the multi core. For example on linux os.clock doesn't give time elapsed since the program started like it does on windows. This method allows one to swap that out.
 
 Changed
 ---
