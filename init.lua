@@ -496,7 +496,8 @@ function multi:newConnection(protect,func,kill)
 
 	function c:Unlock(conn)
 		if conn and conn.lock then
-			for i = 1, #fast do
+			local n = #fast
+			for i = 1, n do
 				if conn.lock == fast[i] then
 					fast[i] = fast[conn.ref]
 					return self
@@ -512,12 +513,13 @@ function multi:newConnection(protect,func,kill)
 		function c:Fire(...)
 			if lock then return end
 			local kills = {}
-			for i=1,#fast do
+			local n = #fast
+			for i=1, n do
 				local suc, err = pcall(fast[i], ...)
 				if not suc then
 					multi.error(err)
 				end
-				if kill then
+				if kill and n > 0 then
 					table.insert(kills,i)
 					processor:newTask(function()
 						for _, k in pairs(kills) do
@@ -592,11 +594,12 @@ function multi:newConnection(protect,func,kill)
 				__CurrentConnectionThread = nil
 			end
 		end
+		local ref = multi.randomString(24)
 		table.insert(fast, func)
 		if name then 
 			fast[name] = func 
 		else 
-			fast["Conn_"..multi.randomString(12)] = func
+			fast["Conn_"..ref:sub(1, 12)] = func
 		end
 		local temp = {fast = true}
 		setmetatable(temp,{
@@ -616,7 +619,7 @@ function multi:newConnection(protect,func,kill)
 				rawset(t,k,v)
 			end,
 		})
-		temp.ref = multi.randomString(24)
+		temp.ref = ref
 		fast[temp.ref] = func
 		temp.name = name
 		temp.link = self
