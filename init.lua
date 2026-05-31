@@ -2504,7 +2504,7 @@ function table.merge(t1, t2)
 	return t1
 end
 
-math.randomseed(os.time())
+math.randomseed(math.floor(os.time()))
 
 function multi:enableLoadDetection()
 	if multi.maxSpd then return end
@@ -2811,7 +2811,7 @@ local function random_hex(len)
 	end
 	return result
 end
-math.randomseed(os.time())
+math.randomseed(math.floor(os.time()))
 multi.generate_uuid7 = function()
     -- Get timestamp in milliseconds
     local timestamp_ms = get_timestamp_ms()
