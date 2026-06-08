@@ -92,10 +92,6 @@ function multi.getTypes()
 	return types
 end
 
-function multi.setClock(c)
-	clock = c
-end
-
 multi.Version = "16.3.0-testing"
 multi.Name = "root"
 multi.NIL = {Type="NIL"}
