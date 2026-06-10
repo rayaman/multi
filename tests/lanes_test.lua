@@ -5,7 +5,7 @@
     Requires multi.lua to be in the same directory or on the Lua path.
     Compatible with Lua 5.1, 5.2, 5.3, 5.4, and LuaJIT.
 ]]
-package.path = "?/init.lua;?.lua;../?/init.lua;../?.lua;" .. package.path
+package.path = "../?/init.lua;../?.lua;../init.lua;../?.lua;" .. package.path
 
 -- ─────────────────────────────────────────────
 -- Minimal test runner

@@ -577,6 +577,9 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Connect(func, name)
+		if func == nil then 
+			multi.error("You must provide a valid function when calling a connection")
+		end
 		self.Parent.connection_subscriptions = self.Parent.connection_subscriptions + 1
 		local th 
 		if thread.getRunningThread then
