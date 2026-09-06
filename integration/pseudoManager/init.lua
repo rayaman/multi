@@ -23,9 +23,7 @@ SOFTWARE.
 ]]
 package.path = "?/init.lua;?.lua;" .. package.path
 local multi, thread = require("multi"):init()
-
 local pseudoProcessor = multi:newProcessor()
-
 if multi.integration then
 	return {
 		init = function()
