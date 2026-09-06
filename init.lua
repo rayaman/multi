@@ -47,7 +47,6 @@ local function uni()
 	return multi.DestroyedObj
 end
 
-local function uniN() end
 function multi.setType(obj,t)
 	if t == multi.DestroyedObj then
 		for i,v in pairs(obj) do
@@ -154,7 +153,7 @@ function multi:isType(type)
 	return self.Type == type
 end
 
-multi.connection_count = 0
+multi.connection_count = {}
 multi.connection_subscriptions = 0
 
 function multi:getStats()
@@ -164,7 +163,7 @@ function multi:getStats()
 			tasks = multi.Mainloop,
 			name = "root",
 			fullName = "root",
-			connections = self.connection_count,
+			connections = #self.connection_count,
 			subscriptions = self.connection_subscriptions
 		}
 	}
@@ -176,7 +175,7 @@ function multi:getStats()
 			tasks = proc.Mainloop,
 			name = proc:getName(),
 			fullName = proc:getFullName(),
-			connections = proc.connection_count,
+			connections = #proc.connection_count,
 			subscriptions = proc.connection_subscriptions
 		}
 	end
@@ -226,16 +225,17 @@ local ignoreconn = true
 local empty_func = function() end
 
 function multi:newConnection(protect,func,kill)
-	self.connection_count = self.connection_count + 1
     local processor = self
     local c = {}
     local lock = false
     local fast = {}
+	table.insert(self.connection_count, c)
     c.__connectionAdded = function() end
     c.rawadd = false
     c.Parent = self
     c._child_conns = {}   -- tracks connections spawned by operators
     c.destroyed = false
+	c.conditional = func
 
     -- Helper: register a child connection for cleanup
     local function trackChild(cn)
@@ -455,7 +455,12 @@ function multi:newConnection(protect,func,kill)
         self.Unlock     = function() return self end
 
         if self.Parent and self.Parent.connection_count then
-            self.Parent.connection_count = math.max(0, self.Parent.connection_count - 1)
+			for i,v in pairs(self.Parent.connection_count) do
+				if v == c then
+					table.remove(self.Parent.connection_count, i)
+					break
+				end
+			end
         end
 
         self.Parent = nil
@@ -508,6 +513,9 @@ function multi:newConnection(protect,func,kill)
 	if protect then
 		function c:Fire(...)
 			if lock then return end
+			if c.conditional and not c.conditional(...) then
+				return
+			end
 			local kills = {}
 			local n = #fast
 			for i=1, n do
@@ -537,8 +545,17 @@ function multi:newConnection(protect,func,kill)
 	end
 
 	function c:Unconnect(conn)
+		local target = fast[conn.ref]
+		if not target then return end  -- already removed
+
 		for i = 1, #fast do
-			if fast[conn.ref] == fast[i] then
+			if fast[i] == target then
+				fast[conn.ref] = nil
+				if conn.name then
+					fast[conn.name] = nil
+				else
+					fast["Conn_" .. conn.ref:sub(1, 12)] = nil
+				end
 				table.remove(self)
 				self.Parent.connection_subscriptions = self.Parent.connection_subscriptions - 1
 				return table.remove(fast, i), i
@@ -552,6 +569,9 @@ function multi:newConnection(protect,func,kill)
 		local kills = {}
 		function c:Fire(...)
 			if lock then return end
+			if c.conditional and not c.conditional(...) then
+				return
+			end
 			for i=1,#fast do
 				fast[i](...)
 				if kill then
@@ -568,6 +588,9 @@ function multi:newConnection(protect,func,kill)
 	else
 		function c:Fire(...)
 			if lock then return end
+			if c.conditional and not c.conditional(...) then
+				return
+			end
 			for i=1,#fast do
 				if fast[i] then
 					fast[i](...)
@@ -662,10 +685,6 @@ function multi:newConnection(protect,func,kill)
 	c.GetConnection=c.getConnection
 	c.HasConnections = c.hasConnections
 	c.GetConnection = c.getConnection
-
-	if func then
-		c = c .. func
-	end
 
 	if not(ignoreconn) then
 		if not self then return c end
@@ -1283,7 +1302,7 @@ function multi:newProcessor(name, opts, priority)
 	end
 
 	sandcount = sandcount + 1
-	c.connection_count = 0
+	c.connection_count = {}
 	c.connection_subscriptions = 0
 	c.Mainloop = {}
 	c.Type = multi.registerType("process", "processes")
@@ -2556,7 +2575,6 @@ function multi:getLoad(loops)
 	if val > 100 then val = 100 end
 	lastVal = val
 	last_step = bb*100
-	print(proc.maxSpd, bench, bench/proc.maxSpd/2.2,val)
 	return val,last_step
 end
 
