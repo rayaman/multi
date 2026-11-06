@@ -1783,6 +1783,7 @@ function thread:newFunctionBase(generator, holdme, TYPE)
 					return tempConn
 				end
 			}
+			temp.Connect = temp.connect
 			t.OnDeath(function(...) temp.OnReturn:Fire(...) end) 
 			t.OnError(function(self,err) temp.OnError:Fire(err) temp.OnError(multi.error) end)
 			t.linkedFunction = temp
